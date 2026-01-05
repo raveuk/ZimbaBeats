@@ -267,7 +267,7 @@ Contributions to ZimbaBeats are welcome. Please adhere to the following procedur
 
 ## Support
 
-If you find ZimbaBeats useful, consider supporting the development:
+Supporting the development:
 
 <a href="https://buymeacoffee.com/zimbabeats">
   <img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-support-yellow?style=for-the-badge&logo=buy-me-a-coffee" alt="Buy Me a Coffee"/>
