@@ -143,7 +143,7 @@ Timely reporting of issues is essential for maintaining application stability an
 
 **License:** GNU General Public License v3.0 (Open Source)
 
-<a href="https://github.com/raveuk/ZimbaBeats/releases/download/v1.0.4/ZimbaBeats.apk">
+<a href="https://github.com/raveuk/ZimbaBeats/releases/download/v1.0.5/ZimbaBeats.apk">
   <img src="https://img.shields.io/badge/Download-ZimbaBeats-blue?style=for-the-badge&logo=android" alt="Download ZimbaBeats"/>
 </a>
 
