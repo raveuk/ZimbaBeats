@@ -12,6 +12,9 @@
   <a href="https://github.com/raveuk/ZimbaBeats/releases/latest">
     <img src="https://img.shields.io/github/v/release/raveuk/ZimbaBeats?style=flat-square&logo=github" alt="Release"/>
   </a>
+    <a href="https://github.com/raveuk/ZimbaBeats/releases/latest">
+    <img src="https://img.shields.io/github/v/release/raveuk/ZimbaBeats?style=flat-square&logo=github" alt="Release"/>
+  </a>
   <a href="https://github.com/raveuk/ZimbaBeats/releases">
     <img src="https://img.shields.io/github/downloads/raveuk/ZimbaBeats/total?style=flat-square&logo=android" alt="Downloads"/>
   </a>
