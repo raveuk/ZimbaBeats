@@ -149,14 +149,29 @@ class ParentalControlBridge(
 
     /**
      * Parse age rating string to age level constant.
+     * Handles both Family app format (UNDER_X) and normalized format (X_PLUS)
      */
     private fun parseAgeRating(ageRating: String): Int {
         return when (ageRating.uppercase()) {
             "ALL", "G" -> RestrictionState.AGE_LEVEL_ALL
+            // Family app format
             "UNDER_5", "5" -> RestrictionState.AGE_LEVEL_UNDER_5
             "UNDER_8", "8", "PG" -> RestrictionState.AGE_LEVEL_UNDER_8
+            "UNDER_10", "10" -> RestrictionState.AGE_LEVEL_UNDER_10
+            "UNDER_12", "12" -> RestrictionState.AGE_LEVEL_UNDER_12
             "UNDER_13", "13", "PG-13" -> RestrictionState.AGE_LEVEL_UNDER_13
-            else -> RestrictionState.AGE_LEVEL_ALL
+            "UNDER_14", "14" -> RestrictionState.AGE_LEVEL_UNDER_14
+            "UNDER_16", "16" -> RestrictionState.AGE_LEVEL_UNDER_16
+            // Normalized format (from CloudPairingClient)
+            "FIVE_PLUS", "5+" -> RestrictionState.AGE_LEVEL_UNDER_5
+            "TEN_PLUS", "10+" -> RestrictionState.AGE_LEVEL_UNDER_10
+            "TWELVE_PLUS", "12+" -> RestrictionState.AGE_LEVEL_UNDER_12
+            "FOURTEEN_PLUS", "14+" -> RestrictionState.AGE_LEVEL_UNDER_14
+            "SIXTEEN_PLUS", "16+" -> RestrictionState.AGE_LEVEL_UNDER_16
+            else -> {
+                Log.w(TAG, "Unknown age rating: $ageRating, defaulting to ALL")
+                RestrictionState.AGE_LEVEL_ALL
+            }
         }
     }
 

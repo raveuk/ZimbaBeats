@@ -550,11 +550,22 @@ private fun HowItWorksStep(number: Int, text: String) {
 }
 
 private fun formatAgeRating(rating: String): String {
-    return when (rating) {
+    return when (rating.uppercase()) {
         "ALL" -> "All Ages"
+        // Family app format
         "UNDER_5" -> "Under 5"
         "UNDER_8" -> "Under 8"
+        "UNDER_10" -> "Under 10"
+        "UNDER_12" -> "Under 12"
         "UNDER_13" -> "Under 13"
+        "UNDER_14" -> "Under 14"
+        "UNDER_16" -> "Under 16"
+        // Normalized format (from CloudPairingClient)
+        "FIVE_PLUS" -> "Under 5"
+        "TEN_PLUS" -> "Under 10"
+        "TWELVE_PLUS" -> "Under 12"
+        "FOURTEEN_PLUS" -> "Under 14"
+        "SIXTEEN_PLUS" -> "Under 16"
         else -> rating
     }
 }
