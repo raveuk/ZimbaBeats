@@ -35,8 +35,8 @@ android {
         applicationId = "com.zimbabeats"
         minSdk = 24
         targetSdk = 36
-        versionCode = 2
-        versionName = "1.0.2"
+        versionCode = 4
+        versionName = "1.0.4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -81,6 +81,15 @@ android {
     }
     lint {
         abortOnError = false
+    }
+
+    // Rename APK output to ZimbaBeats.apk
+    applicationVariants.all {
+        val variant = this
+        variant.outputs.all {
+            val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
+            output.outputFileName = "ZimbaBeats.apk"
+        }
     }
 }
 
