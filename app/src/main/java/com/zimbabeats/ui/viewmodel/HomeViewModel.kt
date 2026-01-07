@@ -4,6 +4,8 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.zimbabeats.cloud.CloudPairingClient
+import com.zimbabeats.core.domain.filter.AgeGroup
+import com.zimbabeats.core.domain.filter.VideoContentFilter
 import com.zimbabeats.core.domain.model.AgeRating
 import com.zimbabeats.core.domain.model.Video
 import com.zimbabeats.core.domain.repository.SearchRepository
@@ -72,7 +74,8 @@ data class HomeUiState(
 class HomeViewModel(
     private val videoRepository: VideoRepository,
     private val searchRepository: SearchRepository,
-    private val cloudPairingClient: CloudPairingClient
+    private val cloudPairingClient: CloudPairingClient,
+    private val videoContentFilter: VideoContentFilter
 ) : ViewModel() {
 
     // Cloud-based content filter (Firebase)
@@ -142,6 +145,12 @@ class HomeViewModel(
                     "playtime" to "hey bear sensory baby",
                     "storytime" to "simple stories for toddlers"
                 )
+                com.zimbabeats.core.domain.model.AgeRating.EIGHT_PLUS -> mapOf(
+                    "naptime" to "calming music for kids",
+                    "learning" to "blippi educational videos",
+                    "playtime" to "kids games activities",
+                    "storytime" to "animated stories for kids"
+                )
                 com.zimbabeats.core.domain.model.AgeRating.TEN_PLUS -> mapOf(
                     "bedtime" to "lullaby songs for kids sleep",
                     "learning" to "educational videos for kids",
@@ -153,6 +162,12 @@ class HomeViewModel(
                     "creative" to "diy crafts for kids",
                     "explore" to "science experiments for kids",
                     "music" to "kids pop songs dance"
+                )
+                com.zimbabeats.core.domain.model.AgeRating.THIRTEEN_PLUS -> mapOf(
+                    "chill" to "relaxing nature videos",
+                    "creative" to "art projects for tweens",
+                    "explore" to "national geographic kids",
+                    "gaming" to "minecraft gameplay for kids"
                 )
                 com.zimbabeats.core.domain.model.AgeRating.FOURTEEN_PLUS -> mapOf(
                     "trending" to "trending videos for teens",
@@ -187,6 +202,14 @@ class HomeViewModel(
                     VideoCategory("songs", "Baby Songs", "\uD83C\uDFB6", "super simple songs"),
                     VideoCategory("stories", "Simple Stories", "\uD83D\uDCD6", "stories for toddlers")
                 )
+                com.zimbabeats.core.domain.model.AgeRating.EIGHT_PLUS -> listOf(
+                    VideoCategory("nursery", "Nursery Rhymes", "\uD83C\uDFB5", "pinkfong baby shark"),
+                    VideoCategory("educational", "Learning", "\uD83D\uDCDA", "blippi educational videos"),
+                    VideoCategory("cartoons", "Cartoons", "\uD83C\uDFAC", "sesame street episodes"),
+                    VideoCategory("music", "Kids Music", "\uD83C\uDFA4", "little baby bum songs"),
+                    VideoCategory("stories", "Story Time", "\uD83D\uDCD6", "bedtime stories for kids"),
+                    VideoCategory("animals", "Animals", "\uD83D\uDC3E", "animals for kids learning")
+                )
                 com.zimbabeats.core.domain.model.AgeRating.TEN_PLUS -> listOf(
                     VideoCategory("cartoons", "Cartoons", "\uD83C\uDFAC", "peppa pig bluey paw patrol"),
                     VideoCategory("nursery", "Nursery Rhymes", "\uD83C\uDFB5", "nursery rhymes songs"),
@@ -202,6 +225,14 @@ class HomeViewModel(
                     VideoCategory("crafts", "DIY & Crafts", "\u2702\uFE0F", "diy crafts for kids"),
                     VideoCategory("music", "Music", "\uD83C\uDFB5", "kids pop songs"),
                     VideoCategory("animals", "Animals & Nature", "\uD83C\uDF0D", "wild animals documentary kids")
+                )
+                com.zimbabeats.core.domain.model.AgeRating.THIRTEEN_PLUS -> listOf(
+                    VideoCategory("science", "Science", "\uD83D\uDD2C", "national geographic kids"),
+                    VideoCategory("gaming", "Gaming", "\uD83C\uDFAE", "minecraft gameplay"),
+                    VideoCategory("educational", "Educational", "\uD83D\uDCDA", "ted ed videos"),
+                    VideoCategory("crafts", "DIY & Crafts", "\u2702\uFE0F", "diy projects for tweens"),
+                    VideoCategory("music", "Music", "\uD83C\uDFB5", "clean pop songs"),
+                    VideoCategory("nature", "Nature", "\uD83C\uDF0D", "crash course kids")
                 )
                 com.zimbabeats.core.domain.model.AgeRating.FOURTEEN_PLUS -> listOf(
                     VideoCategory("gaming", "Gaming", "\uD83C\uDFAE", "popular gaming videos"),
@@ -242,6 +273,14 @@ class HomeViewModel(
                     PopularChannel("babybus", "BabyBus", null, "babybus"),
                     PopularChannel("msrachel", "Ms Rachel", null, "ms rachel songs for littles")
                 )
+                com.zimbabeats.core.domain.model.AgeRating.EIGHT_PLUS -> listOf(
+                    PopularChannel("pinkfong", "Pinkfong", null, "pinkfong baby shark"),
+                    PopularChannel("littlebabybum", "Little Baby Bum", null, "little baby bum"),
+                    PopularChannel("blippi", "Blippi", null, "blippi videos"),
+                    PopularChannel("sesamestreet", "Sesame Street", null, "sesame street"),
+                    PopularChannel("cocomelon", "Cocomelon", null, "cocomelon"),
+                    PopularChannel("supersimple", "Super Simple", null, "super simple songs")
+                )
                 com.zimbabeats.core.domain.model.AgeRating.TEN_PLUS -> listOf(
                     PopularChannel("cocomelon", "Cocomelon", null, "cocomelon"),
                     PopularChannel("peppapig", "Peppa Pig", null, "peppa pig"),
@@ -257,6 +296,14 @@ class HomeViewModel(
                     PopularChannel("roblox", "Roblox", null, "roblox gameplay"),
                     PopularChannel("natgeo", "Nat Geo Kids", null, "national geographic kids"),
                     PopularChannel("dude", "Dude Perfect", null, "dude perfect")
+                )
+                com.zimbabeats.core.domain.model.AgeRating.THIRTEEN_PLUS -> listOf(
+                    PopularChannel("natgeo", "Nat Geo Kids", null, "national geographic kids"),
+                    PopularChannel("teded", "TED-Ed", null, "ted ed"),
+                    PopularChannel("crashcourse", "Crash Course", null, "crash course kids"),
+                    PopularChannel("minecraft", "Minecraft", null, "minecraft for kids"),
+                    PopularChannel("dude", "Dude Perfect", null, "dude perfect"),
+                    PopularChannel("mrwhosetheboss", "Mrwhosetheboss", null, "mrwhosetheboss")
                 )
                 com.zimbabeats.core.domain.model.AgeRating.FOURTEEN_PLUS -> listOf(
                     PopularChannel("mrbeast", "MrBeast", null, "mrbeast"),
@@ -294,6 +341,12 @@ class HomeViewModel(
                     "super simple songs",
                     "hey bear sensory"
                 )
+                com.zimbabeats.core.domain.model.AgeRating.EIGHT_PLUS -> listOf(
+                    "pinkfong baby shark",
+                    "little baby bum nursery rhymes",
+                    "blippi videos for kids",
+                    "sesame street episodes"
+                )
                 com.zimbabeats.core.domain.model.AgeRating.TEN_PLUS -> listOf(
                     "peppa pig full episodes",
                     "paw patrol",
@@ -305,6 +358,12 @@ class HomeViewModel(
                     "nickelodeon shows",
                     "minecraft for kids",
                     "roblox gameplay"
+                )
+                com.zimbabeats.core.domain.model.AgeRating.THIRTEEN_PLUS -> listOf(
+                    "national geographic kids",
+                    "science experiments for kids",
+                    "ted ed videos",
+                    "crash course kids"
                 )
                 com.zimbabeats.core.domain.model.AgeRating.FOURTEEN_PLUS -> listOf(
                     "teen shows",
@@ -521,13 +580,15 @@ class HomeViewModel(
                     val ageChannels = getChannelsForAge(newAgeLevel)
                     val ageMoods = getMoodSectionsForAge(newAgeLevel)
 
+                    // IMPORTANT: Set isLoading=true BEFORE clearing content to prevent empty state flash
                     _uiState.value = _uiState.value.copy(
                         selectedAgeLevel = newAgeLevel,
                         categories = ageCategories,
                         popularChannels = ageChannels,
                         moodSections = ageMoods,
                         videos = emptyList(),
-                        quickPicks = emptyList()
+                        quickPicks = emptyList(),
+                        isLoading = true
                     )
 
                     // Reload content with new age level
@@ -775,9 +836,28 @@ class HomeViewModel(
     }
 
     /**
-     * Filter videos using Cloud Content Filter (Firebase-based).
-     * When not linked to family, all videos are allowed (unrestricted mode).
-     * When linked, each video is checked against parent-defined restrictions.
+     * Convert AgeRating to AgeGroup for local VideoContentFilter
+     */
+    private fun ageRatingToAgeGroup(ageRating: AgeRating): AgeGroup {
+        return when (ageRating) {
+            AgeRating.ALL -> AgeGroup.UNDER_16
+            AgeRating.FIVE_PLUS -> AgeGroup.UNDER_5
+            AgeRating.EIGHT_PLUS -> AgeGroup.UNDER_8
+            AgeRating.TEN_PLUS -> AgeGroup.UNDER_10
+            AgeRating.TWELVE_PLUS -> AgeGroup.UNDER_12
+            AgeRating.THIRTEEN_PLUS -> AgeGroup.UNDER_13
+            AgeRating.FOURTEEN_PLUS -> AgeGroup.UNDER_14
+            AgeRating.SIXTEEN_PLUS -> AgeGroup.UNDER_16
+        }
+    }
+
+    /**
+     * Filter videos using DUAL-LAYER filtering:
+     * 1. Cloud Content Filter (Firebase-based from parent app)
+     * 2. Local VideoContentFilter with strictMode (for younger age groups)
+     *
+     * For Under 5/8/10, videos must pass BOTH filters to be shown.
+     * This catches content that has no explicit keywords but is still inappropriate.
      */
     private fun filterVideosByBridge(videos: List<Video>): List<Video> {
         // If not linked to family, allow all videos (unrestricted mode)
@@ -787,23 +867,42 @@ class HomeViewModel(
             return videos
         }
 
-        Log.d(TAG, "Filtering ${videos.size} videos via Firebase cloud filter")
+        val currentAgeLevel = _uiState.value.selectedAgeLevel
+        val ageGroup = ageRatingToAgeGroup(currentAgeLevel)
+        val useStrictLocalFilter = currentAgeLevel in listOf(
+            AgeRating.FIVE_PLUS, AgeRating.EIGHT_PLUS, AgeRating.TEN_PLUS
+        )
+
+        Log.d(TAG, "Filtering ${videos.size} videos - Age: ${currentAgeLevel.displayName}, Strict local filter: $useStrictLocalFilter")
 
         val filteredVideos = videos.filter { video ->
+            // LAYER 1: Cloud Content Filter (Firebase-based)
+            val durationSeconds = if (video.duration > 100000) video.duration / 1000 else video.duration
             val blockResult = filter.shouldBlockContent(
                 videoId = video.id,
                 title = video.title,
                 channelId = video.channelId,
                 channelName = video.channelName,
                 description = video.description,
-                durationSeconds = video.duration,
-                isLiveStream = false, // Video model doesn't track live streams
+                durationSeconds = durationSeconds,
+                isLiveStream = false,
                 category = video.category?.name
             )
             if (blockResult.isBlocked) {
-                Log.d(TAG, "BLOCKED video '${video.title}': ${blockResult.message}")
+                Log.d(TAG, "CLOUD BLOCKED: '${video.title}' - ${blockResult.message}")
+                return@filter false
             }
-            !blockResult.isBlocked
+
+            // LAYER 2: Local VideoContentFilter with strictMode (for young kids)
+            if (useStrictLocalFilter) {
+                val localResult = videoContentFilter.filterVideo(video, ageGroup)
+                if (!localResult.allowed) {
+                    Log.d(TAG, "LOCAL BLOCKED: '${video.title}' - ${localResult.reason} (score: ${localResult.score})")
+                    return@filter false
+                }
+            }
+
+            true
         }
 
         Log.d(TAG, "Filtered to ${filteredVideos.size} videos (${videos.size - filteredVideos.size} blocked)")

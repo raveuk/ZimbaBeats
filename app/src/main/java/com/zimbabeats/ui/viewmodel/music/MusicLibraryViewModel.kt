@@ -3,6 +3,7 @@
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.zimbabeats.cloud.CloudPairingClient
 import com.zimbabeats.core.domain.model.music.MusicPlaylist
 import com.zimbabeats.core.domain.model.music.Track
 import com.zimbabeats.core.domain.repository.MusicRepository
@@ -27,12 +28,16 @@ data class MusicLibraryUiState(
 )
 
 class MusicLibraryViewModel(
-    private val musicRepository: MusicRepository
+    private val musicRepository: MusicRepository,
+    private val cloudPairingClient: CloudPairingClient
 ) : ViewModel() {
 
     companion object {
         private const val TAG = "MusicLibraryViewModel"
     }
+
+    // Cloud-based content filter (Firebase)
+    private val contentFilter get() = cloudPairingClient.contentFilter
 
     private val _uiState = MutableStateFlow(MusicLibraryUiState())
     val uiState: StateFlow<MusicLibraryUiState> = _uiState.asStateFlow()
@@ -41,6 +46,28 @@ class MusicLibraryViewModel(
         loadPlaylists()
         loadFavorites()
         loadHistory()
+    }
+
+    /**
+     * Filter tracks using Cloud Content Filter (Firebase-based).
+     * When not linked to family, all tracks are allowed (unrestricted mode).
+     */
+    private fun filterTracks(tracks: List<Track>): List<Track> {
+        val filter = contentFilter ?: return tracks // Unrestricted mode if not linked
+
+        return tracks.filter { track ->
+            val blockResult = filter.shouldBlockMusicContent(
+                trackId = track.id,
+                title = track.title,
+                artistId = track.artistId ?: "",
+                artistName = track.artistName,
+                albumName = track.albumName,
+                genre = null,
+                durationSeconds = track.duration / 1000L,
+                isExplicit = track.isExplicit
+            )
+            !blockResult.isBlocked
+        }
     }
 
     private fun loadPlaylists() {
@@ -54,7 +81,9 @@ class MusicLibraryViewModel(
     private fun loadFavorites() {
         viewModelScope.launch {
             musicRepository.getFavoriteTracks().collect { tracks ->
-                _uiState.value = _uiState.value.copy(favoriteTracks = tracks)
+                val filteredTracks = filterTracks(tracks)
+                Log.d(TAG, "Loaded ${tracks.size} favorites, ${filteredTracks.size} after filtering")
+                _uiState.value = _uiState.value.copy(favoriteTracks = filteredTracks)
             }
         }
     }
@@ -62,7 +91,9 @@ class MusicLibraryViewModel(
     private fun loadHistory() {
         viewModelScope.launch {
             musicRepository.getListeningHistory(100).collect { tracks ->
-                _uiState.value = _uiState.value.copy(historyTracks = tracks)
+                val filteredTracks = filterTracks(tracks)
+                Log.d(TAG, "Loaded ${tracks.size} history tracks, ${filteredTracks.size} after filtering")
+                _uiState.value = _uiState.value.copy(historyTracks = filteredTracks)
             }
         }
     }

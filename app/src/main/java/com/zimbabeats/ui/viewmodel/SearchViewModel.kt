@@ -77,13 +77,15 @@ class SearchViewModel(
         val filter = contentFilter ?: return videos
 
         return videos.filter { video ->
+            // Convert duration to seconds if stored in milliseconds
+            val durationSeconds = if (video.duration > 100000) video.duration / 1000 else video.duration
             val blockResult = filter.shouldBlockContent(
                 videoId = video.id,
                 title = video.title,
                 channelId = video.channelId,
                 channelName = video.channelName,
                 description = video.description,
-                durationSeconds = video.duration,
+                durationSeconds = durationSeconds,
                 isLiveStream = false, // Video model doesn't track live streams
                 category = video.category?.name
             )

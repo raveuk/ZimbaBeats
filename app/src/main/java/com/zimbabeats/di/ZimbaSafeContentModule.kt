@@ -1,5 +1,7 @@
 package com.zimbabeats.di
 
+import com.zimbabeats.core.domain.filter.MusicContentFilter
+import com.zimbabeats.core.domain.filter.VideoContentFilter
 import com.zimbabeats.core.domain.kidzsafe.engine.KidzSafeEngine
 import com.zimbabeats.core.domain.kidzsafe.engine.KidzSafeScorer
 import com.zimbabeats.core.domain.kidzsafe.rules.KeywordBlocklistRule
@@ -32,4 +34,8 @@ val zimbaSafeContentModule = module {
             )
         )
     }
+
+    // Content Filters for age-based filtering
+    single { VideoContentFilter() }
+    single { MusicContentFilter() }
 }

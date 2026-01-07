@@ -98,14 +98,15 @@ fun HomeScreen(
                     )
             ) {
                 TopAppBar(
-                    title = {
-                        Text(
-                            "ZimbaBeats",
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
+                  title = {
+                  Text(
+                    "ZimbaBeats",
+                      style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                          color = MaterialTheme.colorScheme.onSurface
                         )
-                    },
+                  }
+                ,
                     actions = {
                         // Settings gear
                         IconButton(onClick = onNavigateToSettings) {

@@ -6,7 +6,7 @@ object FilterConfig {
 
     val ageConfigs: Map<AgeGroup, AgeConfig> = mapOf(
         AgeGroup.UNDER_5 to AgeConfig(
-            maxDuration = 600,  // 10 min
+            maxDuration = 900,  // 15 min (increased from 10)
             strictMode = true,
             allowedCategories = setOf(
                 VideoCategory.EDUCATION,

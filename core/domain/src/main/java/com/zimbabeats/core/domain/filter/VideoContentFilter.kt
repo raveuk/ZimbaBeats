@@ -71,16 +71,6 @@ class VideoContentFilter {
             val hasSafeIndicator = containsSafeKeyword(textContent)
             val hasKidFriendlyChannel = containsSafeKeyword(video.channelName.lowercase())
 
-            // For Under 5: Be extra strict - suspicious content blocked unless from trusted source
-            if (ageGroup == AgeGroup.UNDER_5) {
-                if (hasSuspiciousPattern) {
-                    return FilterResult(
-                        allowed = false,
-                        reason = "suspicious_for_under_5",
-                        score = 25
-                    )
-                }
-            }
 
             if (!hasSafeIndicator && !hasKidFriendlyChannel) {
                 return FilterResult(
@@ -93,7 +83,7 @@ class VideoContentFilter {
 
         // Calculate score
         val score = calculateVideoScore(video, ageGroup, config)
-        val threshold = if (config.strictMode) 60 else 45
+        val threshold = if (config.strictMode) 55 else 45
 
         if (score < threshold) {
             return FilterResult(allowed = false, reason = "low_score", score = score)

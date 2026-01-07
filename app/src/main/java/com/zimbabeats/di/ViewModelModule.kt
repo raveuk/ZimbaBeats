@@ -29,8 +29,8 @@ val viewModelModule = module {
     // Onboarding screen (with cloud-based family pairing support)
     viewModel { OnboardingViewModel(get(), get()) }
 
-    // Home screen (uses CloudPairingClient for Firebase-based content filtering)
-    viewModel { HomeViewModel(get(), get(), get()) }
+    // Home screen (uses CloudPairingClient + VideoContentFilter for dual-layer filtering)
+    viewModel { HomeViewModel(get(), get(), get(), get()) }
 
     // Search screen (uses CloudPairingClient for Firebase-based content filtering)
     viewModel { SearchViewModel(get(), get()) }
@@ -85,9 +85,9 @@ val viewModelModule = module {
         ArtistDetailViewModel(artistId, get())
     }
 
-    // Album Detail screen
+    // Album Detail screen (uses CloudPairingClient for content filtering)
     viewModel { (albumId: String) ->
-        AlbumDetailViewModel(albumId, get())
+        AlbumDetailViewModel(albumId, get(), get())
     }
 
     // Music Playlist Detail screen
@@ -100,6 +100,6 @@ val viewModelModule = module {
         YouTubeMusicPlaylistViewModel(playlistId, get())
     }
 
-    // Music Library screen
-    viewModel { MusicLibraryViewModel(get()) }
+    // Music Library screen (uses CloudPairingClient for content filtering)
+    viewModel { MusicLibraryViewModel(get(), get()) }
 }

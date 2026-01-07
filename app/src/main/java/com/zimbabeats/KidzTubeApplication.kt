@@ -18,6 +18,7 @@ import com.zimbabeats.core.domain.repository.VideoRepository
 import com.zimbabeats.di.appModule
 import com.zimbabeats.di.downloadModule
 import com.zimbabeats.di.viewModelModule
+import com.zimbabeats.di.zimbaSafeContentModule
 import com.zimbabeats.media.controller.MediaControllerManager
 import com.zimbabeats.media.di.mediaModule
 import kotlinx.coroutines.CoroutineScope
@@ -48,6 +49,8 @@ class ZimbaBeatsApplication : Application(), SingletonImageLoader.Factory {
                 modules(downloadModule)
                 // Load app preferences module (includes ParentalControlBridge)
                 modules(appModule)
+                // Load content filtering module (VideoContentFilter, MusicContentFilter)
+                modules(zimbaSafeContentModule)
                 // Load app layer modules (viewModels)
                 modules(viewModelModule)
             }
