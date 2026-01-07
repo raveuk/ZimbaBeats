@@ -1,8 +1,6 @@
 <p align="center">
   <img src="https://zimbabeats.com/images/zimbaBeats.png" width="120" alt="ZimbaBeats"/>
   <img src="https://zimbabeats.com/images/ZimbaBeatsFamily.png" width="120" alt="ZimbaBeats Family"/>
-</p>
-
 <h1 align="center">ZimbaBeats</h1>
 
 <p align="center">
