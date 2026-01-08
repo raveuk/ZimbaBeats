@@ -13,6 +13,7 @@ import com.zimbabeats.core.domain.model.Video
 import com.zimbabeats.core.domain.model.music.Track
 import com.zimbabeats.core.domain.repository.PlaylistRepository
 import com.zimbabeats.core.domain.repository.VideoRepository
+import com.zimbabeats.core.domain.util.Resource
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -59,12 +60,18 @@ class PlaylistSharingViewModel(
             _shareState.value = when (result) {
                 is ShareResult.Success -> {
                     // Update local playlist with share code
-                    playlistRepository.updateShareCode(
+                    val updateResult = playlistRepository.updateShareCode(
                         playlistId = playlist.id,
                         shareCode = result.shareCode,
                         sharedAt = System.currentTimeMillis()
                     )
-                    ShareState.Success(result.shareCode)
+
+                    // Check if local database update succeeded
+                    if (updateResult is Resource.Success) {
+                        ShareState.Success(result.shareCode)
+                    } else {
+                        ShareState.Error("Share code created but failed to save locally")
+                    }
                 }
                 is ShareResult.Error -> ShareState.Error(result.message)
             }
@@ -209,7 +216,7 @@ class PlaylistSharingViewModel(
                             albumId = "",
                             albumName = trackInfo.albumName ?: "",
                             thumbnailUrl = trackInfo.thumbnailUrl ?: "",
-                            duration = trackInfo.durationSeconds
+                            duration = trackInfo.durationSeconds * 1000  // Convert seconds to MS
                         )
                         playlistRepository.addTrackToPlaylist(playlistId, track)
                     }

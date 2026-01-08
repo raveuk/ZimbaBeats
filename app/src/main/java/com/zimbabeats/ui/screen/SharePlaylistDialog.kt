@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.zimbabeats.core.domain.model.Playlist
+import kotlinx.coroutines.launch
 
 /**
  * Dialog for sharing a playlist via a 6-character code.
@@ -32,24 +33,39 @@ fun SharePlaylistDialog(
     shareCode: String?,
     isLoading: Boolean,
     isGenerating: Boolean,
+    videoCount: Int,
+    trackCount: Int,
+    errorMessage: String? = null,
     onGenerateCode: () -> Unit,
     onRevokeCode: () -> Unit,
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
-    var showCopiedToast by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+
+    // Show error or copied message in snackbar
+    LaunchedEffect(errorMessage) {
+        errorMessage?.let {
+            snackbarHostState.showSnackbar(
+                message = it,
+                duration = SnackbarDuration.Short
+            )
+        }
+    }
 
     Dialog(onDismissRequest = onDismiss) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            )
-        ) {
-            Column(
+        Box {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
+            ) {
+                Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(24.dp),
@@ -81,7 +97,7 @@ fun SharePlaylistDialog(
                 )
 
                 Text(
-                    text = "${playlist.videoCount} videos, ${playlist.trackCount} songs",
+                    text = "$videoCount videos, $trackCount songs",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -100,13 +116,7 @@ fun SharePlaylistDialog(
                     )
                 } else if (shareCode != null) {
                     // Show existing code
-                    ShareCodeDisplay(
-                        code = shareCode,
-                        onCopy = {
-                            copyToClipboard(context, shareCode)
-                            showCopiedToast = true
-                        }
-                    )
+                    ShareCodeDisplay(code = shareCode)
 
                     Spacer(modifier = Modifier.height(16.dp))
 
@@ -148,7 +158,12 @@ fun SharePlaylistDialog(
                         Button(
                             onClick = {
                                 copyToClipboard(context, shareCode)
-                                showCopiedToast = true
+                                coroutineScope.launch {
+                                    snackbarHostState.showSnackbar(
+                                        message = "Copied to clipboard!",
+                                        duration = SnackbarDuration.Short
+                                    )
+                                }
                             },
                             modifier = Modifier.weight(1f)
                         ) {
@@ -194,13 +209,12 @@ fun SharePlaylistDialog(
                 }
             }
         }
-    }
 
-    // Show copied snackbar
-    if (showCopiedToast) {
-        LaunchedEffect(Unit) {
-            kotlinx.coroutines.delay(2000)
-            showCopiedToast = false
+            // Snackbar host for showing messages
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier.align(Alignment.BottomCenter)
+            )
         }
     }
 }
@@ -209,10 +223,7 @@ fun SharePlaylistDialog(
  * Display the share code in a prominent, copyable format.
  */
 @Composable
-private fun ShareCodeDisplay(
-    code: String,
-    onCopy: () -> Unit
-) {
+private fun ShareCodeDisplay(code: String) {
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(16.dp))

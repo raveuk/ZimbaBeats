@@ -58,6 +58,8 @@ fun ImportPlaylistScreen(
         if (importState is ImportState.Success) {
             val playlistId = (importState as ImportState.Success).playlistId
             onImportSuccess(playlistId)
+            // Reset state to prevent double-navigation if user returns to this screen
+            viewModel.resetImportState()
         }
     }
 

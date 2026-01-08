@@ -129,8 +129,14 @@ class PlaylistSharingClient(
                     "artistName" to track.artistName,
                     "albumName" to (track.albumName ?: ""),
                     "thumbnailUrl" to (track.thumbnailUrl ?: ""),
-                    "durationSeconds" to track.duration
+                    "durationSeconds" to (track.duration / 1000)  // Convert MS to seconds
                 )
+            }
+
+            // Verify pairing is still active before Firebase write
+            val currentPairingInfo = getPairingInfo()
+            if (currentPairingInfo == null || currentPairingInfo.parentUid != pairingInfo.parentUid) {
+                return ShareResult.Error("Device was unlinked during share operation")
             }
 
             // Create share document
@@ -311,14 +317,16 @@ class PlaylistSharingClient(
                 )
             }
 
-            // Increment redeem count
-            firestore.collection(COLLECTION_PLAYLIST_SHARES)
-                .document(normalizedCode)
-                .update("redeemCount", FieldValue.increment(1))
-                .await()
-
-            // Record who redeemed (for parent visibility)
+            // Use batch writes for atomic operations
+            val batch = firestore.batch()
             val pairingInfo = getPairingInfo()
+
+            // 1. Increment redeem count
+            val shareDocRef = firestore.collection(COLLECTION_PLAYLIST_SHARES)
+                .document(normalizedCode)
+            batch.update(shareDocRef, "redeemCount", FieldValue.increment(1))
+
+            // 2. Record who redeemed (for parent visibility)
             if (pairingInfo != null) {
                 val creatorFamilyId = data["createdByFamilyId"] as? String
                 if (creatorFamilyId != null) {
@@ -329,15 +337,14 @@ class PlaylistSharingClient(
                         "redeemedAt" to FieldValue.serverTimestamp()
                     )
 
-                    firestore.collection(COLLECTION_FAMILIES)
+                    val creatorPlaylistDocRef = firestore.collection(COLLECTION_FAMILIES)
                         .document(creatorFamilyId)
                         .collection(COLLECTION_SHARED_PLAYLISTS)
                         .document(normalizedCode)
-                        .update("redeemedBy", FieldValue.arrayUnion(redeemInfo))
-                        .await()
+                    batch.update(creatorPlaylistDocRef, "redeemedBy", FieldValue.arrayUnion(redeemInfo))
                 }
 
-                // Notify importing child's parent
+                // 3. Create import alert for importing child's parent
                 val importAlert = mapOf(
                     "childName" to pairingInfo.childName,
                     "playlistName" to (data["playlistName"] as? String ?: ""),
@@ -346,12 +353,16 @@ class PlaylistSharingClient(
                     "importedAt" to FieldValue.serverTimestamp()
                 )
 
-                firestore.collection(COLLECTION_FAMILIES)
+                // Generate a unique ID for the import alert document
+                val importAlertDocRef = firestore.collection(COLLECTION_FAMILIES)
                     .document(pairingInfo.parentUid)
                     .collection("import_alerts")
-                    .add(importAlert)
-                    .await()
+                    .document()  // Generate ID
+                batch.set(importAlertDocRef, importAlert)
             }
+
+            // Commit all Firebase writes atomically
+            batch.commit().await()
 
             val sharedData = SharedPlaylistData(
                 shareCode = normalizedCode,

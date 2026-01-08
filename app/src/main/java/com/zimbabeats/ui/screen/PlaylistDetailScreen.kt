@@ -193,6 +193,12 @@ fun PlaylistDetailScreen(
             },
             isLoading = shareState is ShareState.Loading,
             isGenerating = shareState is ShareState.Generating,
+            videoCount = uiState.videos.size,
+            trackCount = uiState.tracks.size,
+            errorMessage = when (shareState) {
+                is ShareState.Error -> (shareState as ShareState.Error).message
+                else -> null
+            },
             onGenerateCode = {
                 sharingViewModel.generateShareCode(
                     playlist = uiState.playlist!!,
