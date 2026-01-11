@@ -84,9 +84,9 @@ val viewModelModule = module {
     // Music Player screen (with unified playlist support and shared playback manager)
     viewModel { MusicPlayerViewModel(androidApplication(), get(), get(), get()) }
 
-    // Artist Detail screen
+    // Artist Detail screen (uses CloudPairingClient for content filtering)
     viewModel { (artistId: String) ->
-        ArtistDetailViewModel(artistId, get())
+        ArtistDetailViewModel(artistId, get(), get())
     }
 
     // Album Detail screen (uses CloudPairingClient for content filtering)
@@ -94,14 +94,14 @@ val viewModelModule = module {
         AlbumDetailViewModel(albumId, get(), get())
     }
 
-    // Music Playlist Detail screen
+    // Music Playlist Detail screen (uses CloudPairingClient for content filtering)
     viewModel { (playlistId: Long) ->
-        MusicPlaylistDetailViewModel(playlistId, get())
+        MusicPlaylistDetailViewModel(playlistId, get(), get())
     }
 
-    // YouTube Music Playlist Detail screen (for playlists from browse/search)
+    // YouTube Music Playlist Detail screen (uses CloudPairingClient for content filtering)
     viewModel { (playlistId: String) ->
-        YouTubeMusicPlaylistViewModel(playlistId, get())
+        YouTubeMusicPlaylistViewModel(playlistId, get(), get())
     }
 
     // Music Library screen (uses CloudPairingClient for content filtering)

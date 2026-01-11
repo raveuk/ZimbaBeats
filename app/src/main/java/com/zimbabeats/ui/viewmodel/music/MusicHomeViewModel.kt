@@ -33,8 +33,8 @@ class MusicHomeViewModel(
     private val cloudPairingClient: CloudPairingClient
 ) : ViewModel() {
 
-    // Cloud-based content filter (Firebase) - for family-specific rules
-    private val contentFilter get() = cloudPairingClient.contentFilter
+    // Cloud-based MUSIC filter (Firebase) - SEPARATE whitelist-only filter for music
+    private val musicFilter get() = cloudPairingClient.musicFilter
 
     // Global content filter (RemoteConfig) - ALWAYS applies regardless of family linking
     private val remoteConfigManager = RemoteConfigManager()
@@ -65,10 +65,15 @@ class MusicHomeViewModel(
     private val _uiState = MutableStateFlow(MusicHomeUiState())
     val uiState: StateFlow<MusicHomeUiState> = _uiState.asStateFlow()
 
+    // Store unfiltered content for re-filtering when settings change
+    private var unfilteredSections: List<MusicBrowseSection> = emptyList()
+    private var unfilteredRecentlyPlayed: List<Track> = emptyList()
+    private var unfilteredMostPlayed: List<Track> = emptyList()
+
     /**
-     * Filter tracks using both Global blocks (RemoteConfig) and Cloud Content Filter (Firebase).
+     * Filter tracks using both Global blocks (RemoteConfig) and Cloud Music Filter (Firebase).
      * Global blocks ALWAYS apply regardless of family linking.
-     * Family-specific blocks only apply when linked to a family.
+     * Music whitelist only applies when linked to a family (ages 5-14 are whitelist-only).
      */
     private fun filterTracksWithBridge(tracks: List<Track>): List<Track> {
         return tracks.filter { track ->
@@ -89,21 +94,25 @@ class MusicHomeViewModel(
                 return@filter false
             }
 
-            // If linked to family, also apply family-specific rules
-            val filter = contentFilter
+            // If linked to family, apply MUSIC whitelist filter
+            val filter = musicFilter
             if (filter != null) {
-                val blockResult = filter.shouldBlockMusicContent(
+                // SECURITY: Block content until filter settings are loaded
+                if (!filter.hasLoadedSettings()) {
+                    Log.w(TAG, "Music filter settings not yet loaded - BLOCKING track until loaded: ${track.title}")
+                    return@filter false
+                }
+
+                val blockResult = filter.shouldBlockMusic(
                     trackId = track.id,
                     title = track.title,
-                    artistId = track.artistId ?: "",
                     artistName = track.artistName,
                     albumName = track.albumName,
-                    genre = null,
                     durationSeconds = track.duration / 1000L,
                     isExplicit = track.isExplicit
                 )
                 if (blockResult.isBlocked) {
-                    Log.d(TAG, "Track '${track.title}' blocked by family filter: ${blockResult.reason}")
+                    Log.d(TAG, "Track '${track.title}' blocked by music filter: ${blockResult.reason}")
                     return@filter false
                 }
             }
@@ -113,51 +122,47 @@ class MusicHomeViewModel(
     }
 
     /**
-     * Filter music browse items using both Global blocks and Cloud Content Filter.
+     * Filter music browse items using both Global blocks and Cloud Music Filter.
      * Global blocks ALWAYS apply regardless of family linking.
+     * Music whitelist only applies when linked to a family (ages 5-14 are whitelist-only).
      */
     private fun filterBrowseItemsWithBridge(items: List<MusicBrowseItem>): List<MusicBrowseItem> {
         return items.filter { item ->
             // Extract item properties based on type
-            val id: String
             val title: String
-            val artistId: String
             val artistName: String
             val albumName: String
             val isExplicit: Boolean
+            val durationSeconds: Long
 
             when (item) {
                 is MusicBrowseItem.TrackItem -> {
-                    id = item.track.id
                     title = item.track.title
-                    artistId = item.track.artistId ?: ""
                     artistName = item.track.artistName
                     albumName = item.track.albumName ?: ""
                     isExplicit = item.track.isExplicit
+                    durationSeconds = item.track.duration / 1000L
                 }
                 is MusicBrowseItem.AlbumItem -> {
-                    id = item.album.id
                     title = item.album.title
-                    artistId = ""
                     artistName = item.album.artistName
                     albumName = item.album.title
-                    isExplicit = false
+                    isExplicit = item.album.tracks.any { it.isExplicit }
+                    durationSeconds = 0L
                 }
                 is MusicBrowseItem.ArtistItem -> {
-                    id = item.artist.id
                     title = item.artist.name
-                    artistId = item.artist.id
                     artistName = item.artist.name
                     albumName = ""
                     isExplicit = false
+                    durationSeconds = 0L
                 }
                 is MusicBrowseItem.PlaylistItem -> {
-                    id = item.playlist.id
                     title = item.playlist.title
-                    artistId = ""
                     artistName = item.playlist.author ?: ""
                     albumName = ""
                     isExplicit = false
+                    durationSeconds = 0L
                 }
             }
 
@@ -169,27 +174,31 @@ class MusicHomeViewModel(
                 return@filter false
             }
 
-            val globalArtistBlock = remoteConfigManager.isArtistGloballyBlocked(artistId, artistName)
+            val globalArtistBlock = remoteConfigManager.isArtistGloballyBlocked("", artistName)
             if (globalArtistBlock.isBlocked) {
                 Log.d(TAG, "Item '$title' by '$artistName' blocked by global artist filter")
                 return@filter false
             }
 
-            // If linked to family, also apply family-specific rules
-            val filter = contentFilter
+            // If linked to family, apply MUSIC whitelist filter
+            val filter = musicFilter
             if (filter != null) {
-                val blockResult = filter.shouldBlockMusicContent(
-                    trackId = id,
+                // SECURITY: Block content until filter settings are loaded
+                if (!filter.hasLoadedSettings()) {
+                    Log.w(TAG, "Music filter settings not yet loaded - BLOCKING item until loaded: $title")
+                    return@filter false
+                }
+
+                val blockResult = filter.shouldBlockMusic(
+                    trackId = "",
                     title = title,
-                    artistId = artistId,
                     artistName = artistName,
                     albumName = albumName,
-                    genre = null,
-                    durationSeconds = 0L,
+                    durationSeconds = durationSeconds,
                     isExplicit = isExplicit
                 )
                 if (blockResult.isBlocked) {
-                    Log.d(TAG, "Item '$title' blocked by family filter: ${blockResult.reason}")
+                    Log.d(TAG, "Item '$title' blocked by music filter: ${blockResult.reason}")
                     return@filter false
                 }
             }
@@ -200,9 +209,46 @@ class MusicHomeViewModel(
 
     init {
         observeBridgeState()
-        loadRecentlyPlayed()
-        loadMostPlayed()
+        observeFilterSettings()
+        // Note: loadRecentlyPlayed() and loadMostPlayed() are now called from observeBridgeState()
+        // after pairing status is known, ensuring proper filtering
         startAutoRefresh()
+    }
+
+    /**
+     * Observe music filter settings changes from Firebase (whitelist updates)
+     * Re-filters all music content when parent changes settings
+     */
+    private fun observeFilterSettings() {
+        viewModelScope.launch {
+            musicFilter?.musicSettings?.collect { settings ->
+                Log.d(TAG, "Filter settings changed - re-filtering music home content")
+
+                // Re-filter sections
+                if (unfilteredSections.isNotEmpty()) {
+                    val filteredSections = unfilteredSections.map { section ->
+                        val filteredItems = filterBrowseItemsWithBridge(section.items)
+                        section.copy(items = filteredItems)
+                    }.filter { it.items.isNotEmpty() }
+                    Log.d(TAG, "After re-filter: ${filteredSections.size} sections visible")
+                    _uiState.value = _uiState.value.copy(sections = filteredSections)
+                }
+
+                // Re-filter recently played
+                if (unfilteredRecentlyPlayed.isNotEmpty()) {
+                    val filteredRecent = filterTracksWithBridge(unfilteredRecentlyPlayed)
+                    Log.d(TAG, "After re-filter: ${filteredRecent.size} recently played visible")
+                    _uiState.value = _uiState.value.copy(recentlyPlayed = filteredRecent)
+                }
+
+                // Re-filter most played
+                if (unfilteredMostPlayed.isNotEmpty()) {
+                    val filteredMost = filterTracksWithBridge(unfilteredMostPlayed)
+                    Log.d(TAG, "After re-filter: ${filteredMost.size} most played visible")
+                    _uiState.value = _uiState.value.copy(mostPlayed = filteredMost)
+                }
+            }
+        }
     }
 
     /**
@@ -236,18 +282,43 @@ class MusicHomeViewModel(
                     parentalControlEnabled = isKidsMode
                 )
 
+                // If linked to family, wait for music filter settings to load before showing content
+                if (isLinkedToFamily) {
+                    val filter = musicFilter
+                    if (filter != null && !filter.hasLoadedSettings()) {
+                        Log.d(TAG, "Waiting for music filter settings to load before showing content...")
+                        // Wait up to 5 seconds for settings to load
+                        var waitTime = 0
+                        while (!filter.hasLoadedSettings() && waitTime < 5000) {
+                            kotlinx.coroutines.delay(100)
+                            waitTime += 100
+                        }
+                        if (filter.hasLoadedSettings()) {
+                            Log.d(TAG, "Music filter settings loaded after ${waitTime}ms")
+                        } else {
+                            Log.w(TAG, "Music filter settings not loaded after 5 seconds, proceeding with blocking mode")
+                        }
+                    }
+                }
+
                 // Refresh content if parental control state changed
                 if (settingsChanged) {
-                    Log.d(TAG, "Parental settings CHANGED, refreshing content")
+                    Log.d(TAG, "Parental settings CHANGED, refreshing all content")
                     _uiState.value = _uiState.value.copy(
                         sections = emptyList(),
+                        recentlyPlayed = emptyList(),
+                        mostPlayed = emptyList(),
                         isLoading = true
                     )
                     loadMusicHome()
+                    loadRecentlyPlayed()
+                    loadMostPlayed()
                 } else if (_uiState.value.sections.isEmpty()) {
                     // Initial load
                     Log.d(TAG, "Initial load, loading music content...")
                     loadMusicHome()
+                    loadRecentlyPlayed()
+                    loadMostPlayed()
                 }
             }
         }
@@ -260,11 +331,27 @@ class MusicHomeViewModel(
             when (val result = musicRepository.getMusicHome()) {
                 is Resource.Success -> {
                     if (result.data.isNotEmpty()) {
-                        Log.d(TAG, "Loaded ${result.data.size} sections from browse API")
-                        _uiState.value = _uiState.value.copy(
-                            sections = result.data,
-                            isLoading = false
-                        )
+                        // Store unfiltered sections for re-filtering when settings change
+                        unfilteredSections = result.data
+
+                        // Apply filtering
+                        val filteredSections = result.data.map { section ->
+                            val filteredItems = filterBrowseItemsWithBridge(section.items)
+                            section.copy(items = filteredItems)
+                        }.filter { it.items.isNotEmpty() }
+
+                        Log.d(TAG, "Loaded ${filteredSections.size} sections from browse API (from ${result.data.size} raw)")
+
+                        // If all sections filtered out (whitelist mode with no matching content), load curated kids content
+                        if (filteredSections.isEmpty() && _uiState.value.parentalControlEnabled) {
+                            Log.d(TAG, "All browse content filtered out by whitelist - loading kids curated content")
+                            loadCuratedContent()
+                        } else {
+                            _uiState.value = _uiState.value.copy(
+                                sections = filteredSections,
+                                isLoading = false
+                            )
+                        }
                     } else {
                         // Browse API returned empty - load fallback curated content
                         Log.d(TAG, "Browse API returned empty, loading curated content")
@@ -286,7 +373,8 @@ class MusicHomeViewModel(
         val curatedSections = if (isKidsMode) KIDS_CURATED_SECTIONS else GENERAL_CURATED_SECTIONS
         Log.d(TAG, "Loading curated music sections (kids mode: $isKidsMode)...")
 
-        val sections = curatedSections.mapNotNull { (title, query) ->
+        // Build unfiltered sections first
+        val rawSections = curatedSections.mapNotNull { (title, query) ->
             try {
                 val result = musicRepository.searchMusic(query, MusicSearchFilter.SONGS)
                 if (result is Resource.Success && result.data.isNotEmpty()) {
@@ -298,14 +386,7 @@ class MusicHomeViewModel(
                             is MusicSearchResult.PlaylistResult -> MusicBrowseItem.PlaylistItem(searchResult.playlist)
                         }
                     }
-
-                    // Apply Bridge filtering
-                    val filteredItems = filterBrowseItemsWithBridge(items)
-
-                    if (filteredItems.isNotEmpty()) {
-                        Log.d(TAG, "Loaded ${filteredItems.size} items for section: $title (${items.size - filteredItems.size} filtered)")
-                        MusicBrowseSection(title = title, items = filteredItems)
-                    } else null
+                    if (items.isNotEmpty()) MusicBrowseSection(title = title, items = items) else null
                 } else null
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to load curated section '$title': ${e.message}")
@@ -313,18 +394,29 @@ class MusicHomeViewModel(
             }
         }
 
-        Log.d(TAG, "Loaded ${sections.size} curated sections")
+        // Store unfiltered sections for re-filtering when settings change
+        unfilteredSections = rawSections
+
+        // Apply filtering
+        val filteredSections = rawSections.map { section ->
+            val filteredItems = filterBrowseItemsWithBridge(section.items)
+            section.copy(items = filteredItems)
+        }.filter { it.items.isNotEmpty() }
+
+        Log.d(TAG, "Loaded ${filteredSections.size} curated sections (from ${rawSections.size} raw)")
         _uiState.value = _uiState.value.copy(
-            sections = sections,
+            sections = filteredSections,
             isLoading = false,
-            error = if (sections.isEmpty()) "No music content available" else null
+            error = if (filteredSections.isEmpty()) "No music content available" else null
         )
     }
 
     private fun loadRecentlyPlayed() {
         viewModelScope.launch {
             musicRepository.getRecentlyPlayed(10).collect { tracks ->
+                unfilteredRecentlyPlayed = tracks // Store for re-filtering when settings change
                 val filteredTracks = filterTracksWithBridge(tracks)
+                Log.d(TAG, "Loaded ${tracks.size} recently played, ${filteredTracks.size} after filtering")
                 _uiState.value = _uiState.value.copy(recentlyPlayed = filteredTracks)
             }
         }
@@ -333,7 +425,9 @@ class MusicHomeViewModel(
     private fun loadMostPlayed() {
         viewModelScope.launch {
             musicRepository.getMostPlayed(10).collect { tracks ->
+                unfilteredMostPlayed = tracks // Store for re-filtering when settings change
                 val filteredTracks = filterTracksWithBridge(tracks)
+                Log.d(TAG, "Loaded ${tracks.size} most played, ${filteredTracks.size} after filtering")
                 _uiState.value = _uiState.value.copy(mostPlayed = filteredTracks)
             }
         }
@@ -356,9 +450,18 @@ class MusicHomeViewModel(
         when (val result = musicRepository.getMusicHome()) {
             is Resource.Success -> {
                 if (result.data.isNotEmpty()) {
-                    Log.d(TAG, "Loaded ${result.data.size} sections from browse API")
+                    // Store unfiltered sections for re-filtering when settings change
+                    unfilteredSections = result.data
+
+                    // Apply filtering
+                    val filteredSections = result.data.map { section ->
+                        val filteredItems = filterBrowseItemsWithBridge(section.items)
+                        section.copy(items = filteredItems)
+                    }.filter { it.items.isNotEmpty() }
+
+                    Log.d(TAG, "Loaded ${filteredSections.size} sections from browse API (from ${result.data.size} raw)")
                     _uiState.value = _uiState.value.copy(
-                        sections = result.data,
+                        sections = filteredSections,
                         isLoading = false
                     )
                 } else {

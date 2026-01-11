@@ -46,10 +46,37 @@ class MusicLibraryViewModel(
     private val _uiState = MutableStateFlow(MusicLibraryUiState())
     val uiState: StateFlow<MusicLibraryUiState> = _uiState.asStateFlow()
 
+    // Store unfiltered tracks for re-filtering when settings change
+    private var unfilteredFavorites: List<Track> = emptyList()
+    private var unfilteredHistory: List<Track> = emptyList()
+
     init {
         loadPlaylists()
         loadFavorites()
         loadHistory()
+        observeFilterSettings()
+    }
+
+    /**
+     * Observe filter settings changes from Firebase (age rating updates)
+     * Re-filters tracks when parent changes settings
+     */
+    private fun observeFilterSettings() {
+        viewModelScope.launch {
+            contentFilter?.filterSettings?.collect { settings ->
+                Log.d(TAG, "Filter settings changed - re-filtering library tracks")
+                if (unfilteredFavorites.isNotEmpty()) {
+                    val filteredFavorites = filterTracks(unfilteredFavorites)
+                    Log.d(TAG, "After re-filter: ${filteredFavorites.size} favorites visible")
+                    _uiState.value = _uiState.value.copy(favoriteTracks = filteredFavorites)
+                }
+                if (unfilteredHistory.isNotEmpty()) {
+                    val filteredHistory = filterTracks(unfilteredHistory)
+                    Log.d(TAG, "After re-filter: ${filteredHistory.size} history tracks visible")
+                    _uiState.value = _uiState.value.copy(historyTracks = filteredHistory)
+                }
+            }
+        }
     }
 
     /**
@@ -78,6 +105,12 @@ class MusicLibraryViewModel(
             // If linked to family, also apply family-specific rules
             val filter = contentFilter
             if (filter != null) {
+                // SECURITY: Block content until filter settings are loaded
+                if (!filter.hasLoadedSettings()) {
+                    Log.w(TAG, "Filter settings not yet loaded - BLOCKING track until loaded: ${track.title}")
+                    return@filter false
+                }
+
                 val blockResult = filter.shouldBlockMusicContent(
                     trackId = track.id,
                     title = track.title,
@@ -109,6 +142,7 @@ class MusicLibraryViewModel(
     private fun loadFavorites() {
         viewModelScope.launch {
             musicRepository.getFavoriteTracks().collect { tracks ->
+                unfilteredFavorites = tracks // Store for re-filtering when settings change
                 val filteredTracks = filterTracks(tracks)
                 Log.d(TAG, "Loaded ${tracks.size} favorites, ${filteredTracks.size} after filtering")
                 _uiState.value = _uiState.value.copy(favoriteTracks = filteredTracks)
@@ -119,6 +153,7 @@ class MusicLibraryViewModel(
     private fun loadHistory() {
         viewModelScope.launch {
             musicRepository.getListeningHistory(100).collect { tracks ->
+                unfilteredHistory = tracks // Store for re-filtering when settings change
                 val filteredTracks = filterTracks(tracks)
                 Log.d(TAG, "Loaded ${tracks.size} history tracks, ${filteredTracks.size} after filtering")
                 _uiState.value = _uiState.value.copy(historyTracks = filteredTracks)

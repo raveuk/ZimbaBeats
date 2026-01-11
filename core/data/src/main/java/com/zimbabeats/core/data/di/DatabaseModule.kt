@@ -2,6 +2,7 @@
 
 import androidx.room.Room
 import com.zimbabeats.core.data.local.database.ZimbaBeatsDatabase
+import com.zimbabeats.core.data.local.migrations.MIGRATION_7_8
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
@@ -13,7 +14,8 @@ val databaseModule = module {
             ZimbaBeatsDatabase::class.java,
             "marelikaybeats_database"
         )
-            .fallbackToDestructiveMigration(true)
+            .addMigrations(MIGRATION_7_8)
+            .fallbackToDestructiveMigrationOnDowngrade()
             .build()
     }
 
@@ -24,6 +26,7 @@ val databaseModule = module {
     single { get<ZimbaBeatsDatabase>().favoriteVideoDao() }
     single { get<ZimbaBeatsDatabase>().playlistDao() }
     single { get<ZimbaBeatsDatabase>().playlistVideoDao() }
+    single { get<ZimbaBeatsDatabase>().playlistTrackDao() }
     single { get<ZimbaBeatsDatabase>().downloadedVideoDao() }
     single { get<ZimbaBeatsDatabase>().downloadQueueDao() }
     single { get<ZimbaBeatsDatabase>().searchHistoryDao() }

@@ -25,6 +25,20 @@ class PlaylistRepositoryImpl(
     private val playlistTrackDao = database.playlistTrackDao()
     private val trackDao = database.trackDao()
 
+    init {
+        // Verify all DAOs are properly initialized
+        try {
+            playlistDao
+            playlistVideoDao
+            playlistTrackDao  // Will throw if not injected
+            trackDao
+            android.util.Log.d("PlaylistRepo", "All DAOs initialized successfully")
+        } catch (e: Exception) {
+            android.util.Log.e("PlaylistRepo", "DAO initialization failed", e)
+            throw IllegalStateException("PlaylistRepository DAOs not properly configured", e)
+        }
+    }
+
     override fun getAllPlaylists(): Flow<List<Playlist>> =
         playlistDao.getAllPlaylists().map { playlists ->
             playlists.map { it.toDomain() }

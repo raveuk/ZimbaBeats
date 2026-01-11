@@ -66,7 +66,14 @@ class InnertubeClient(private val httpClient: HttpClient) {
             }
 
             // Make POST request to Innertube API with Android headers
-            val response: String = httpClient.post("$INNERTUBE_PLAYER_URL?key=$INNERTUBE_KEY") {
+            // Don't include empty key parameter - Innertube works without it
+            val playerUrl = if (INNERTUBE_KEY.isNotEmpty()) {
+                "$INNERTUBE_PLAYER_URL?key=$INNERTUBE_KEY"
+            } else {
+                INNERTUBE_PLAYER_URL
+            }
+
+            val response: String = httpClient.post(playerUrl) {
                 contentType(ContentType.Application.Json)
                 header("User-Agent", "com.google.android.youtube/$PLAYER_CLIENT_VERSION (Linux; U; Android $ANDROID_OS_VERSION) gzip")
                 header("X-YouTube-Client-Name", "3") // Android client
@@ -244,17 +251,33 @@ class InnertubeClient(private val httpClient: HttpClient) {
             }
 
             // Make POST request to Innertube search API
-            val response: String = httpClient.post("$INNERTUBE_SEARCH_URL?key=$INNERTUBE_KEY") {
+            // Don't include empty key parameter - Innertube works without it
+            val searchUrl = if (INNERTUBE_KEY.isNotEmpty()) {
+                "$INNERTUBE_SEARCH_URL?key=$INNERTUBE_KEY"
+            } else {
+                INNERTUBE_SEARCH_URL
+            }
+
+            Log.d(TAG, "Making search request to: $searchUrl")
+            Log.d(TAG, "Request body: ${requestBody.toString()}")
+
+            val response: HttpResponse = httpClient.post(searchUrl) {
                 contentType(ContentType.Application.Json)
                 setBody(requestBody.toString())
-            }.bodyAsText()
+            }
 
-            Log.d(TAG, "API Response length: ${response.length} characters")
-            Log.d(TAG, "API Response preview: ${response.take(500)}")
+            Log.d(TAG, "Response status: ${response.status}")
+            val responseBody: String = response.bodyAsText()
+            Log.d(TAG, "API Response length: ${responseBody.length} characters")
+            if (responseBody.length < 2000) {
+                Log.d(TAG, "API Response full: $responseBody")
+            } else {
+                Log.d(TAG, "API Response preview: ${responseBody.take(1000)}")
+            }
 
             // Parse JSON response
             val json = Json { ignoreUnknownKeys = true }
-            val jsonElement = json.parseToJsonElement(response)
+            val jsonElement = json.parseToJsonElement(responseBody)
             val jsonObject = jsonElement.jsonObject
 
             Log.d(TAG, "Parsed JSON successfully, keys: ${jsonObject.keys}")
@@ -440,7 +463,14 @@ class InnertubeClient(private val httpClient: HttpClient) {
                 put("query", query)
             }
 
-            val response: String = httpClient.post("$INNERTUBE_SEARCH_URL?key=$INNERTUBE_KEY") {
+            // Don't include empty key parameter - Innertube works without it
+            val searchUrl = if (INNERTUBE_KEY.isNotEmpty()) {
+                "$INNERTUBE_SEARCH_URL?key=$INNERTUBE_KEY"
+            } else {
+                INNERTUBE_SEARCH_URL
+            }
+
+            val response: String = httpClient.post(searchUrl) {
                 contentType(ContentType.Application.Json)
                 setBody(requestBody.toString())
             }.bodyAsText()

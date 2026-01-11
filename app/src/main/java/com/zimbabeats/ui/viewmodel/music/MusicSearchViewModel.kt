@@ -39,8 +39,8 @@ class MusicSearchViewModel(
         private const val TAG = "MusicSearchViewModel"
     }
 
-    // Cloud-based content filter (Firebase) - for family-specific rules
-    private val contentFilter get() = cloudPairingClient.contentFilter
+    // Cloud-based MUSIC filter (Firebase) - SEPARATE whitelist-only filter for music
+    private val musicFilter get() = cloudPairingClient.musicFilter
 
     // Global content filter (RemoteConfig) - ALWAYS applies regardless of family linking
     private val remoteConfigManager = RemoteConfigManager()
@@ -51,8 +51,29 @@ class MusicSearchViewModel(
     private var searchJob: Job? = null
     private var suggestionJob: Job? = null
 
+    // Store unfiltered results for re-filtering when settings change
+    private var unfilteredResults: List<MusicSearchResult> = emptyList()
+
     init {
         observeBridgeState()
+        observeFilterSettings()
+    }
+
+    /**
+     * Observe music filter settings changes from Firebase (whitelist updates)
+     * Re-filters search results when parent changes settings
+     */
+    private fun observeFilterSettings() {
+        viewModelScope.launch {
+            musicFilter.musicSettings.collect { settings ->
+                Log.d(TAG, "Music filter settings changed - re-filtering ${unfilteredResults.size} results")
+                if (unfilteredResults.isNotEmpty()) {
+                    val filteredResults = filterMusicResults(unfilteredResults)
+                    Log.d(TAG, "After re-filter: ${filteredResults.size} results visible")
+                    _uiState.value = _uiState.value.copy(searchResults = filteredResults)
+                }
+            }
+        }
     }
 
     /**
@@ -88,6 +109,8 @@ class MusicSearchViewModel(
             val albumName: String
             val isExplicit: Boolean
 
+            val durationSeconds: Long
+
             when (result) {
                 is MusicSearchResult.TrackResult -> {
                     id = result.track.id
@@ -96,6 +119,7 @@ class MusicSearchViewModel(
                     artistName = result.track.artistName
                     albumName = result.track.albumName ?: ""
                     isExplicit = result.track.isExplicit
+                    durationSeconds = result.track.duration / 1000L // Convert ms to seconds
                 }
                 is MusicSearchResult.ArtistResult -> {
                     id = result.artist.id
@@ -104,6 +128,7 @@ class MusicSearchViewModel(
                     artistName = result.artist.name
                     albumName = ""
                     isExplicit = false
+                    durationSeconds = 0L
                 }
                 is MusicSearchResult.AlbumResult -> {
                     id = result.album.id
@@ -111,7 +136,9 @@ class MusicSearchViewModel(
                     artistId = ""
                     artistName = result.album.artistName
                     albumName = result.album.title
-                    isExplicit = false
+                    // Check if any track in the album is explicit
+                    isExplicit = result.album.tracks.any { it.isExplicit }
+                    durationSeconds = 0L // Albums are containers
                 }
                 is MusicSearchResult.PlaylistResult -> {
                     id = result.playlist.id
@@ -120,6 +147,7 @@ class MusicSearchViewModel(
                     artistName = result.playlist.author ?: ""
                     albumName = ""
                     isExplicit = false
+                    durationSeconds = 0L
                 }
             }
 
@@ -137,23 +165,25 @@ class MusicSearchViewModel(
                 return@filter false
             }
 
-            // If linked to family, also apply family-specific rules
-            val filter = contentFilter
-            if (filter != null) {
-                val blockResult = filter.shouldBlockMusicContent(
-                    trackId = id,
-                    title = title,
-                    artistId = artistId,
-                    artistName = artistName,
-                    albumName = albumName,
-                    genre = null,
-                    durationSeconds = 0L,
-                    isExplicit = isExplicit
-                )
-                if (blockResult.isBlocked) {
-                    Log.d(TAG, "Search result '$title' blocked by family filter: ${blockResult.reason}")
-                    return@filter false
-                }
+            // If linked to family, apply MUSIC whitelist filter
+            val filter = musicFilter
+            // SECURITY: Block content until filter settings are loaded
+            if (!filter.hasLoadedSettings()) {
+                Log.w(TAG, "Music filter settings not yet loaded - BLOCKING search result until loaded: $title")
+                return@filter false
+            }
+
+            val blockResult = filter.shouldBlockMusic(
+                trackId = id,
+                title = title,
+                artistName = artistName,
+                albumName = albumName,
+                durationSeconds = durationSeconds,
+                isExplicit = isExplicit
+            )
+            if (blockResult.isBlocked) {
+                Log.d(TAG, "Search result '$title' blocked by music filter: ${blockResult.reason}")
+                return@filter false
             }
 
             true // Not blocked
@@ -161,11 +191,16 @@ class MusicSearchViewModel(
     }
 
     /**
-     * Check if a search query is allowed by parental controls (Firebase-based).
+     * Check if a search query is allowed by music filter (Firebase-based whitelist).
      */
     private fun isSearchAllowed(query: String): Boolean {
-        val filter = contentFilter ?: return true // Unrestricted mode if not linked
-        val blockResult = filter.shouldBlockSearch(query)
+        val filter = musicFilter
+        // SECURITY: Block search until filter settings are loaded
+        if (!filter.hasLoadedSettings()) {
+            Log.w(TAG, "Music filter settings not yet loaded - BLOCKING search query until loaded: $query")
+            return false
+        }
+        val blockResult = filter.isSearchAllowed(query)
         return !blockResult.isBlocked
     }
 
@@ -235,6 +270,7 @@ class MusicSearchViewModel(
 
             when (val result = musicRepository.searchMusic(query, _uiState.value.filter)) {
                 is Resource.Success -> {
+                    unfilteredResults = result.data // Store for re-filtering when settings change
                     // Filter results using Bridge
                     val filteredResults = filterMusicResults(result.data)
 

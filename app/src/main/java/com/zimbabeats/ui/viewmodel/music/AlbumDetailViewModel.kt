@@ -30,8 +30,8 @@ class AlbumDetailViewModel(
         private const val TAG = "AlbumDetailViewModel"
     }
 
-    // Cloud-based content filter (Firebase) - for family-specific rules
-    private val contentFilter get() = cloudPairingClient.contentFilter
+    // Cloud-based MUSIC filter (Firebase) - SEPARATE whitelist-only filter for music
+    private val musicFilter get() = cloudPairingClient.musicFilter
 
     // Global content filter (RemoteConfig) - ALWAYS applies regardless of family linking
     private val remoteConfigManager = RemoteConfigManager()
@@ -39,8 +39,31 @@ class AlbumDetailViewModel(
     private val _uiState = MutableStateFlow(AlbumDetailUiState())
     val uiState: StateFlow<AlbumDetailUiState> = _uiState.asStateFlow()
 
+    // Store unfiltered tracks for re-filtering when settings change
+    private var unfilteredTracks: List<Track> = emptyList()
+    private var currentAlbum: Album? = null
+
     init {
         loadAlbum()
+        observeFilterSettings()
+    }
+
+    /**
+     * Observe music filter settings changes from Firebase (whitelist updates)
+     * Re-filters album tracks when parent changes settings
+     */
+    private fun observeFilterSettings() {
+        viewModelScope.launch {
+            musicFilter.musicSettings.collect { settings ->
+                Log.d(TAG, "Music filter settings changed - re-filtering album tracks")
+                if (unfilteredTracks.isNotEmpty() && currentAlbum != null) {
+                    val filteredTracks = filterTracks(unfilteredTracks)
+                    val filteredAlbum = currentAlbum!!.copy(tracks = filteredTracks)
+                    Log.d(TAG, "After re-filter: ${filteredTracks.size} tracks visible")
+                    _uiState.value = _uiState.value.copy(album = filteredAlbum)
+                }
+            }
+        }
     }
 
     /**
@@ -66,23 +89,25 @@ class AlbumDetailViewModel(
                 return@filter false
             }
 
-            // If linked to family, also apply family-specific rules
-            val filter = contentFilter
-            if (filter != null) {
-                val blockResult = filter.shouldBlockMusicContent(
-                    trackId = track.id,
-                    title = track.title,
-                    artistId = track.artistId ?: "",
-                    artistName = track.artistName,
-                    albumName = track.albumName,
-                    genre = null,
-                    durationSeconds = track.duration / 1000L,
-                    isExplicit = track.isExplicit
-                )
-                if (blockResult.isBlocked) {
-                    Log.d(TAG, "Track '${track.title}' blocked by family filter: ${blockResult.reason}")
-                    return@filter false
-                }
+            // Apply MUSIC whitelist filter
+            val filter = musicFilter
+            // SECURITY: Block content until filter settings are loaded
+            if (!filter.hasLoadedSettings()) {
+                Log.w(TAG, "Music filter settings not yet loaded - BLOCKING track until loaded: ${track.title}")
+                return@filter false
+            }
+
+            val blockResult = filter.shouldBlockMusic(
+                trackId = track.id,
+                title = track.title,
+                artistName = track.artistName,
+                albumName = track.albumName,
+                durationSeconds = track.duration / 1000L,
+                isExplicit = track.isExplicit
+            )
+            if (blockResult.isBlocked) {
+                Log.d(TAG, "Track '${track.title}' blocked by music filter: ${blockResult.reason}")
+                return@filter false
             }
 
             true // Not blocked
@@ -97,13 +122,17 @@ class AlbumDetailViewModel(
                 is Resource.Success -> {
                     val album = result.data
                     val originalCount = album.tracks.size
-                    
+
+                    // Store unfiltered data for re-filtering when settings change
+                    currentAlbum = album
+                    unfilteredTracks = album.tracks
+
                     // Filter tracks based on parental controls
                     val filteredTracks = filterTracks(album.tracks)
                     val filteredAlbum = album.copy(tracks = filteredTracks)
-                    
+
                     Log.d(TAG, "Loaded album: ${album.title} with ${originalCount} tracks (${filteredTracks.size} after filtering)")
-                    
+
                     _uiState.value = _uiState.value.copy(
                         album = filteredAlbum,
                         isLoading = false

@@ -25,6 +25,7 @@ class CloudContentFilter(
     companion object {
         private const val TAG = "CloudContentFilter"
         private const val COLLECTION_FAMILIES = "families"
+        private const val COLLECTION_CHILDREN = "children"  // NEW: Per-child settings
         private const val COLLECTION_SETTINGS = "settings"
         private const val COLLECTION_WATCH_HISTORY = "watch_history"
         private const val COLLECTION_BLOCK_ALERTS = "block_alerts"
@@ -34,32 +35,64 @@ class CloudContentFilter(
     private val _filterSettings = MutableStateFlow(CloudFilterSettings())
     val filterSettings: StateFlow<CloudFilterSettings> = _filterSettings.asStateFlow()
 
+    // Track whether settings have been loaded from Firestore
+    private var settingsLoaded = false
+
     private var settingsListener: ListenerRegistration? = null
     private var parentUid: String? = null
     private var deviceId: String? = null
     private var childName: String? = null
+    private var childId: String? = null  // NEW: For per-child settings
+
+    /**
+     * Check if filter settings have been loaded from Firestore.
+     * Used to prevent blocking content before settings are available.
+     */
+    fun hasLoadedSettings(): Boolean = settingsLoaded
 
     /**
      * Initialize the content filter with pairing info
+     *
+     * @param parentUid Parent's Firebase UID
+     * @param deviceId This device's ID
+     * @param childName Child's display name
+     * @param childId Optional child profile ID for per-child settings
      */
-    fun initialize(parentUid: String, deviceId: String, childName: String) {
+    fun initialize(parentUid: String, deviceId: String, childName: String, childId: String? = null) {
         this.parentUid = parentUid
         this.deviceId = deviceId
         this.childName = childName
+        this.childId = childId
         startListening()
     }
 
     /**
      * Start listening for content filter settings from parent
+     * Uses per-child path if childId is set, otherwise uses legacy family-level path
      */
     private fun startListening() {
         val uid = parentUid ?: return
         stopListening()
 
-        settingsListener = firestore.collection(COLLECTION_FAMILIES)
-            .document(uid)
-            .collection(COLLECTION_SETTINGS)
-            .document(DOC_CONTENT_FILTER)
+        // Determine settings path based on whether we have a childId
+        val settingsPath = if (childId != null) {
+            // Per-child settings: families/{uid}/children/{childId}/settings/
+            firestore.collection(COLLECTION_FAMILIES)
+                .document(uid)
+                .collection(COLLECTION_CHILDREN)
+                .document(childId!!)
+                .collection(COLLECTION_SETTINGS)
+        } else {
+            // Legacy family-level settings: families/{uid}/settings/
+            firestore.collection(COLLECTION_FAMILIES)
+                .document(uid)
+                .collection(COLLECTION_SETTINGS)
+        }
+
+        val pathInfo = if (childId != null) "child $childId" else "family (legacy)"
+        Log.d(TAG, "Starting to listen for content filter at $pathInfo")
+
+        settingsListener = settingsPath.document(DOC_CONTENT_FILTER)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     Log.e(TAG, "Error listening for filter settings", error)
@@ -70,12 +103,18 @@ class CloudContentFilter(
                     try {
                         val settings = parseFilterSettings(snapshot.data ?: emptyMap())
                         _filterSettings.value = settings
-                        Log.d(TAG, "Content filter settings updated: ${settings.blockedKeywords.size} keywords, ${settings.blockedChannels.size} channels")
+                        settingsLoaded = true
+                        Log.d(TAG, "Content filter settings loaded: ${settings.blockedKeywords.size} keywords, " +
+                                "${settings.blockedChannels.size} channels, ageEnabled=${settings.ageBasedFilteringEnabled}, " +
+                                "${settings.ageBlockedKeywords.size} age keywords")
                     } catch (e: Exception) {
                         Log.e(TAG, "Error parsing filter settings", e)
                     }
                 } else {
+                    // No content_filter document exists - use permissive defaults
                     _filterSettings.value = CloudFilterSettings()
+                    settingsLoaded = true
+                    Log.d(TAG, "No content_filter document found - using permissive defaults")
                 }
             }
     }
@@ -157,6 +196,13 @@ class CloudContentFilter(
         isLiveStream: Boolean = false,
         category: String? = null
     ): BlockResult {
+        // Diagnostic logging to understand filtering decisions
+        val settings = _filterSettings.value
+        Log.d(TAG, "=== Checking: '$title' by '$channelName' ===")
+        Log.d(TAG, "Settings state: keywords=${settings.blockedKeywords.size}, channels=${settings.blockedChannels.size}, " +
+                "ageEnabled=${settings.ageBasedFilteringEnabled}, ageKeywords=${settings.ageBlockedKeywords.size}, " +
+                "whitelist=${settings.allowedChannelsOnly}")
+
         // Layer 1: Check global blocks (developer-controlled)
         val globalKeywordCheck = remoteConfigManager.isGloballyBlocked("$title $channelName ${description ?: ""}")
         if (globalKeywordCheck.isBlocked) {
@@ -165,11 +211,12 @@ class CloudContentFilter(
 
         val globalChannelCheck = remoteConfigManager.isChannelGloballyBlocked(channelId, channelName)
         if (globalChannelCheck.isBlocked) {
+            Log.d(TAG, "BLOCKED by global channel rule: $channelName")
             return BlockResult(true, BlockReason.BLOCKED_CHANNEL, globalChannelCheck.message)
         }
 
         // Layer 2: Check parent blocks (family-specific)
-        val settings = _filterSettings.value
+        // (settings already defined above for logging)
 
         // Check video ID blocklist
         if (videoId in settings.blockedVideoIds) {
@@ -184,20 +231,7 @@ class CloudContentFilter(
             return BlockResult(true, BlockReason.BLOCKED_CHANNEL, "This channel has been blocked")
         }
 
-        // Whitelist mode check - only apply if there are actually whitelisted channels
-        if (settings.allowedChannelsOnly && settings.allowedChannels.isNotEmpty()) {
-            val isAllowed = settings.allowedChannels.any {
-                it.channelId.equals(channelId, ignoreCase = true) ||
-                it.channelName.equals(channelName, ignoreCase = true)
-            }
-            if (!isAllowed) {
-                Log.d(TAG, "Video blocked - channel '$channelName' not in whitelist of ${settings.allowedChannels.size} channels")
-                return BlockResult(true, BlockReason.NOT_WHITELISTED, "Only approved channels are allowed")
-            }
-        } else if (settings.allowedChannelsOnly && settings.allowedChannels.isEmpty()) {
-            // Whitelist mode is ON but no channels added - log warning but allow content
-            Log.w(TAG, "Whitelist mode enabled but no channels added - allowing content by default")
-        }
+        // Whitelist mode removed - age-based filtering is sufficient
 
         // Live stream check
         if (isLiveStream && settings.blockLiveStreams) {
@@ -222,6 +256,7 @@ class CloudContentFilter(
 
         for (keyword in settings.blockedKeywords) {
             if (textToCheck.contains(keyword.lowercase())) {
+                Log.d(TAG, "BLOCKED by parent keyword: '$keyword' found in '$title'")
                 return BlockResult(true, BlockReason.BLOCKED_KEYWORD, "Contains blocked keyword: $keyword")
             }
         }
@@ -249,6 +284,7 @@ class CloudContentFilter(
             }
         }
 
+        Log.d(TAG, "PASSED all filters: '$title'")
         return BlockResult(false, null, null)
     }
 
@@ -334,20 +370,7 @@ class CloudContentFilter(
             return BlockResult(true, BlockReason.BLOCKED_ARTIST, "This artist is blocked")
         }
 
-        // Whitelist mode check for artists - only apply if there are actually whitelisted artists
-        if (settings.allowedChannelsOnly && settings.allowedArtists.isNotEmpty()) {
-            val isAllowed = settings.allowedArtists.any {
-                it.artistId.equals(artistId, ignoreCase = true) ||
-                it.artistName.equals(artistName, ignoreCase = true)
-            }
-            if (!isAllowed) {
-                Log.d(TAG, "Music blocked - artist '$artistName' not in whitelist of ${settings.allowedArtists.size} artists")
-                return BlockResult(true, BlockReason.NOT_WHITELISTED, "Only approved artists are allowed")
-            }
-        } else if (settings.allowedChannelsOnly && settings.allowedArtists.isEmpty()) {
-            // Whitelist mode is ON but no artists added - log warning but allow content
-            Log.w(TAG, "Whitelist mode enabled but no artists added - allowing music by default")
-        }
+        // Whitelist mode removed for music - age-based filtering is sufficient
 
         // Duration check for music
         if (settings.maxMusicDurationMinutes > 0) {
@@ -588,6 +611,7 @@ class CloudContentFilter(
         parentUid = null
         deviceId = null
         childName = null
+        childId = null  // NEW: Clear child ID
     }
 }
 

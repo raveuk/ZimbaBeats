@@ -114,12 +114,35 @@ class YouTubeService(private val httpClient: HttpClient) {
 
     /**
      * Search with spelling correction support
+     * Includes fallback: if kidSafeMode returns 0 results, tries regular YouTube search
      */
     suspend fun searchVideosWithCorrection(query: String, maxResults: Int = 50): SearchResultWithCorrection {
         return try {
             Log.d(TAG, "Searching with correction for: '$query'")
             val result = innertubeClient.searchVideosWithCorrection(query)
             Log.d(TAG, "Got ${result.videos.size} results, correction: ${result.correctedQuery}")
+
+            // FALLBACK: If kidSafeMode is on and returned 0 results, try regular YouTube
+            // CloudContentFilter will still filter inappropriate content
+            if (result.videos.isEmpty() && innertubeClient.kidSafeModeEnabled) {
+                Log.d(TAG, "YouTube Kids returned 0 results - trying regular YouTube with content filtering")
+
+                // Temporarily disable kidSafeMode for fallback search
+                innertubeClient.kidSafeModeEnabled = false
+                val fallbackResult = innertubeClient.searchVideosWithCorrection(query)
+                innertubeClient.kidSafeModeEnabled = true // Re-enable
+
+                Log.d(TAG, "Fallback search returned ${fallbackResult.videos.size} results")
+
+                if (fallbackResult.videos.isNotEmpty()) {
+                    return SearchResultWithCorrection(
+                        videos = fallbackResult.videos.take(maxResults),
+                        correctedQuery = fallbackResult.correctedQuery,
+                        originalQuery = fallbackResult.originalQuery
+                    )
+                }
+            }
+
             SearchResultWithCorrection(
                 videos = result.videos.take(maxResults),
                 correctedQuery = result.correctedQuery,

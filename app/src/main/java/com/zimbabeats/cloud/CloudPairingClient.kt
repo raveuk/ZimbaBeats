@@ -34,11 +34,13 @@ class CloudPairingClient(
         private const val KEY_PARENT_UID = "parent_uid"
         private const val KEY_DEVICE_ID = "device_id"
         private const val KEY_CHILD_NAME = "child_name"
+        private const val KEY_CHILD_ID = "child_id"  // NEW: Links to specific child profile
         private const val KEY_IS_PAIRED = "is_paired"
         private const val COLLECTION_PAIRING_CODES = "pairing_codes"
         private const val COLLECTION_FAMILIES = "families"
         private const val COLLECTION_DEVICES = "devices"
         private const val COLLECTION_SETTINGS = "settings"
+        private const val COLLECTION_CHILDREN = "children"  // NEW: Per-child settings collection
     }
 
     private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -56,8 +58,11 @@ class CloudPairingClient(
     private var settingsListener: ListenerRegistration? = null
     private var deviceListener: ListenerRegistration? = null
 
-    // Premium Content Filter
+    // Premium Content Filter (for videos)
     val contentFilter = CloudContentFilter(firestore = firestore)
+
+    // Premium Music Filter (SEPARATE whitelist-only filter for music)
+    val musicFilter = CloudMusicFilter(firestore = firestore)
 
     /**
      * Get the device ID, generating one if needed.
@@ -107,6 +112,8 @@ class CloudPairingClient(
             val expiresAt = codeDoc.getDate("expiresAt")
             val used = codeDoc.getBoolean("used") ?: true
             val parentUid = codeDoc.getString("parentUid")
+            val childIdFromCode = codeDoc.getString("childId")  // NEW: Get child ID from pairing code
+            val childNameFromCode = codeDoc.getString("childName")  // NEW: Get pre-set child name
 
             when {
                 parentUid.isNullOrEmpty() -> {
@@ -123,7 +130,9 @@ class CloudPairingClient(
                 }
                 else -> {
                     // Code is valid - link this device
-                    linkDevice(parentUid, childName, normalizedCode)
+                    // Use child name from code if available, otherwise use provided name
+                    val finalChildName = childNameFromCode ?: childName
+                    linkDevice(parentUid, finalChildName, normalizedCode, childIdFromCode)
                 }
             }
         } catch (e: Exception) {
@@ -135,18 +144,25 @@ class CloudPairingClient(
 
     /**
      * Link this device to the parent's family.
+     *
+     * @param parentUid Parent's Firebase UID
+     * @param childName Child's display name
+     * @param pairingCode The pairing code used
+     * @param childId Optional child profile ID for per-child settings
      */
     private suspend fun linkDevice(
         parentUid: String,
         childName: String,
-        pairingCode: String
+        pairingCode: String,
+        childId: String? = null
     ): PairingResult {
         return try {
             val deviceId = getDeviceId()
             val now = Date()
 
             // Create device document under parent's family
-            val deviceData = hashMapOf(
+            // Only include non-null fields to avoid Firestore permission issues
+            val deviceData = hashMapOf<String, Any>(
                 "deviceId" to deviceId,
                 "deviceName" to getDeviceName(),
                 "childName" to childName,
@@ -156,6 +172,10 @@ class CloudPairingClient(
                 "appVersion" to getAppVersion(),
                 "fcmToken" to "" // Will be updated when FCM initializes
             )
+            // Only add childId if it's not null
+            if (childId != null) {
+                deviceData["childId"] = childId
+            }
 
             // Add device to parent's family
             firestore.collection(COLLECTION_FAMILIES)
@@ -177,19 +197,21 @@ class CloudPairingClient(
                 )
                 .await()
 
-            // Save pairing info locally
+            // Save pairing info locally (including childId)
             prefs.edit()
                 .putString(KEY_PARENT_UID, parentUid)
                 .putString(KEY_CHILD_NAME, childName)
+                .putString(KEY_CHILD_ID, childId)  // NEW: Store child ID
                 .putBoolean(KEY_IS_PAIRED, true)
                 .apply()
 
-            Log.d(TAG, "Device $deviceId successfully linked to parent $parentUid")
+            Log.d(TAG, "Device $deviceId successfully linked to parent $parentUid (childId=$childId)")
 
             _pairingStatus.value = PairingStatus.Paired(
                 parentUid = parentUid,
                 deviceId = deviceId,
-                childName = childName
+                childName = childName,
+                childId = childId  // NEW: Include child ID in status
             )
 
             // Start listening for settings
@@ -205,6 +227,7 @@ class CloudPairingClient(
 
     /**
      * Start listening for parental control settings changes.
+     * If device has a childId, uses per-child settings path.
      */
     fun startSettingsSync() {
         val status = _pairingStatus.value
@@ -215,10 +238,13 @@ class CloudPairingClient(
 
         stopSettingsSync()
 
-        // Initialize content filter with pairing info
-        contentFilter.initialize(status.parentUid, status.deviceId, status.childName)
+        // Initialize content filter with pairing info (including childId for per-child settings)
+        contentFilter.initialize(status.parentUid, status.deviceId, status.childName, status.childId)
 
-        // Listen to this device's document to detect if parent removes it
+        // Initialize music filter (SEPARATE whitelist-only filter, with childId for per-child settings)
+        musicFilter.initialize(status.parentUid, status.deviceId, status.childName, status.childId)
+
+        // Listen to this device's document to detect if parent removes it or changes childId
         deviceListener = firestore.collection(COLLECTION_FAMILIES)
             .document(status.parentUid)
             .collection(COLLECTION_DEVICES)
@@ -237,14 +263,41 @@ class CloudPairingClient(
                     Handler(Looper.getMainLooper()).post {
                         handleRemoteUnlink()
                     }
+                } else if (snapshot != null && snapshot.exists()) {
+                    // Check if childId was changed (e.g., parent deleted child profile or reassigned device)
+                    val newChildId = snapshot.getString("childId")
+                    val currentChildId = status.childId
+
+                    if (currentChildId != null && newChildId != currentChildId) {
+                        // Child ID changed - could be reassigned to different child or set to null
+                        Log.w(TAG, "Child ID changed from $currentChildId to $newChildId - updating local state")
+                        Handler(Looper.getMainLooper()).post {
+                            handleChildIdChange(status.parentUid, status.deviceId, snapshot.getString("childName") ?: "Child", newChildId)
+                        }
+                    }
                 }
             }
 
         // Listen to the parent's settings document
-        settingsListener = firestore.collection(COLLECTION_FAMILIES)
-            .document(status.parentUid)
-            .collection(COLLECTION_SETTINGS)
-            .document("parental_controls")
+        // Use per-child path if childId exists, otherwise use legacy family-level path
+        val settingsPath = if (status.childId != null) {
+            // Per-child settings: families/{uid}/children/{childId}/settings/
+            firestore.collection(COLLECTION_FAMILIES)
+                .document(status.parentUid)
+                .collection(COLLECTION_CHILDREN)
+                .document(status.childId)
+                .collection(COLLECTION_SETTINGS)
+        } else {
+            // Legacy family-level settings: families/{uid}/settings/
+            firestore.collection(COLLECTION_FAMILIES)
+                .document(status.parentUid)
+                .collection(COLLECTION_SETTINGS)
+        }
+
+        val pathInfo = if (status.childId != null) "child ${status.childId}" else "family (legacy)"
+        Log.d(TAG, "Listening for parental controls at $pathInfo")
+
+        settingsListener = settingsPath.document("parental_controls")
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     Log.e(TAG, "Error listening for settings", error)
@@ -291,10 +344,11 @@ class CloudPairingClient(
         // Stop all listeners
         stopSettingsSync()
 
-        // Clear local pairing data
+        // Clear local pairing data (including childId)
         prefs.edit()
             .remove(KEY_PARENT_UID)
             .remove(KEY_CHILD_NAME)
+            .remove(KEY_CHILD_ID)  // NEW: Clear child ID
             .putBoolean(KEY_IS_PAIRED, false)
             .apply()
 
@@ -303,8 +357,47 @@ class CloudPairingClient(
         _cloudSettings.value = null
         _unlinkedByParent.value = true
         contentFilter.cleanup()
+        musicFilter.cleanup()
 
         Log.d(TAG, "Device unlinked remotely by parent")
+    }
+
+    /**
+     * Handle when the child ID changes (e.g., parent deleted child profile or reassigned device).
+     * This restarts settings sync with the new child ID.
+     */
+    private fun handleChildIdChange(parentUid: String, deviceId: String, childName: String, newChildId: String?) {
+        Log.d(TAG, "Handling child ID change to: $newChildId")
+
+        // Stop current listeners
+        stopSettingsSync()
+
+        // Cleanup content and music filters before reinitializing with new childId
+        contentFilter.cleanup()
+        musicFilter.cleanup()
+
+        // Update local storage with new child info (use commit() for synchronous write)
+        prefs.edit()
+            .putString(KEY_CHILD_NAME, childName)
+            .putString(KEY_CHILD_ID, newChildId)
+            .commit()  // Synchronous to avoid race condition
+
+        // Update pairing status
+        _pairingStatus.value = PairingStatus.Paired(
+            parentUid = parentUid,
+            deviceId = deviceId,
+            childName = childName,
+            childId = newChildId
+        )
+
+        // If newChildId is null, the device is now "unassigned" - notify user
+        if (newChildId == null) {
+            Log.w(TAG, "Device is now unassigned (child profile was deleted)")
+            _unlinkedByParent.value = true  // Show notification to user
+        }
+
+        // Restart settings sync with new child ID (or legacy path if null)
+        startSettingsSync()
     }
 
     /**
@@ -323,6 +416,7 @@ class CloudPairingClient(
         deviceListener?.remove()
         deviceListener = null
         contentFilter.stopListening()
+        musicFilter.stopListening()
     }
 
     /**
@@ -388,12 +482,14 @@ class CloudPairingClient(
         prefs.edit()
             .remove(KEY_PARENT_UID)
             .remove(KEY_CHILD_NAME)
+            .remove(KEY_CHILD_ID)  // FIX: Clear child ID on unpair
             .putBoolean(KEY_IS_PAIRED, false)
             .apply()
 
         _pairingStatus.value = PairingStatus.Unpaired
         _cloudSettings.value = null
         contentFilter.cleanup()
+        musicFilter.cleanup()
         Log.d(TAG, "Device unpaired")
     }
 
@@ -522,9 +618,10 @@ class CloudPairingClient(
         val parentUid = prefs.getString(KEY_PARENT_UID, null)
         val deviceId = prefs.getString(KEY_DEVICE_ID, null)
         val childName = prefs.getString(KEY_CHILD_NAME, null)
+        val childId = prefs.getString(KEY_CHILD_ID, null)  // NEW: Load child ID
 
         return if (parentUid != null && deviceId != null && childName != null) {
-            PairingStatus.Paired(parentUid, deviceId, childName)
+            PairingStatus.Paired(parentUid, deviceId, childName, childId)
         } else {
             PairingStatus.Unpaired
         }
@@ -565,7 +662,8 @@ sealed class PairingStatus {
     data class Paired(
         val parentUid: String,
         val deviceId: String,
-        val childName: String
+        val childName: String,
+        val childId: String? = null  // NEW: Links to specific child profile for per-child settings
     ) : PairingStatus()
 }
 

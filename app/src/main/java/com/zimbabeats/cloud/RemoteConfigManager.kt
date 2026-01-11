@@ -24,8 +24,8 @@ class RemoteConfigManager {
         const val KEY_MIN_APP_VERSION = "min_app_version"
         const val KEY_FEATURE_LYRICS_ENABLED = "feature_lyrics_enabled"
 
-        // Fetch interval (1 hour for production)
-        private const val FETCH_INTERVAL_SECONDS = 3600L
+        // Fetch interval (15 minutes for faster emergency block updates)
+        private const val FETCH_INTERVAL_SECONDS = 900L
     }
 
     private val remoteConfig: FirebaseRemoteConfig = FirebaseRemoteConfig.getInstance()

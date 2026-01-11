@@ -74,7 +74,20 @@ class SearchViewModel(
      * When not linked to family, all videos are allowed (unrestricted mode).
      */
     private fun filterVideosByCloud(videos: List<Video>): List<Video> {
-        val filter = contentFilter ?: return videos
+        // CRITICAL FIX: If not paired with parent app, skip cloud filtering entirely
+        // This fixes the bug where unpaired devices were getting filtered
+        if (!cloudPairingClient.isPaired()) {
+            android.util.Log.d("SearchViewModel", "Device not paired - returning all ${videos.size} videos unfiltered")
+            return videos
+        }
+
+        val filter = contentFilter
+
+        // If filter settings haven't loaded from Firestore yet, don't block anything
+        if (!filter.hasLoadedSettings()) {
+            android.util.Log.w("SearchViewModel", "Filter settings not yet loaded - allowing all ${videos.size} videos")
+            return videos
+        }
 
         return videos.filter { video ->
             // Convert duration to seconds if stored in milliseconds
@@ -89,6 +102,9 @@ class SearchViewModel(
                 isLiveStream = false, // Video model doesn't track live streams
                 category = video.category?.name
             )
+            if (blockResult.isBlocked) {
+                android.util.Log.d("SearchViewModel", "Filtered: ${video.title} - reason: ${blockResult.reason}")
+            }
             !blockResult.isBlocked
         }
     }

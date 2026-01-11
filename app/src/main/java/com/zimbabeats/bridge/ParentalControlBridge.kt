@@ -149,6 +149,7 @@ class ParentalControlBridge(
 
     /**
      * Parse age rating string to age level constant.
+     * SECURITY: Defaults to most restrictive (UNDER_5) for unrecognized values
      */
     private fun parseAgeRating(ageRating: String): Int {
         return when (ageRating.uppercase()) {
@@ -156,7 +157,10 @@ class ParentalControlBridge(
             "UNDER_5", "5" -> RestrictionState.AGE_LEVEL_UNDER_5
             "UNDER_8", "8", "PG" -> RestrictionState.AGE_LEVEL_UNDER_8
             "UNDER_13", "13", "PG-13" -> RestrictionState.AGE_LEVEL_UNDER_13
-            else -> RestrictionState.AGE_LEVEL_ALL
+            else -> {
+                Log.w(TAG, "Unrecognized age rating '$ageRating', defaulting to most restrictive (UNDER_5)")
+                RestrictionState.AGE_LEVEL_UNDER_5
+            }
         }
     }
 
