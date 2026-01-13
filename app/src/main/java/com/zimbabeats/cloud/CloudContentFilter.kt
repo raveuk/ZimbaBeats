@@ -68,28 +68,74 @@ class CloudContentFilter(
 
     /**
      * Start listening for content filter settings from parent
-     * Uses per-child path if childId is set, otherwise uses legacy family-level path
+     * Uses per-child path if childId is set, with fallback to legacy family-level path
      */
     private fun startListening() {
         val uid = parentUid ?: return
         stopListening()
 
-        // Determine settings path based on whether we have a childId
-        val settingsPath = if (childId != null) {
-            // Per-child settings: families/{uid}/children/{childId}/settings/
-            firestore.collection(COLLECTION_FAMILIES)
-                .document(uid)
-                .collection(COLLECTION_CHILDREN)
-                .document(childId!!)
-                .collection(COLLECTION_SETTINGS)
+        // If we have a childId, try per-child path first with fallback to legacy
+        if (childId != null) {
+            startListeningWithFallback(uid, childId!!)
         } else {
-            // Legacy family-level settings: families/{uid}/settings/
-            firestore.collection(COLLECTION_FAMILIES)
-                .document(uid)
-                .collection(COLLECTION_SETTINGS)
+            // No childId - use legacy path directly
+            startListeningToPath(uid, getLegacySettingsPath(uid), "family (legacy)")
         }
+    }
 
-        val pathInfo = if (childId != null) "child $childId" else "family (legacy)"
+    /**
+     * Get the per-child settings path
+     */
+    private fun getPerChildSettingsPath(uid: String, cId: String) =
+        firestore.collection(COLLECTION_FAMILIES)
+            .document(uid)
+            .collection(COLLECTION_CHILDREN)
+            .document(cId)
+            .collection(COLLECTION_SETTINGS)
+
+    /**
+     * Get the legacy family-level settings path
+     */
+    private fun getLegacySettingsPath(uid: String) =
+        firestore.collection(COLLECTION_FAMILIES)
+            .document(uid)
+            .collection(COLLECTION_SETTINGS)
+
+    /**
+     * Try per-child path first, fallback to legacy if no document found
+     */
+    private fun startListeningWithFallback(uid: String, cId: String) {
+        val perChildPath = getPerChildSettingsPath(uid, cId)
+
+        Log.d(TAG, "Trying per-child path first for child $cId")
+
+        // First, check if per-child document exists
+        perChildPath.document(DOC_CONTENT_FILTER).get()
+            .addOnSuccessListener { snapshot ->
+                if (snapshot != null && snapshot.exists()) {
+                    // Per-child settings exist - listen to them
+                    Log.d(TAG, "Found per-child settings for $cId - using per-child path")
+                    startListeningToPath(uid, perChildPath, "child $cId")
+                } else {
+                    // No per-child settings - fallback to legacy path
+                    Log.d(TAG, "No per-child settings found for $cId - falling back to legacy family path")
+                    startListeningToPath(uid, getLegacySettingsPath(uid), "family (legacy fallback)")
+                }
+            }
+            .addOnFailureListener { e ->
+                Log.e(TAG, "Error checking per-child path, falling back to legacy", e)
+                startListeningToPath(uid, getLegacySettingsPath(uid), "family (legacy fallback)")
+            }
+    }
+
+    /**
+     * Start listening to a specific settings path
+     */
+    private fun startListeningToPath(
+        uid: String,
+        settingsPath: com.google.firebase.firestore.CollectionReference,
+        pathInfo: String
+    ) {
         Log.d(TAG, "Starting to listen for content filter at $pathInfo")
 
         settingsListener = settingsPath.document(DOC_CONTENT_FILTER)
@@ -104,9 +150,9 @@ class CloudContentFilter(
                         val settings = parseFilterSettings(snapshot.data ?: emptyMap())
                         _filterSettings.value = settings
                         settingsLoaded = true
-                        Log.d(TAG, "Content filter settings loaded: ${settings.blockedKeywords.size} keywords, " +
+                        Log.d(TAG, "Content filter settings loaded from $pathInfo: ${settings.blockedKeywords.size} keywords, " +
                                 "${settings.blockedChannels.size} channels, ageEnabled=${settings.ageBasedFilteringEnabled}, " +
-                                "${settings.ageBlockedKeywords.size} age keywords")
+                                "ageRating=${settings.ageRating}, ${settings.ageBlockedKeywords.size} age keywords")
                     } catch (e: Exception) {
                         Log.e(TAG, "Error parsing filter settings", e)
                     }
@@ -114,7 +160,7 @@ class CloudContentFilter(
                     // No content_filter document exists - use permissive defaults
                     _filterSettings.value = CloudFilterSettings()
                     settingsLoaded = true
-                    Log.d(TAG, "No content_filter document found - using permissive defaults")
+                    Log.d(TAG, "No content_filter document found at $pathInfo - using permissive defaults")
                 }
             }
     }

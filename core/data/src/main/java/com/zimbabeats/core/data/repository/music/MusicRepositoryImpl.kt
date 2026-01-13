@@ -245,17 +245,27 @@ class MusicRepositoryImpl(
 
     override fun getFavoriteTracks(): Flow<List<Track>> {
         return favoriteTrackDao.getFavoriteTracks().map { entities ->
+            Log.d(TAG, "getFavoriteTracks: Received ${entities.size} favorite track entities from DAO")
+            entities.forEach { entity ->
+                Log.d(TAG, "  - Favorite track: ${entity.id} - ${entity.title}")
+            }
             entities.map { it.toDomain(isFavorite = true) }
         }
     }
 
     override suspend fun toggleFavorite(track: Track): Resource<Boolean> {
         return try {
+            Log.d(TAG, "toggleFavorite called for: ${track.id} - ${track.title}")
+
             // Ensure track is in database
-            trackDao.insertTrack(track.toEntity())
+            val entity = track.toEntity()
+            Log.d(TAG, "Inserting track entity: $entity")
+            trackDao.insertTrack(entity)
+            Log.d(TAG, "Track inserted successfully")
 
             // Toggle favorite
             val isNowFavorite = favoriteTrackDao.toggleFavorite(track.id)
+            Log.d(TAG, "Favorite toggled, isNowFavorite: $isNowFavorite")
             Resource.success(isNowFavorite)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to toggle favorite for: ${track.id}", e)

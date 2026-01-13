@@ -330,11 +330,12 @@ class PlaylistSharingClient(
             if (pairingInfo != null) {
                 val creatorFamilyId = data["createdByFamilyId"] as? String
                 if (creatorFamilyId != null) {
+                    // Note: Can't use serverTimestamp() inside arrayUnion, use current time instead
                     val redeemInfo = mapOf(
                         "childName" to pairingInfo.childName,
                         "deviceId" to pairingInfo.deviceId,
                         "familyId" to pairingInfo.parentUid,
-                        "redeemedAt" to FieldValue.serverTimestamp()
+                        "redeemedAt" to System.currentTimeMillis()
                     )
 
                     val creatorPlaylistDocRef = firestore.collection(COLLECTION_FAMILIES)

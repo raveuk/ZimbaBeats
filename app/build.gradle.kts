@@ -35,8 +35,8 @@ android {
         applicationId = "com.zimbabeats"
         minSdk = 24
         targetSdk = 36
-        versionCode = 12
-        versionName = "1.0.12"
+        versionCode = 17
+        versionName = "1.0.17"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -150,6 +150,9 @@ dependencies {
 
     // DataStore
     implementation(libs.androidx.datastore.preferences)
+
+    // Palette for color extraction from album art
+    implementation("androidx.palette:palette-ktx:1.0.0")
 
     // Testing
     testImplementation(libs.junit)

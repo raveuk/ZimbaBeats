@@ -245,6 +245,12 @@ fun ZimbaBeatsNavHost(
                 },
                 onPlaylistClick = { playlistId ->
                     navController.navigate(Screen.PlaylistDetail(playlistId))
+                },
+                onNavigateToImport = {
+                    navController.navigate(Screen.ImportPlaylist)
+                },
+                onNavigateToPlaylists = {
+                    navController.navigate(Screen.Playlists)
                 }
             )
         }

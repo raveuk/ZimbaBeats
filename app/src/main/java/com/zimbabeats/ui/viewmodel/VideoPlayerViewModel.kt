@@ -321,24 +321,53 @@ class VideoPlayerViewModel(
     }
 
     /**
-     * Load related videos from the same channel
+     * Load related videos from the same channel by searching YouTube
      */
     private fun loadRelatedVideos(channelId: String, currentVideoId: String) {
+        val channelName = _uiState.value.video?.channelName ?: return
+
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoadingRelated = true)
 
-            videoRepository.getVideosByChannel(channelId).collect { videos ->
-                // Filter out current video, apply parental filtering, and limit to 10
-                val filteredVideos = videos
-                    .filter { it.id != currentVideoId }
-                    .take(10)
+            try {
+                // Search YouTube for videos from this channel
+                val searchResults = youTubeService.searchVideos("$channelName", maxResults = 50)
 
-                Log.d(TAG, "Loaded ${filteredVideos.size} related videos from channel $channelId")
+                // Convert YouTubeVideo to Video domain model, filter current video, and limit to 10
+                val relatedVideos = searchResults
+                    .filter { it.id != currentVideoId }
+                    .filter { it.channelName.equals(channelName, ignoreCase = true) }
+                    .take(10)
+                    .map { ytVideo ->
+                        Video(
+                            id = ytVideo.id,
+                            title = ytVideo.title,
+                            description = ytVideo.description,
+                            thumbnailUrl = ytVideo.thumbnailUrl,
+                            channelName = ytVideo.channelName,
+                            channelId = ytVideo.channelId,
+                            duration = ytVideo.duration,
+                            viewCount = ytVideo.viewCount,
+                            publishedAt = ytVideo.publishedAt,
+                            isKidFriendly = ytVideo.isFamilySafe || ytVideo.isMadeForKids,
+                            category = null
+                        )
+                    }
+
+                Log.d(TAG, "Loaded ${relatedVideos.size} related videos from channel '$channelName'")
 
                 _uiState.value = _uiState.value.copy(
-                    relatedVideos = filteredVideos,
+                    relatedVideos = relatedVideos,
                     isLoadingRelated = false
                 )
+
+                // Cache the videos for future use
+                if (relatedVideos.isNotEmpty()) {
+                    videoRepository.saveVideos(relatedVideos)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to load related videos for channel '$channelName'", e)
+                _uiState.value = _uiState.value.copy(isLoadingRelated = false)
             }
         }
     }

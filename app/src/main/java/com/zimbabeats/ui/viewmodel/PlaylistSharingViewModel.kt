@@ -173,12 +173,15 @@ class PlaylistSharingViewModel(
                     }
                 }
 
-                // Create the imported playlist
+                // Create the imported playlist with unique name
                 val color = PlaylistColor.values().find { it.hex == sharedData.color }
                     ?: PlaylistColor.PINK
 
+                // Add "from [friend]" to name to distinguish imported playlists
+                val importedName = "${sharedData.playlistName} (from ${sharedData.sharedByChildName})"
+
                 val createResult = playlistRepository.createImportedPlaylist(
-                    name = sharedData.playlistName,
+                    name = importedName,
                     description = sharedData.description,
                     color = color,
                     importedFrom = sharedData.sharedByChildName

@@ -71,6 +71,8 @@ class MusicPlaybackManager(
     init {
         // Start position updates
         startPositionUpdates()
+        // Listen for track completion to auto-advance
+        setupTrackCompletionListener()
     }
 
     private fun startPositionUpdates() {
@@ -84,6 +86,33 @@ class MusicPlaybackManager(
                     isPlaying = isPlaying
                 )
                 delay(250)
+            }
+        }
+    }
+
+    /**
+     * Listen for track completion and auto-advance to next song in queue
+     */
+    private fun setupTrackCompletionListener() {
+        scope.launch {
+            var wasEnded = false
+            player.playerState.collect { state ->
+                // Detect transition to ended state
+                if (state.isEnded && !wasEnded) {
+                    Log.d(TAG, "Track ended, checking queue for next track")
+                    val playbackState = _playbackState.value
+                    val nextIndex = playbackState.currentIndex + 1
+
+                    if (nextIndex < playbackState.queue.size) {
+                        Log.d(TAG, "Auto-advancing to next track: index $nextIndex of ${playbackState.queue.size}")
+                        // Small delay to ensure clean transition
+                        delay(300)
+                        skipToNext()
+                    } else {
+                        Log.d(TAG, "Queue ended - no more tracks to play")
+                    }
+                }
+                wasEnded = state.isEnded
             }
         }
     }

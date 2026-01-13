@@ -124,28 +124,74 @@ class CloudMusicFilter(
 
     /**
      * Start listening for music filter settings from parent
-     * Uses per-child path if childId is set, otherwise uses legacy family-level path
+     * Uses per-child path if childId is set, with fallback to legacy family-level path
      */
     private fun startListening() {
         val uid = parentUid ?: return
         stopListening()
 
-        // Determine settings path based on whether we have a childId
-        val settingsPath = if (childId != null) {
-            // Per-child settings: families/{uid}/children/{childId}/settings/
-            firestore.collection(COLLECTION_FAMILIES)
-                .document(uid)
-                .collection(COLLECTION_CHILDREN)
-                .document(childId!!)
-                .collection(COLLECTION_SETTINGS)
+        // If we have a childId, try per-child path first with fallback to legacy
+        if (childId != null) {
+            startListeningWithFallback(uid, childId!!)
         } else {
-            // Legacy family-level settings: families/{uid}/settings/
-            firestore.collection(COLLECTION_FAMILIES)
-                .document(uid)
-                .collection(COLLECTION_SETTINGS)
+            // No childId - use legacy path directly
+            startListeningToPath(uid, getLegacySettingsPath(uid), "family (legacy)")
         }
+    }
 
-        val pathInfo = if (childId != null) "child $childId" else "family (legacy)"
+    /**
+     * Get the per-child settings path
+     */
+    private fun getPerChildSettingsPath(uid: String, cId: String) =
+        firestore.collection(COLLECTION_FAMILIES)
+            .document(uid)
+            .collection(COLLECTION_CHILDREN)
+            .document(cId)
+            .collection(COLLECTION_SETTINGS)
+
+    /**
+     * Get the legacy family-level settings path
+     */
+    private fun getLegacySettingsPath(uid: String) =
+        firestore.collection(COLLECTION_FAMILIES)
+            .document(uid)
+            .collection(COLLECTION_SETTINGS)
+
+    /**
+     * Try per-child path first, fallback to legacy if no document found
+     */
+    private fun startListeningWithFallback(uid: String, cId: String) {
+        val perChildPath = getPerChildSettingsPath(uid, cId)
+
+        Log.d(TAG, "Trying per-child path first for child $cId")
+
+        // First, check if per-child document exists
+        perChildPath.document(DOC_MUSIC_FILTER).get()
+            .addOnSuccessListener { snapshot ->
+                if (snapshot != null && snapshot.exists()) {
+                    // Per-child settings exist - listen to them
+                    Log.d(TAG, "Found per-child music settings for $cId - using per-child path")
+                    startListeningToPath(uid, perChildPath, "child $cId")
+                } else {
+                    // No per-child settings - fallback to legacy path
+                    Log.d(TAG, "No per-child music settings found for $cId - falling back to legacy family path")
+                    startListeningToPath(uid, getLegacySettingsPath(uid), "family (legacy fallback)")
+                }
+            }
+            .addOnFailureListener { e ->
+                Log.e(TAG, "Error checking per-child path, falling back to legacy", e)
+                startListeningToPath(uid, getLegacySettingsPath(uid), "family (legacy fallback)")
+            }
+    }
+
+    /**
+     * Start listening to a specific settings path
+     */
+    private fun startListeningToPath(
+        uid: String,
+        settingsPath: com.google.firebase.firestore.CollectionReference,
+        pathInfo: String
+    ) {
         Log.d(TAG, "Starting to listen for music filter at $pathInfo")
 
         settingsListener = settingsPath.document(DOC_MUSIC_FILTER)
@@ -160,7 +206,7 @@ class CloudMusicFilter(
                         val settings = parseMusicSettings(snapshot.data ?: emptyMap())
                         _musicSettings.value = settings
                         settingsLoaded = true
-                        Log.d(TAG, "Music filter settings loaded: whitelistMode=${settings.whitelistModeEnabled}, " +
+                        Log.d(TAG, "Music filter settings loaded from $pathInfo: whitelistMode=${settings.whitelistModeEnabled}, " +
                                 "allowedArtists=${settings.allowedArtists.size}, " +
                                 "allowedKeywords=${settings.allowedKeywords.size}, " +
                                 "ageRating=${settings.ageRating}")
@@ -168,10 +214,14 @@ class CloudMusicFilter(
                         Log.e(TAG, "Error parsing music filter settings", e)
                     }
                 } else {
-                    // No music_filter document - use defaults based on content_filter age
-                    _musicSettings.value = MusicFilterSettings()
+                    // No music_filter document - use PERMISSIVE defaults (don't block everything)
+                    // Default to whitelistModeEnabled=false so music isn't blocked when no settings exist
+                    _musicSettings.value = MusicFilterSettings(
+                        whitelistModeEnabled = false,  // CRITICAL: Don't block all music by default
+                        ageRating = "ALL"  // CRITICAL: Allow all until parent sets restrictions
+                    )
                     settingsLoaded = true
-                    Log.d(TAG, "No music_filter document - using default settings")
+                    Log.d(TAG, "No music_filter document found at $pathInfo - using PERMISSIVE defaults (whitelist disabled)")
                 }
             }
     }
@@ -201,6 +251,12 @@ class CloudMusicFilter(
 
             // Default allowed kids content (pre-populated safe artists)
             defaultKidsArtistsEnabled = data["defaultKidsArtistsEnabled"] as? Boolean ?: true,
+
+            // BLOCKLIST: Blocked artists (when whitelist mode OFF)
+            blockedArtists = (data["blockedArtists"] as? List<String>) ?: emptyList(),
+
+            // BLOCKLIST: Blocked keywords (when whitelist mode OFF)
+            blockedKeywords = (data["blockedKeywords"] as? List<String>) ?: emptyList(),
 
             // Block explicit regardless of whitelist
             blockExplicit = data["blockExplicit"] as? Boolean ?: true,
@@ -262,9 +318,39 @@ class CloudMusicFilter(
             )
         }
 
-        // If whitelist mode is NOT enabled (age 16+ or ALL), allow everything (except explicit)
+        // If whitelist mode is NOT enabled (age 16+ or ALL), still check blocklists
         if (!settings.whitelistModeEnabled || settings.ageRating in listOf("SIXTEEN_PLUS", "ALL")) {
-            Log.d(TAG, "ALLOWED: Whitelist mode disabled or age unrestricted")
+            Log.d(TAG, "Whitelist mode OFF - checking blocklists instead")
+
+            // Check blocked artists
+            val artistLower = artistName.lowercase().trim()
+            for (blockedArtist in settings.blockedArtists) {
+                val blockedLower = blockedArtist.lowercase().trim()
+                if (artistLower.contains(blockedLower) || blockedLower.contains(artistLower)) {
+                    Log.d(TAG, "BLOCKED: Artist '$artistName' matches blocked artist '$blockedArtist'")
+                    return MusicBlockResult(
+                        isBlocked = true,
+                        reason = MusicBlockReason.BLOCKED_ARTIST,
+                        message = "Artist is blocked: $blockedArtist"
+                    )
+                }
+            }
+
+            // Check blocked keywords in title/artist/album
+            val fullText = "${title.lowercase()} $artistLower ${albumName?.lowercase() ?: ""}"
+            for (keyword in settings.blockedKeywords) {
+                val keywordLower = keyword.lowercase().trim()
+                if (fullText.contains(keywordLower)) {
+                    Log.d(TAG, "BLOCKED: Content contains blocked keyword '$keyword'")
+                    return MusicBlockResult(
+                        isBlocked = true,
+                        reason = MusicBlockReason.BLOCKED_KEYWORD,
+                        message = "Contains blocked keyword: $keyword"
+                    )
+                }
+            }
+
+            Log.d(TAG, "ALLOWED: Passed blocklist checks")
             return MusicBlockResult(isBlocked = false)
         }
 
@@ -484,12 +570,13 @@ class CloudMusicFilter(
  * Music filter settings - SEPARATE from video content_filter
  */
 data class MusicFilterSettings(
-    // Age rating - default to restrictive (EIGHT_PLUS) when no settings exist
-    // This ensures content is blocked by default until parent configures settings
-    val ageRating: String = "EIGHT_PLUS",
+    // Age rating - default to permissive (ALL) when no settings exist
+    // Parent must actively configure restrictions
+    val ageRating: String = "ALL",
 
-    // WHITELIST MODE - enabled for ages 5-14
-    val whitelistModeEnabled: Boolean = true,
+    // WHITELIST MODE - default to FALSE (permissive) until parent enables
+    // When true + empty lists = blocks ALL music, so default must be false
+    val whitelistModeEnabled: Boolean = false,
 
     // Parent-added allowed artists (whitelist)
     val allowedArtists: List<String> = emptyList(),
@@ -502,6 +589,12 @@ data class MusicFilterSettings(
 
     // Include default kids artists in whitelist
     val defaultKidsArtistsEnabled: Boolean = true,
+
+    // BLOCKLIST: Blocked artists (when whitelist mode OFF)
+    val blockedArtists: List<String> = emptyList(),
+
+    // BLOCKLIST: Blocked keywords (when whitelist mode OFF)
+    val blockedKeywords: List<String> = emptyList(),
 
     // Always block explicit content
     val blockExplicit: Boolean = true,

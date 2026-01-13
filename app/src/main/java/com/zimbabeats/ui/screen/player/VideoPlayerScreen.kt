@@ -612,14 +612,6 @@ fun VideoPlayerScreen(
                                             color = Color.White.copy(alpha = 0.9f)
                                         )
 
-                                        Spacer(modifier = Modifier.height(4.dp))
-
-                                        Text(
-                                            text = "${video.viewCount} views",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = Color.White.copy(alpha = 0.5f)
-                                        )
-
                                         video.description?.let { description ->
                                             Spacer(modifier = Modifier.height(12.dp))
 
@@ -1272,11 +1264,6 @@ private fun RelatedVideoItem(
                     color = Color.White.copy(alpha = 0.6f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = "${video.viewCount} views",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.4f)
                 )
             }
         }

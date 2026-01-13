@@ -13,10 +13,12 @@ import com.zimbabeats.core.domain.model.music.MusicSearchResult
 import com.zimbabeats.core.domain.model.music.Track
 import com.zimbabeats.core.domain.repository.MusicRepository
 import com.zimbabeats.core.domain.util.Resource
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 data class MusicHomeUiState(
     val isLoading: Boolean = true,
@@ -74,9 +76,10 @@ class MusicHomeViewModel(
      * Filter tracks using both Global blocks (RemoteConfig) and Cloud Music Filter (Firebase).
      * Global blocks ALWAYS apply regardless of family linking.
      * Music whitelist only applies when linked to a family (ages 5-14 are whitelist-only).
+     * Runs on IO dispatcher for performance.
      */
-    private fun filterTracksWithBridge(tracks: List<Track>): List<Track> {
-        return tracks.filter { track ->
+    private suspend fun filterTracksWithBridge(tracks: List<Track>): List<Track> = withContext(Dispatchers.Default) {
+        tracks.filter { track ->
             // ALWAYS check global blocks first (regardless of family linking)
             val textToCheck = "${track.title} ${track.artistName} ${track.albumName ?: ""}"
             val globalKeywordBlock = remoteConfigManager.isGloballyBlocked(textToCheck)
@@ -125,9 +128,10 @@ class MusicHomeViewModel(
      * Filter music browse items using both Global blocks and Cloud Music Filter.
      * Global blocks ALWAYS apply regardless of family linking.
      * Music whitelist only applies when linked to a family (ages 5-14 are whitelist-only).
+     * Runs on Default dispatcher for performance.
      */
-    private fun filterBrowseItemsWithBridge(items: List<MusicBrowseItem>): List<MusicBrowseItem> {
-        return items.filter { item ->
+    private suspend fun filterBrowseItemsWithBridge(items: List<MusicBrowseItem>): List<MusicBrowseItem> = withContext(Dispatchers.Default) {
+        items.filter { item ->
             // Extract item properties based on type
             val title: String
             val artistName: String

@@ -1,6 +1,5 @@
 ﻿package com.zimbabeats.ui.screen
 
-import android.app.Activity
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -15,7 +14,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -25,7 +23,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.zimbabeats.admin.DeviceAdminManager
 import com.zimbabeats.cloud.CloudPairingClient
 import com.zimbabeats.cloud.PairingResult
 import com.zimbabeats.cloud.PairingStatus
@@ -36,31 +33,17 @@ import org.koin.compose.koinInject
 @Composable
 fun PairingScreen(
     pairingClient: CloudPairingClient = koinInject(),
-    deviceAdminManager: DeviceAdminManager = koinInject(),
     onNavigateBack: () -> Unit,
     onPairingSuccess: () -> Unit
 ) {
     val pairingStatus by pairingClient.pairingStatus.collectAsState()
-    val isAdminActive by deviceAdminManager.isAdminActive.collectAsState()
     val scope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
-    val context = LocalContext.current
-    val activity = context as? Activity
 
     var pairingCode by remember { mutableStateOf("") }
     var childName by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var showUnpairDialog by remember { mutableStateOf(false) }
-    var justPaired by remember { mutableStateOf(false) }
-
-    // Handle successful pairing - prompt for device admin
-    LaunchedEffect(pairingStatus) {
-        if (pairingStatus is PairingStatus.Paired && justPaired && !isAdminActive) {
-            // Auto-prompt for device admin after successful pairing
-            activity?.let { deviceAdminManager.requestAdminActivation(it) }
-            justPaired = false
-        }
-    }
 
     Scaffold(
         topBar = {
@@ -108,8 +91,7 @@ fun PairingScreen(
                             scope.launch {
                                 when (val result = pairingClient.enterPairingCode(pairingCode, childName.trim())) {
                                     is PairingResult.Success -> {
-                                        // Mark as just paired to trigger device admin prompt
-                                        justPaired = true
+                                        // Pairing successful - no device admin needed
                                     }
                                     is PairingResult.InvalidCode -> {
                                         errorMessage = result.reason

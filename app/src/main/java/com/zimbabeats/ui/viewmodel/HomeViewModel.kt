@@ -11,12 +11,14 @@ import com.zimbabeats.core.domain.model.Video
 import com.zimbabeats.core.domain.repository.SearchRepository
 import com.zimbabeats.core.domain.repository.VideoRepository
 import com.zimbabeats.core.domain.util.Resource
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 private const val TAG = "HomeViewModel"
 
@@ -889,13 +891,14 @@ class HomeViewModel(
      *
      * For Under 5/8/10, videos must pass BOTH filters to be shown.
      * This catches content that has no explicit keywords but is still inappropriate.
+     * Runs on Default dispatcher for performance.
      */
-    private fun filterVideosByBridge(videos: List<Video>): List<Video> {
+    private suspend fun filterVideosByBridge(videos: List<Video>): List<Video> = withContext(Dispatchers.Default) {
         // If not linked to family, allow all videos (unrestricted mode)
         val filter = contentFilter
         if (filter == null) {
             Log.d(TAG, "Not linked to family - unrestricted mode, allowing all ${videos.size} videos")
-            return videos
+            return@withContext videos
         }
 
         val currentAgeLevel = _uiState.value.selectedAgeLevel
@@ -937,7 +940,7 @@ class HomeViewModel(
         }
 
         Log.d(TAG, "Filtered to ${filteredVideos.size} videos (${videos.size - filteredVideos.size} blocked)")
-        return filteredVideos
+        filteredVideos
     }
 
     fun toggleFavorite(videoId: String) {

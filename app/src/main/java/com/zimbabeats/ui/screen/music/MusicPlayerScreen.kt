@@ -768,11 +768,14 @@ private fun QueueView(
                             )
                         }
 
-                        Text(
-                            text = formatTime(track.duration),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        // Only show duration if it's available (> 0)
+                        if (track.duration > 0) {
+                            Text(
+                                text = formatTime(track.duration),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
             }

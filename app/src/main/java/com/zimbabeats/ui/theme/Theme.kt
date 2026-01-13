@@ -14,69 +14,85 @@ import androidx.core.view.WindowCompat
 import com.zimbabeats.data.AccentColor
 
 /**
- * Creates a dark color scheme with the given accent color
+ * Modern Material 3 Dark Color Scheme
+ * Inspired by Spotify/Apple Music dark themes
  */
 private fun createDarkColorScheme(accent: AccentColor): ColorScheme = darkColorScheme(
+    // Primary - Main brand color (green by default)
     primary = accent.primary,
-    onPrimary = accent.onPrimary,
+    onPrimary = OnPrimary,
     primaryContainer = accent.primary.copy(alpha = 0.2f),
-    onPrimaryContainer = accent.primary,
+    onPrimaryContainer = Color.White,
 
-    secondary = accent.primaryVariant,
-    onSecondary = accent.onPrimary,
-    secondaryContainer = accent.primaryVariant.copy(alpha = 0.2f),
-    onSecondaryContainer = accent.primaryVariant,
+    // Secondary - Purple accent
+    secondary = Secondary,
+    onSecondary = OnSecondary,
+    secondaryContainer = Secondary.copy(alpha = 0.2f),
+    onSecondaryContainer = Color.White,
 
-    tertiary = AccentPurple,
-    onTertiary = Color.White,
-    tertiaryContainer = AccentPurple.copy(alpha = 0.2f),
-    onTertiaryContainer = AccentPurple,
+    // Tertiary - Cyan accent
+    tertiary = Tertiary,
+    onTertiary = OnTertiary,
+    tertiaryContainer = Tertiary.copy(alpha = 0.2f),
+    onTertiaryContainer = Color.White,
 
+    // Background - Pure black for AMOLED
     background = DarkBackground,
     onBackground = TextPrimaryDark,
 
+    // Surface - Spotify-style elevated surfaces
     surface = DarkSurface,
     onSurface = TextPrimaryDark,
     surfaceVariant = DarkSurfaceVariant,
     onSurfaceVariant = TextSecondaryDark,
 
-    surfaceContainerLowest = Color(0xFF0D0D0D),
+    // Surface containers for elevation
+    surfaceContainerLowest = DarkBackground,
     surfaceContainerLow = DarkSurface,
     surfaceContainer = DarkSurfaceVariant,
-    surfaceContainerHigh = DarkSurfaceElevated,
-    surfaceContainerHighest = Color(0xFF404040),
+    surfaceContainerHigh = DarkSurfaceContainerHigh,
+    surfaceContainerHighest = DarkSurfaceContainerHighest,
 
-    error = Color(0xFFCF6679),
-    onError = Color.Black,
+    // Error
+    error = Error,
+    onError = Color.White,
+    errorContainer = Error.copy(alpha = 0.2f),
+    onErrorContainer = Error,
 
-    outline = Color(0xFF3D3D3D),
+    // Outline
+    outline = Color(0xFF404040),
     outlineVariant = Color(0xFF2A2A2A),
 
+    // Inverse
     inverseSurface = Color(0xFFE0E0E0),
     inverseOnSurface = Color(0xFF121212),
-    inversePrimary = accent.primaryVariant,
+    inversePrimary = PrimaryDark,
 
-    scrim = Color.Black.copy(alpha = 0.6f)
+    // Scrim
+    scrim = Color.Black.copy(alpha = 0.5f),
+
+    // Surface tint
+    surfaceTint = accent.primary
 )
 
 /**
- * Creates a light color scheme with the given accent color
+ * Material 3 Light Color Scheme
  */
 private fun createLightColorScheme(accent: AccentColor): ColorScheme = lightColorScheme(
     primary = accent.primary,
-    onPrimary = accent.onPrimary,
-    primaryContainer = accent.primary.copy(alpha = 0.1f),
+    onPrimary = Color.White,
+    primaryContainer = accent.primary.copy(alpha = 0.15f),
     onPrimaryContainer = accent.primary,
 
-    secondary = accent.primaryVariant,
-    onSecondary = accent.onPrimary,
-    secondaryContainer = accent.primaryVariant.copy(alpha = 0.1f),
-    onSecondaryContainer = accent.primaryVariant,
+    secondary = Secondary,
+    onSecondary = Color.White,
+    secondaryContainer = Secondary.copy(alpha = 0.15f),
+    onSecondaryContainer = SecondaryDark,
 
-    tertiary = AccentPurple,
+    tertiary = Tertiary,
     onTertiary = Color.White,
-    tertiaryContainer = AccentPurple.copy(alpha = 0.1f),
-    onTertiaryContainer = AccentPurple,
+    tertiaryContainer = Tertiary.copy(alpha = 0.15f),
+    onTertiaryContainer = TertiaryDark,
 
     background = LightBackground,
     onBackground = TextPrimaryLight,
@@ -88,21 +104,25 @@ private fun createLightColorScheme(accent: AccentColor): ColorScheme = lightColo
 
     surfaceContainerLowest = Color.White,
     surfaceContainerLow = Color(0xFFFAFAFA),
-    surfaceContainer = Color(0xFFF5F5F5),
-    surfaceContainerHigh = Color(0xFFEEEEEE),
+    surfaceContainer = LightSurfaceVariant,
+    surfaceContainerHigh = LightSurfaceContainer,
     surfaceContainerHighest = Color(0xFFE0E0E0),
 
-    error = Color(0xFFB00020),
+    error = Error,
     onError = Color.White,
+    errorContainer = Error.copy(alpha = 0.1f),
+    onErrorContainer = Error,
 
-    outline = Color(0xFFDDDDDD),
-    outlineVariant = Color(0xFFEEEEEE),
+    outline = Color(0xFFD0D0D0),
+    outlineVariant = Color(0xFFE8E8E8),
 
-    inverseSurface = Color(0xFF121212),
+    inverseSurface = DarkSurface,
     inverseOnSurface = Color.White,
-    inversePrimary = accent.primary,
+    inversePrimary = PrimaryLight,
 
-    scrim = Color.Black.copy(alpha = 0.4f)
+    scrim = Color.Black.copy(alpha = 0.3f),
+
+    surfaceTint = accent.primary
 )
 
 @Composable
@@ -117,12 +137,11 @@ fun ZimbaBeatsTheme(
         createLightColorScheme(accentColor)
     }
 
-    // Configure status bar and navigation bar appearance (light/dark icons)
+    // Configure status bar and navigation bar appearance
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            // Use WindowInsetsController for modern API - colors handled by edge-to-edge
             WindowCompat.getInsetsController(window, view).apply {
                 isAppearanceLightStatusBars = !darkTheme
                 isAppearanceLightNavigationBars = !darkTheme
@@ -133,6 +152,7 @@ fun ZimbaBeatsTheme(
     MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,
+        shapes = ZimbaBeatsShapes,
         content = content
     )
 }

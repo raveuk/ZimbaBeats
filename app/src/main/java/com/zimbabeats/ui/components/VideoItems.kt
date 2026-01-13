@@ -2,6 +2,7 @@
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -65,10 +66,19 @@ fun EnhancedVideoCard(
     } else ""
     val accessibilityDescription = "${video.title} by ${video.channelName}${if (durationText.isNotEmpty()) ", $durationText" else ""}$progressText. Double tap to play."
 
-    Card(
+    // Glassmorphism card - balanced opacity
+    val cardShape = RoundedCornerShape(12.dp)
+    Box(
         modifier = modifier
             .width(160.dp)
             .scale(scale)
+            .clip(cardShape)
+            .background(GlassWhiteStrong)
+            .border(
+                width = 1.5.dp,
+                color = GlassBorderStrong,
+                shape = cardShape
+            )
             .semantics {
                 contentDescription = accessibilityDescription
                 role = Role.Button
@@ -77,15 +87,7 @@ fun EnhancedVideoCard(
                 interactionSource = interactionSource,
                 indication = null,
                 onClick = onClick
-            ),
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 0.dp,
-            pressedElevation = 0.dp
-        )
+            )
     ) {
         Column {
             // Thumbnail with hover effect
@@ -221,9 +223,18 @@ fun EnhancedVideoListItem(
     val indexText = if (showIndex != null) "Number $showIndex, " else ""
     val accessibilityDescription = "$indexText${video.title} by ${video.channelName}${if (durationText.isNotEmpty()) ", $durationText" else ""}. Double tap to play."
 
-    Surface(
+    // Glassmorphism list item - balanced opacity
+    val listItemShape = RoundedCornerShape(12.dp)
+    Box(
         modifier = modifier
             .fillMaxWidth()
+            .clip(listItemShape)
+            .background(
+                if (isPressed) GlassWhiteStrong else GlassWhiteMedium
+            )
+            .then(
+                if (isPressed) Modifier.border(1.5.dp, GlassBorderStrong, listItemShape) else Modifier.border(1.dp, GlassBorder, listItemShape)
+            )
             .semantics {
                 contentDescription = accessibilityDescription
                 role = Role.Button
@@ -232,13 +243,7 @@ fun EnhancedVideoListItem(
                 interactionSource = interactionSource,
                 indication = null,
                 onClick = onClick
-            ),
-        color = if (isPressed) {
-            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        } else {
-            Color.Transparent
-        },
-        shape = RoundedCornerShape(8.dp)
+            )
     ) {
         Row(
             modifier = Modifier

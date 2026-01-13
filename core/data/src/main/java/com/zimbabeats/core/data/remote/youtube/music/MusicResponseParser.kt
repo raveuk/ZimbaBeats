@@ -184,9 +184,32 @@ object MusicResponseParser {
                             )
                         }
                         pageType == "MUSIC_PAGE_TYPE_ALBUM" || browseId.startsWith("MPREb") -> {
-                            val artistName = subtitle?.firstOrNull()?.jsonObject
-                                ?.get("text")?.jsonPrimitive?.contentOrNull ?: "Unknown Artist"
-                            Log.d(TAG, "Parsed top result album: $title")
+                            // Parse artist name - skip type indicators like "Album", "Single", etc.
+                            val typeIndicators = setOf("album", "single", "ep", "compilation", "live", "remix")
+                            val separators = setOf(" • ", "•", " · ", "·", ", ", " - ")
+
+                            // First try to find artist by navigation endpoint
+                            var artistName = subtitle?.firstOrNull {
+                                it.jsonObject["navigationEndpoint"]?.jsonObject
+                                    ?.get("browseEndpoint")?.jsonObject
+                                    ?.get("browseId")?.jsonPrimitive?.contentOrNull?.startsWith("UC") == true
+                            }?.jsonObject?.get("text")?.jsonPrimitive?.contentOrNull
+
+                            // Fallback: find first text that is not a type indicator
+                            if (artistName == null) {
+                                artistName = subtitle?.firstOrNull { runElement ->
+                                    val text = runElement.jsonObject["text"]?.jsonPrimitive?.contentOrNull ?: ""
+                                    val textLower = text.lowercase().trim()
+                                    !typeIndicators.contains(textLower) &&
+                                    !separators.contains(text) &&
+                                    !text.matches(Regex("\\d{4}")) &&
+                                    text.isNotBlank()
+                                }?.jsonObject?.get("text")?.jsonPrimitive?.contentOrNull
+                            }
+
+                            artistName = artistName ?: "Unknown Artist"
+
+                            Log.d(TAG, "Parsed top result album: $title by $artistName")
                             MusicSearchResult.AlbumResult(
                                 Album(
                                     id = browseId,
@@ -375,7 +398,9 @@ object MusicResponseParser {
                 ?.get("url")?.jsonPrimitive?.contentOrNull ?: ""
 
             // Parse duration from fixedColumns (if available - not always present in search results)
-            val duration = renderer["fixedColumns"]?.jsonArray
+            val fixedColumnsArr = renderer["fixedColumns"]?.jsonArray
+
+            var duration = fixedColumnsArr
                 ?.firstOrNull()?.jsonObject
                 ?.get("musicResponsiveListItemFixedColumnRenderer")?.jsonObject
                 ?.get("text")?.jsonObject
@@ -383,6 +408,36 @@ object MusicResponseParser {
                 ?.firstOrNull()?.jsonObject
                 ?.get("text")?.jsonPrimitive?.contentOrNull
                 ?.let { parseDuration(it) } ?: 0L
+
+            // Fallback 1: Try third flexColumn (sometimes holds duration)
+            if (duration == 0L) {
+                val thirdColumnText = flexColumns.getOrNull(2)?.jsonObject
+                    ?.get("musicResponsiveListItemFlexColumnRenderer")?.jsonObject
+                    ?.get("text")?.jsonObject
+                    ?.get("runs")?.jsonArray
+                    ?.firstOrNull()?.jsonObject
+                    ?.get("text")?.jsonPrimitive?.contentOrNull
+
+                if (thirdColumnText != null && thirdColumnText.matches(Regex("\\d{1,2}:\\d{2}(:\\d{2})?"))) {
+                    duration = parseDuration(thirdColumnText)
+                    Log.d(TAG, "parseTrackFromRenderer - got duration from flexColumn[2]: $thirdColumnText -> ${duration}ms")
+                }
+            }
+
+            // Fallback 2: Search artistInfo runs for duration pattern (anywhere in the array)
+            if (duration == 0L && artistInfo != null) {
+                val durationRun = artistInfo.mapNotNull { it.jsonObject["text"]?.jsonPrimitive?.contentOrNull }
+                    .find { it.matches(Regex("\\d{1,2}:\\d{2}(:\\d{2})?")) }
+
+                if (durationRun != null) {
+                    duration = parseDuration(durationRun)
+                    Log.d(TAG, "parseTrackFromRenderer - extracted duration from artistInfo: $durationRun -> ${duration}ms")
+                } else {
+                    val lastRun = artistInfo.lastOrNull()?.jsonObject
+                        ?.get("text")?.jsonPrimitive?.contentOrNull
+                    Log.d(TAG, "parseTrackFromRenderer - no duration pattern found, lastRun: '$lastRun'")
+                }
+            }
 
             val isExplicit = renderer["badges"]?.jsonArray?.any {
                 it.jsonObject["musicInlineBadgeRenderer"]?.jsonObject
@@ -428,16 +483,36 @@ object MusicResponseParser {
                 ?.get("text")?.jsonObject
                 ?.get("runs")?.jsonArray
 
-            val artistName = artistInfo?.firstOrNull {
+            // Type indicators to skip
+            val typeIndicators = setOf("album", "single", "ep", "compilation", "live", "remix")
+            val separators = setOf(" • ", "•", " · ", "·", ", ", " - ")
+
+            // First try to find artist by navigation endpoint (UC prefix = artist channel)
+            var artistName = artistInfo?.firstOrNull {
                 it.jsonObject["navigationEndpoint"]?.jsonObject
                     ?.get("browseEndpoint")?.jsonObject
                     ?.get("browseId")?.jsonPrimitive?.contentOrNull?.startsWith("UC") == true
             }?.jsonObject?.get("text")?.jsonPrimitive?.contentOrNull
-                ?: artistInfo?.firstOrNull()?.jsonObject?.get("text")?.jsonPrimitive?.contentOrNull
-                ?: "Unknown Artist"
 
-            val artistId = artistInfo?.firstOrNull()?.jsonObject
-                ?.get("navigationEndpoint")?.jsonObject
+            // Fallback: find first text that is not a type indicator, separator, or year
+            if (artistName == null) {
+                artistName = artistInfo?.firstOrNull { runElement ->
+                    val text = runElement.jsonObject["text"]?.jsonPrimitive?.contentOrNull ?: ""
+                    val textLower = text.lowercase().trim()
+                    !typeIndicators.contains(textLower) &&
+                    !separators.contains(text) &&
+                    !text.matches(Regex("\\d{4}")) &&
+                    text.isNotBlank()
+                }?.jsonObject?.get("text")?.jsonPrimitive?.contentOrNull
+            }
+
+            artistName = artistName ?: "Unknown Artist"
+
+            val artistId = artistInfo?.firstOrNull {
+                it.jsonObject["navigationEndpoint"]?.jsonObject
+                    ?.get("browseEndpoint")?.jsonObject
+                    ?.get("browseId")?.jsonPrimitive?.contentOrNull?.startsWith("UC") == true
+            }?.jsonObject?.get("navigationEndpoint")?.jsonObject
                 ?.get("browseEndpoint")?.jsonObject
                 ?.get("browseId")?.jsonPrimitive?.contentOrNull
 
@@ -449,6 +524,8 @@ object MusicResponseParser {
 
             val thumbnailUrl = thumbnails?.lastOrNull()?.jsonObject
                 ?.get("url")?.jsonPrimitive?.contentOrNull ?: ""
+
+            Log.d(TAG, "parseAlbumFromRenderer: title='$title', artist='$artistName', year=$yearStr")
 
             Album(
                 id = browseId,
@@ -745,8 +822,44 @@ object MusicResponseParser {
             val subtitle = renderer["subtitle"]?.jsonObject
                 ?.get("runs")?.jsonArray
 
-            val artistName = subtitle?.firstOrNull()?.jsonObject
-                ?.get("text")?.jsonPrimitive?.contentOrNull ?: "Unknown Artist"
+            // Parse artist name - skip type indicators like "Album", "Single", "EP", separators
+            // Format is typically: ["Album", " • ", "Adele", " • ", "2021"] or ["Adele", " • ", "Album", " • ", "2021"]
+            val typeIndicators = setOf("album", "single", "ep", "compilation", "live", "remix")
+            val separators = setOf(" • ", "•", " · ", "·", ", ", " - ")
+
+            var artistName = "Unknown Artist"
+            var artistId: String? = null
+            var year: Int? = null
+
+            subtitle?.forEach { runElement ->
+                val text = runElement.jsonObject["text"]?.jsonPrimitive?.contentOrNull ?: ""
+                val textLower = text.lowercase().trim()
+
+                // Skip type indicators and separators
+                if (typeIndicators.contains(textLower) || separators.contains(text)) {
+                    return@forEach
+                }
+
+                // Check if this run has a navigation endpoint (indicates artist)
+                val navEndpoint = runElement.jsonObject["navigationEndpoint"]?.jsonObject
+                val artistBrowseId = navEndpoint?.get("browseEndpoint")?.jsonObject
+                    ?.get("browseId")?.jsonPrimitive?.contentOrNull
+
+                if (artistBrowseId != null && artistBrowseId.startsWith("UC")) {
+                    // This is the artist - it has a channel browse ID
+                    artistName = text
+                    artistId = artistBrowseId
+                } else if (text.matches(Regex("\\d{4}"))) {
+                    // This is a year
+                    year = text.toIntOrNull()
+                } else if (artistName == "Unknown Artist" && text.isNotBlank()) {
+                    // First non-indicator, non-separator text that isn't artist with browseId
+                    // Could be artist without navigation endpoint
+                    artistName = text
+                }
+            }
+
+            Log.d(TAG, "parseAlbumFromTwoRowRenderer: title='$title', artist='$artistName', year=$year")
 
             val thumbnails = renderer["thumbnailRenderer"]?.jsonObject
                 ?.get("musicThumbnailRenderer")?.jsonObject
@@ -760,9 +873,9 @@ object MusicResponseParser {
                 id = browseId,
                 title = title,
                 artistName = artistName,
-                artistId = null,
+                artistId = artistId,
                 thumbnailUrl = thumbnailUrl,
-                year = null
+                year = year
             )
         } catch (e: Exception) {
             Log.e(TAG, "Error parsing album from two row renderer", e)
@@ -990,21 +1103,59 @@ object MusicResponseParser {
                 ?: header?.get("straplineTextOne")?.jsonObject
                     ?.get("runs")?.jsonArray
 
+            // Type indicators to skip when finding artist name
+            val typeIndicators = setOf("album", "single", "ep", "compilation", "live", "remix")
+            val separators = setOf(" • ", "•", " · ", "·", ", ", " - ")
+            // Pattern to match track count like "11 songs", "1 song", etc.
+            val trackCountPattern = Regex("^\\d+\\s+songs?$", RegexOption.IGNORE_CASE)
+
+            // First try to find artist by navigation endpoint (UC prefix = artist channel)
             var artistName = subtitle?.find {
                 it.jsonObject["navigationEndpoint"]?.jsonObject
                     ?.get("browseEndpoint")?.jsonObject
                     ?.get("browseId")?.jsonPrimitive?.contentOrNull?.startsWith("UC") == true
             }?.jsonObject?.get("text")?.jsonPrimitive?.contentOrNull
-                ?: subtitle?.firstOrNull()?.jsonObject?.get("text")?.jsonPrimitive?.contentOrNull
+
+            // Helper function to check if text is valid artist name
+            fun isValidArtistText(text: String): Boolean {
+                val textLower = text.lowercase().trim()
+                return !typeIndicators.contains(textLower) &&
+                    !separators.contains(text) &&
+                    !text.matches(Regex("\\d{4}")) &&
+                    !trackCountPattern.matches(text) &&
+                    text.isNotBlank()
+            }
+
+            // Fallback: find first text that is not a type indicator, separator, year, or track count
+            if (artistName == null) {
+                artistName = subtitle?.firstOrNull { runElement ->
+                    val text = runElement.jsonObject["text"]?.jsonPrimitive?.contentOrNull ?: ""
+                    isValidArtistText(text)
+                }?.jsonObject?.get("text")?.jsonPrimitive?.contentOrNull
+            }
+
+            // Try straplineTextOne which often has the artist name
+            if (artistName == null || artistName == "Unknown Artist") {
+                val strapline = header?.get("straplineTextOne")?.jsonObject
+                    ?.get("runs")?.jsonArray
+                artistName = strapline?.firstOrNull { runElement ->
+                    val text = runElement.jsonObject["text"]?.jsonPrimitive?.contentOrNull ?: ""
+                    isValidArtistText(text)
+                }?.jsonObject?.get("text")?.jsonPrimitive?.contentOrNull ?: artistName
+            }
 
             // Alternative: secondSubtitle for musicResponsiveHeaderRenderer
             if (artistName == null || artistName == "Unknown Artist") {
-                artistName = header?.get("secondSubtitle")?.jsonObject
+                val secondSubtitle = header?.get("secondSubtitle")?.jsonObject
                     ?.get("runs")?.jsonArray
-                    ?.firstOrNull()?.jsonObject
-                    ?.get("text")?.jsonPrimitive?.contentOrNull
+                artistName = secondSubtitle?.firstOrNull { runElement ->
+                    val text = runElement.jsonObject["text"]?.jsonPrimitive?.contentOrNull ?: ""
+                    isValidArtistText(text)
+                }?.jsonObject?.get("text")?.jsonPrimitive?.contentOrNull
                     ?: "Unknown Artist"
             }
+
+            Log.d(TAG, "parseAlbumPage - extracted artist: '$artistName' from subtitle/strapline")
 
             val artistId = subtitle?.firstOrNull()?.jsonObject
                 ?.get("navigationEndpoint")?.jsonObject
@@ -1355,8 +1506,19 @@ object MusicResponseParser {
                 ?.get("text")?.jsonObject
                 ?.get("runs")?.jsonArray
 
-            val artistName = artistInfo?.firstOrNull()?.jsonObject
-                ?.get("text")?.jsonPrimitive?.contentOrNull ?: albumArtist
+            // Type indicators to skip
+            val typeIndicators = setOf("album", "single", "ep", "compilation", "live", "remix", "song", "video")
+            val separators = setOf(" • ", "•", " · ", "·", ", ", " - ")
+
+            // Find artist name - skip type indicators
+            val artistName = artistInfo?.firstOrNull { runElement ->
+                val text = runElement.jsonObject["text"]?.jsonPrimitive?.contentOrNull ?: ""
+                val textLower = text.lowercase().trim()
+                !typeIndicators.contains(textLower) &&
+                !separators.contains(text) &&
+                !text.matches(Regex("\\d{4}")) &&
+                text.isNotBlank()
+            }?.jsonObject?.get("text")?.jsonPrimitive?.contentOrNull ?: albumArtist
 
             // Try to get thumbnail from track, fall back to album thumbnail
             val thumbnails = renderer["thumbnail"]?.jsonObject
@@ -1367,15 +1529,52 @@ object MusicResponseParser {
             val thumbnailUrl = thumbnails?.lastOrNull()?.jsonObject
                 ?.get("url")?.jsonPrimitive?.contentOrNull ?: albumThumbnail
 
-            // Parse duration from fixedColumns
-            val duration = renderer["fixedColumns"]?.jsonArray
-                ?.firstOrNull()?.jsonObject
+            // Parse duration from fixedColumns - try multiple paths
+            val fixedColumns = renderer["fixedColumns"]?.jsonArray
+            Log.d(TAG, "parseAlbumTrack - fixedColumns size: ${fixedColumns?.size ?: 0}")
+
+            var duration = 0L
+
+            // Try fixedColumns[0].musicResponsiveListItemFixedColumnRenderer.text.runs[0].text
+            val durationStr = fixedColumns?.firstOrNull()?.jsonObject
                 ?.get("musicResponsiveListItemFixedColumnRenderer")?.jsonObject
                 ?.get("text")?.jsonObject
                 ?.get("runs")?.jsonArray
                 ?.firstOrNull()?.jsonObject
                 ?.get("text")?.jsonPrimitive?.contentOrNull
-                ?.let { parseDuration(it) } ?: 0L
+
+            if (durationStr != null) {
+                duration = parseDuration(durationStr)
+                Log.d(TAG, "parseAlbumTrack - found duration in runs: $durationStr -> ${duration}ms")
+            } else {
+                // Try fixedColumns[0].musicResponsiveListItemFixedColumnRenderer.text.simpleText
+                val simpleText = fixedColumns?.firstOrNull()?.jsonObject
+                    ?.get("musicResponsiveListItemFixedColumnRenderer")?.jsonObject
+                    ?.get("text")?.jsonObject
+                    ?.get("simpleText")?.jsonPrimitive?.contentOrNull
+
+                if (simpleText != null) {
+                    duration = parseDuration(simpleText)
+                    Log.d(TAG, "parseAlbumTrack - found duration in simpleText: $simpleText -> ${duration}ms")
+                } else {
+                    // Try extracting from artistInfo runs (last element like "3:45")
+                    val lastRun = artistInfo?.lastOrNull()?.jsonObject
+                        ?.get("text")?.jsonPrimitive?.contentOrNull
+                    if (lastRun != null && lastRun.matches(Regex("\\d{1,2}:\\d{2}(:\\d{2})?"))) {
+                        duration = parseDuration(lastRun)
+                        Log.d(TAG, "parseAlbumTrack - extracted duration from artistInfo: $lastRun -> ${duration}ms")
+                    } else {
+                        // Log what we do have for debugging
+                        val textObj = fixedColumns?.firstOrNull()?.jsonObject
+                            ?.get("musicResponsiveListItemFixedColumnRenderer")?.jsonObject
+                            ?.get("text")?.jsonObject
+                        Log.d(TAG, "parseAlbumTrack - text object keys: ${textObj?.keys?.joinToString() ?: "null"}")
+                        Log.d(TAG, "parseAlbumTrack - artistInfo last run: $lastRun")
+                    }
+                }
+            }
+
+            Log.d(TAG, "parseAlbumTrack - final duration for '$title': ${duration}ms")
 
             Track(
                 id = videoId,
@@ -1462,10 +1661,21 @@ object MusicResponseParser {
                 val thumbnailUrl = thumbnails?.lastOrNull()?.jsonObject
                     ?.get("url")?.jsonPrimitive?.contentOrNull ?: ""
 
-                val durationStr = renderer["lengthText"]?.jsonObject
-                    ?.get("runs")?.jsonArray
+                // Parse duration - try multiple formats
+                val lengthTextObj = renderer["lengthText"]?.jsonObject
+                val durationStr = lengthTextObj?.get("runs")?.jsonArray
                     ?.firstOrNull()?.jsonObject
                     ?.get("text")?.jsonPrimitive?.contentOrNull
+                    // Fallback to simpleText format
+                    ?: lengthTextObj?.get("simpleText")?.jsonPrimitive?.contentOrNull
+                    // Try accessibility data as last resort
+                    ?: renderer["lengthText"]?.jsonObject
+                        ?.get("accessibility")?.jsonObject
+                        ?.get("accessibilityData")?.jsonObject
+                        ?.get("label")?.jsonPrimitive?.contentOrNull
+                        ?.let { extractDurationFromLabel(it) }
+
+                Log.d(TAG, "Radio track: $title - duration: $durationStr")
 
                 tracks.add(
                     Track(
@@ -1511,6 +1721,31 @@ object MusicResponseParser {
         }
 
         return suggestions
+    }
+
+    /**
+     * Extract duration string from accessibility label (e.g., "3 minutes, 45 seconds")
+     */
+    private fun extractDurationFromLabel(label: String): String? {
+        // Pattern to match accessibility labels like "3 minutes, 45 seconds" or "3:45"
+        // First try to find existing time format
+        val timePattern = Regex("\\d{1,2}:\\d{2}(?::\\d{2})?")
+        timePattern.find(label)?.let { return it.value }
+
+        // Try to extract minutes and seconds from text
+        val minutesMatch = Regex("(\\d+)\\s*minutes?").find(label)
+        val secondsMatch = Regex("(\\d+)\\s*seconds?").find(label)
+        val hoursMatch = Regex("(\\d+)\\s*hours?").find(label)
+
+        val hours = hoursMatch?.groupValues?.get(1)?.toIntOrNull() ?: 0
+        val minutes = minutesMatch?.groupValues?.get(1)?.toIntOrNull() ?: 0
+        val seconds = secondsMatch?.groupValues?.get(1)?.toIntOrNull() ?: 0
+
+        return when {
+            hours > 0 -> "%d:%02d:%02d".format(hours, minutes, seconds)
+            minutes > 0 || seconds > 0 -> "%d:%02d".format(minutes, seconds)
+            else -> null
+        }
     }
 
     /**

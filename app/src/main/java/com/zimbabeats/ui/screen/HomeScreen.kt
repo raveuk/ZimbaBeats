@@ -97,30 +97,27 @@ fun HomeScreen(
                         )
                     )
             ) {
-                TopAppBar(
-                  title = {
-                  Text(
-                    "ZimbaBeats",
-                      style = MaterialTheme.typography.headlineMedium,
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "Zimba Beats Player",
+                        style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                          color = MaterialTheme.colorScheme.onSurface
-                        )
-                  }
-                ,
-                    actions = {
-                        // Settings gear
-                        IconButton(onClick = onNavigateToSettings) {
-                            Icon(
-                                Icons.Default.Settings,
-                                ContentDescriptions.OPEN_SETTINGS,
-                                tint = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.Transparent
+                        color = MaterialTheme.colorScheme.onSurface
                     )
-                )
+                    IconButton(onClick = onNavigateToSettings) {
+                        Icon(
+                            Icons.Default.Settings,
+                            ContentDescriptions.OPEN_SETTINGS,
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
 
                 // Search Box
                 Surface(
@@ -128,14 +125,14 @@ fun HomeScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp)
-                        .padding(bottom = 12.dp),
-                    shape = RoundedCornerShape(28.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f)
+                        .padding(bottom = 8.dp),
+                    shape = MaterialTheme.shapes.extraLarge,
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
@@ -482,8 +479,8 @@ private fun QuickPickItem(
     val quickPickWidth = WindowSizeUtil.getQuickPickWidth()
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        shape = MaterialTheme.shapes.small,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
         modifier = Modifier.width(quickPickWidth)
     ) {
         Row(
@@ -538,7 +535,10 @@ private fun ChannelsSection(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             contentPadding = PaddingValues(horizontal = 16.dp)
         ) {
-            items(channels) { channel ->
+            items(
+                items = channels,
+                key = { it.id }  // Stable key
+            ) { channel ->
                 ChannelCard(
                     channel = channel,
                     videos = channelVideos[channel.id] ?: emptyList(),
@@ -559,8 +559,8 @@ private fun ChannelCard(
 ) {
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
         modifier = Modifier.width(160.dp)
     ) {
         Column(
@@ -632,8 +632,8 @@ private fun QuickActionChip(
 ) {
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
         modifier = Modifier.semantics {
             contentDescription = "Go to $text"
             role = Role.Button
@@ -678,7 +678,10 @@ private fun VideoSection(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             contentPadding = PaddingValues(horizontal = 16.dp)
         ) {
-            items(videos) { video ->
+            items(
+                items = videos,
+                key = { it.id }  // Stable key for better recomposition
+            ) { video ->
                 EnhancedVideoCard(
                     video = video,
                     onClick = { onVideoClick(video.id) }
@@ -834,7 +837,10 @@ private fun TrackSection(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             contentPadding = PaddingValues(horizontal = 16.dp)
         ) {
-            items(tracks) { track ->
+            items(
+                items = tracks,
+                key = { it.id }  // Stable key for better recomposition
+            ) { track ->
                 TrackCard(
                     track = track,
                     onClick = { onTrackClick(track.id) }
@@ -862,7 +868,17 @@ private fun MusicBrowseSectionUI(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             contentPadding = PaddingValues(horizontal = 16.dp)
         ) {
-            items(section.items) { item ->
+            items(
+                items = section.items,
+                key = { item ->
+                    when (item) {
+                        is MusicBrowseItem.TrackItem -> "track_${item.track.id}"
+                        is MusicBrowseItem.AlbumItem -> "album_${item.album.id}"
+                        is MusicBrowseItem.ArtistItem -> "artist_${item.artist.id}"
+                        is MusicBrowseItem.PlaylistItem -> "playlist_${item.playlist.id}"
+                    }
+                }
+            ) { item ->
                 when (item) {
                     is MusicBrowseItem.TrackItem -> {
                         TrackCard(
@@ -904,8 +920,8 @@ private fun TrackCard(
     Surface(
         onClick = onClick,
         modifier = modifier.width(cardWidth),
-        shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.surface
+        shape = MaterialTheme.shapes.small,
+        color = MaterialTheme.colorScheme.surfaceContainer
     ) {
         Column {
             AsyncImage(
@@ -914,7 +930,7 @@ private fun TrackCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(1f)
-                    .clip(RoundedCornerShape(8.dp)),
+                    .clip(MaterialTheme.shapes.small),
                 contentScale = ContentScale.Crop
             )
             Column(
@@ -950,8 +966,8 @@ private fun AlbumCard(
     Surface(
         onClick = onClick,
         modifier = modifier.width(cardWidth),
-        shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.surface
+        shape = MaterialTheme.shapes.small,
+        color = MaterialTheme.colorScheme.surfaceContainer
     ) {
         Column {
             AsyncImage(
@@ -960,7 +976,7 @@ private fun AlbumCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(1f)
-                    .clip(RoundedCornerShape(8.dp)),
+                    .clip(MaterialTheme.shapes.small),
                 contentScale = ContentScale.Crop
             )
             Column(
@@ -995,7 +1011,7 @@ private fun ArtistCard(
     Surface(
         onClick = onClick,
         modifier = modifier.width(120.dp),
-        shape = RoundedCornerShape(8.dp),
+        shape = MaterialTheme.shapes.small,
         color = Color.Transparent
     ) {
         Column(
@@ -1032,8 +1048,8 @@ private fun PlaylistCard(
     Surface(
         onClick = onClick,
         modifier = modifier.width(cardWidth),
-        shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.surface
+        shape = MaterialTheme.shapes.small,
+        color = MaterialTheme.colorScheme.surfaceContainer
     ) {
         Column {
             AsyncImage(
@@ -1042,7 +1058,7 @@ private fun PlaylistCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(1f)
-                    .clip(RoundedCornerShape(8.dp)),
+                    .clip(MaterialTheme.shapes.small),
                 contentScale = ContentScale.Crop
             )
             Column(

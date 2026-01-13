@@ -200,6 +200,7 @@ class CloudPairingClient(
             // Save pairing info locally (including childId)
             prefs.edit()
                 .putString(KEY_PARENT_UID, parentUid)
+                .putString(KEY_DEVICE_ID, deviceId)
                 .putString(KEY_CHILD_NAME, childName)
                 .putString(KEY_CHILD_ID, childId)  // NEW: Store child ID
                 .putBoolean(KEY_IS_PAIRED, true)
@@ -616,9 +617,17 @@ class CloudPairingClient(
         if (!isPaired) return PairingStatus.Unpaired
 
         val parentUid = prefs.getString(KEY_PARENT_UID, null)
-        val deviceId = prefs.getString(KEY_DEVICE_ID, null)
+        var deviceId = prefs.getString(KEY_DEVICE_ID, null)
         val childName = prefs.getString(KEY_CHILD_NAME, null)
-        val childId = prefs.getString(KEY_CHILD_ID, null)  // NEW: Load child ID
+        val childId = prefs.getString(KEY_CHILD_ID, null)
+
+        // Recovery: If paired but deviceId is missing, regenerate and save it
+        // This fixes existing paired devices that were saved without deviceId
+        if (deviceId == null && parentUid != null && childName != null) {
+            deviceId = generateDeviceId()
+            prefs.edit().putString(KEY_DEVICE_ID, deviceId).apply()
+            Log.d(TAG, "Recovered missing deviceId for paired device: $deviceId")
+        }
 
         return if (parentUid != null && deviceId != null && childName != null) {
             PairingStatus.Paired(parentUid, deviceId, childName, childId)

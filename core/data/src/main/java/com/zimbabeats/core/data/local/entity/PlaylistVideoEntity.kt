@@ -13,13 +13,13 @@ import com.zimbabeats.core.data.local.entity.music.TrackEntity
             entity = PlaylistEntity::class,
             parentColumns = ["id"],
             childColumns = ["playlistId"],
-            onDelete = ForeignKey.CASCADE
+            onDelete = ForeignKey.CASCADE  // Delete videos when playlist is deleted
         ),
         ForeignKey(
             entity = VideoEntity::class,
             parentColumns = ["id"],
             childColumns = ["videoId"],
-            onDelete = ForeignKey.CASCADE
+            onDelete = ForeignKey.NO_ACTION  // Don't cascade - video may be in multiple playlists
         )
     ],
     indices = [Index("playlistId"), Index("videoId")]
@@ -36,20 +36,20 @@ data class PlaylistVideoEntity(
  * Allows the same playlists to contain both videos and music tracks
  */
 @Entity(
-    tableName = "playlist_tracks",
+    tableName = "video_playlist_tracks",
     primaryKeys = ["playlistId", "trackId"],
     foreignKeys = [
         ForeignKey(
             entity = PlaylistEntity::class,
             parentColumns = ["id"],
             childColumns = ["playlistId"],
-            onDelete = ForeignKey.CASCADE
+            onDelete = ForeignKey.CASCADE  // Delete tracks when playlist is deleted
         ),
         ForeignKey(
             entity = TrackEntity::class,
             parentColumns = ["id"],
             childColumns = ["trackId"],
-            onDelete = ForeignKey.CASCADE
+            onDelete = ForeignKey.NO_ACTION  // Don't cascade - track may be in multiple playlists
         )
     ],
     indices = [Index("playlistId"), Index("trackId")]

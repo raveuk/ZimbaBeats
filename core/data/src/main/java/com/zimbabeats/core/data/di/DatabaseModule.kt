@@ -15,7 +15,7 @@ val databaseModule = module {
             "marelikaybeats_database"
         )
             .addMigrations(MIGRATION_7_8)
-            .fallbackToDestructiveMigrationOnDowngrade()
+            .fallbackToDestructiveMigration()  // Safe for test users - handles v8->v9 table renames
             .build()
     }
 

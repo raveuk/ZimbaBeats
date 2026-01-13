@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Legacy colors (kept for compatibility) -->
     <color name="purple_200">#FFBB86FC</color>
     <color name="purple_500">#FF6200EE</color>
     <color name="purple_700">#FF3700B3</color>
@@ -7,4 +8,55 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- ZimbaBeats Design System - Hybrid Kids Music Theme -->
+    <!-- Primary Colors -->
+    <color name="primary">#FF3B82F6</color>
+    <color name="primary_dark">#FF2563EB</color>
+    <color name="primary_light">#FF60A5FA</color>
+
+    <!-- Secondary Colors -->
+    <color name="secondary">#FF60A5FA</color>
+    <color name="secondary_dark">#FF3B82F6</color>
+    <color name="secondary_light">#FF93C5FD</color>
+
+    <!-- Accent/CTA - Playful Orange -->
+    <color name="accent">#FFF97316</color>
+    <color name="accent_dark">#FFEA580C</color>
+    <color name="accent_light">#FFFB923C</color>
+
+    <!-- Light Mode Backgrounds -->
+    <color name="background_light">#FFF8FAFC</color>
+    <color name="surface_light">#FFFFFFFF</color>
+    <color name="card_light">#FFFFFFFF</color>
+
+    <!-- Dark Mode Backgrounds -->
+    <color name="background_dark">#FF1E293B</color>
+    <color name="surface_dark">#FF334155</color>
+    <color name="card_dark">#FF475569</color>
+
+    <!-- Light Mode Text -->
+    <color name="text_primary_light">#FF1E293B</color>
+    <color name="text_secondary_light">#FF64748B</color>
+    <color name="text_hint_light">#FF94A3B8</color>
+
+    <!-- Dark Mode Text -->
+    <color name="text_primary_dark">#FFF8FAFC</color>
+    <color name="text_secondary_dark">#FF94A3B8</color>
+    <color name="text_hint_dark">#FF64748B</color>
+
+    <!-- Borders -->
+    <color name="border_light">#FFE2E8F0</color>
+    <color name="border_dark">#FF475569</color>
+
+    <!-- Status Colors -->
+    <color name="success">#FF22C55E</color>
+    <color name="warning">#FFFBBF24</color>
+    <color name="error">#FFEF4444</color>
+    <color name="info">#FF3B82F6</color>
+
+    <!-- Music Player Specific -->
+    <color name="player_background">#FF0F172A</color>
+    <color name="player_progress">#FF3B82F6</color>
+    <color name="player_progress_secondary">#FF1E293B</color>
 </resources>

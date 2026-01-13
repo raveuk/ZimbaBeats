@@ -82,8 +82,10 @@ class MusicLibraryViewModel(
     /**
      * Filter tracks using both Global blocks and Cloud Content Filter.
      * Global blocks ALWAYS apply regardless of family linking.
+     * Note: For favorites/history, we allow tracks to show while filter is loading
+     * since they were previously approved when added.
      */
-    private fun filterTracks(tracks: List<Track>): List<Track> {
+    private fun filterTracks(tracks: List<Track>, allowWhileLoading: Boolean = true): List<Track> {
         return tracks.filter { track ->
             // ALWAYS check global blocks first (regardless of family linking)
             val textToCheck = "${track.title} ${track.artistName} ${track.albumName ?: ""}"
@@ -105,10 +107,15 @@ class MusicLibraryViewModel(
             // If linked to family, also apply family-specific rules
             val filter = contentFilter
             if (filter != null) {
-                // SECURITY: Block content until filter settings are loaded
+                // Allow content while loading for favorites/history (they were previously approved)
                 if (!filter.hasLoadedSettings()) {
-                    Log.w(TAG, "Filter settings not yet loaded - BLOCKING track until loaded: ${track.title}")
-                    return@filter false
+                    if (allowWhileLoading) {
+                        Log.d(TAG, "Filter settings loading - allowing track for now: ${track.title}")
+                        return@filter true
+                    } else {
+                        Log.w(TAG, "Filter settings not yet loaded - BLOCKING track until loaded: ${track.title}")
+                        return@filter false
+                    }
                 }
 
                 val blockResult = filter.shouldBlockMusicContent(
@@ -141,10 +148,12 @@ class MusicLibraryViewModel(
 
     private fun loadFavorites() {
         viewModelScope.launch {
+            Log.d(TAG, "Starting to collect favorites from repository")
             musicRepository.getFavoriteTracks().collect { tracks ->
+                Log.d(TAG, "Received ${tracks.size} favorites from repository: ${tracks.map { it.title }}")
                 unfilteredFavorites = tracks // Store for re-filtering when settings change
                 val filteredTracks = filterTracks(tracks)
-                Log.d(TAG, "Loaded ${tracks.size} favorites, ${filteredTracks.size} after filtering")
+                Log.d(TAG, "After filtering: ${filteredTracks.size} favorites visible")
                 _uiState.value = _uiState.value.copy(favoriteTracks = filteredTracks)
             }
         }

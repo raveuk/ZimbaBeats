@@ -32,7 +32,7 @@ import com.zimbabeats.core.data.local.entity.music.*
         FavoriteTrackEntity::class,
         MusicListeningHistoryEntity::class
     ],
-    version = 8,  // Added playlist sharing fields
+    version = 10,  // Fixed foreign key CASCADE to NO_ACTION for playlist items
     exportSchema = false
 )
 abstract class ZimbaBeatsDatabase : RoomDatabase() {

@@ -5,6 +5,7 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -18,6 +19,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
@@ -46,7 +48,8 @@ enum class BottomNavItem(
 }
 
 /**
- * Spotify/YouTube Music inspired bottom navigation bar
+ * Spotify-style bottom navigation bar
+ * Clean, minimal with smooth animations
  */
 @Composable
 fun SpotifyBottomNavBar(
@@ -56,37 +59,23 @@ fun SpotifyBottomNavBar(
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
-        color = Color.Transparent
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 0.dp
     ) {
-        // Gradient background like Spotify
-        Box(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color.Transparent,
-                            MaterialTheme.colorScheme.background.copy(alpha = 0.9f),
-                            MaterialTheme.colorScheme.background
-                        )
-                    )
-                )
+                .padding(horizontal = 24.dp, vertical = 12.dp)
+                .padding(bottom = 8.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 8.dp)
-                    .padding(bottom = 8.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                BottomNavItem.entries.forEach { item ->
-                    BottomNavItemView(
-                        item = item,
-                        isSelected = selectedItem == item,
-                        onClick = { onItemSelected(item) }
-                    )
-                }
+            BottomNavItem.entries.forEach { item ->
+                BottomNavItemView(
+                    item = item,
+                    isSelected = selectedItem == item,
+                    onClick = { onItemSelected(item) }
+                )
             }
         }
     }
@@ -109,6 +98,7 @@ private fun BottomNavItemView(
         label = "nav_scale"
     )
 
+    // Material 3 colors for selected/unselected states
     val iconColor by animateColorAsState(
         targetValue = if (isSelected) {
             MaterialTheme.colorScheme.onSurface
@@ -122,7 +112,7 @@ private fun BottomNavItemView(
         targetValue = if (isSelected) {
             MaterialTheme.colorScheme.onSurface
         } else {
-            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+            MaterialTheme.colorScheme.onSurfaceVariant
         },
         label = "label_color"
     )

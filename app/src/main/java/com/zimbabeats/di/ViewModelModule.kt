@@ -70,8 +70,8 @@ val viewModelModule = module {
     // Parental Dashboard screen (shows watch history and companion app status)
     viewModel { ParentalDashboardViewModel(get(), get()) }
 
-    // Library screen
-    viewModel { LibraryViewModel(get(), get(), get()) }
+    // Library screen (includes music favorites via MusicRepository)
+    viewModel { LibraryViewModel(get(), get(), get(), get()) }
 
     // ==================== Music ViewModels ====================
 
