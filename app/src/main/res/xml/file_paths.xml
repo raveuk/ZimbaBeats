@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- External public Downloads directory for APK files -->
+    <external-path
+        name="downloads"
+        path="Download/" />
+
+    <!-- External storage root for fallback -->
+    <external-path
+        name="external"
+        path="." />
+
+    <!-- Cache directory -->
+    <cache-path
+        name="cache"
+        path="." />
+</paths>

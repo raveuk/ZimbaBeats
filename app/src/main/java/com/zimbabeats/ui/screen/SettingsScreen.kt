@@ -34,6 +34,7 @@ import com.zimbabeats.data.ThemeMode
 import com.zimbabeats.ui.accessibility.ContentDescriptions
 import com.zimbabeats.ui.util.WindowSizeUtil
 import com.zimbabeats.ui.viewmodel.SettingsViewModel
+import com.zimbabeats.update.DownloadState
 import com.zimbabeats.update.UpdateResult
 import org.koin.androidx.compose.koinViewModel
 
@@ -569,16 +570,45 @@ fun SettingsScreen(
         )
     }
 
-    // Update Available dialog
+    // Update Available dialog with in-app download
     if (showUpdateAvailableDialog && uiState.updateResult is UpdateResult.UpdateAvailable) {
         val updateInfo = uiState.updateResult as UpdateResult.UpdateAvailable
+        val downloadState = uiState.downloadState
+
         AlertDialog(
             onDismissRequest = {
-                showUpdateAvailableDialog = false
-                viewModel.clearUpdateResult()
+                // Don't dismiss during download
+                if (downloadState !is DownloadState.Downloading) {
+                    showUpdateAvailableDialog = false
+                    viewModel.clearUpdateResult()
+                }
             },
-            icon = { Icon(Icons.Default.SystemUpdate, contentDescription = null) },
-            title = { Text("Update Available") },
+            icon = {
+                Icon(
+                    imageVector = when (downloadState) {
+                        is DownloadState.Downloading -> Icons.Default.Download
+                        is DownloadState.Completed -> Icons.Default.CheckCircle
+                        is DownloadState.Failed -> Icons.Default.Error
+                        else -> Icons.Default.SystemUpdate
+                    },
+                    contentDescription = null,
+                    tint = when (downloadState) {
+                        is DownloadState.Completed -> MaterialTheme.colorScheme.primary
+                        is DownloadState.Failed -> MaterialTheme.colorScheme.error
+                        else -> MaterialTheme.colorScheme.onSurface
+                    }
+                )
+            },
+            title = {
+                Text(
+                    when (downloadState) {
+                        is DownloadState.Downloading -> "Downloading..."
+                        is DownloadState.Completed -> "Download Complete"
+                        is DownloadState.Failed -> "Download Failed"
+                        else -> "Update Available"
+                    }
+                )
+            },
             text = {
                 Column {
                     Text(
@@ -587,46 +617,133 @@ fun SettingsScreen(
                         color = MaterialTheme.colorScheme.primary
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = updateInfo.releaseName,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    // Show APK size if available
-                    if (updateInfo.apkSize > 0) {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Download size: ${viewModel.formatFileSize(updateInfo.apkSize)}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+
+                    // Show download progress
+                    when (downloadState) {
+                        is DownloadState.Downloading -> {
+                            Text(
+                                text = "Downloading update... ${downloadState.progress}%",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            LinearProgressIndicator(
+                                progress = { downloadState.progress / 100f },
+                                modifier = Modifier.fillMaxWidth(),
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Please wait...",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        is DownloadState.Completed -> {
+                            Text(
+                                text = "Download complete! Tap 'Install' to update.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        is DownloadState.Failed -> {
+                            Text(
+                                text = "Error: ${downloadState.error}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "You can try again or download from browser.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        else -> {
+                            Text(
+                                text = updateInfo.releaseName,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            // Show APK size if available
+                            if (updateInfo.apkSize > 0) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Download size: ${viewModel.formatFileSize(updateInfo.apkSize)}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "Release Notes:",
+                                style = MaterialTheme.typography.labelMedium
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = updateInfo.notes.take(500) + if (updateInfo.notes.length > 500) "..." else "",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "Release Notes:",
-                        style = MaterialTheme.typography.labelMedium
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = updateInfo.notes.take(500) + if (updateInfo.notes.length > 500) "..." else "",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
                 }
             },
             confirmButton = {
-                Button(onClick = {
-                    viewModel.openUpdateDownloadPage()
-                    showUpdateAvailableDialog = false
-                }) {
-                    Text("Download APK")
+                when (downloadState) {
+                    is DownloadState.Downloading -> {
+                        OutlinedButton(onClick = { viewModel.cancelDownload() }) {
+                            Text("Cancel")
+                        }
+                    }
+                    is DownloadState.Completed -> {
+                        Button(onClick = { viewModel.installDownloadedUpdate() }) {
+                            Icon(Icons.Default.InstallMobile, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Install")
+                        }
+                    }
+                    is DownloadState.Failed -> {
+                        Button(onClick = { viewModel.downloadUpdate() }) {
+                            Text("Retry")
+                        }
+                    }
+                    else -> {
+                        Button(onClick = { viewModel.downloadUpdate() }) {
+                            Icon(Icons.Default.Download, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Download")
+                        }
+                    }
                 }
             },
             dismissButton = {
-                TextButton(onClick = {
-                    showUpdateAvailableDialog = false
-                    viewModel.clearUpdateResult()
-                }) {
-                    Text("Later")
+                when (downloadState) {
+                    is DownloadState.Downloading -> {
+                        // No dismiss during download
+                    }
+                    is DownloadState.Completed -> {
+                        TextButton(onClick = {
+                            showUpdateAvailableDialog = false
+                            viewModel.clearUpdateResult()
+                        }) {
+                            Text("Later")
+                        }
+                    }
+                    is DownloadState.Failed -> {
+                        TextButton(onClick = {
+                            viewModel.openUpdateDownloadPage()
+                            showUpdateAvailableDialog = false
+                        }) {
+                            Text("Open Browser")
+                        }
+                    }
+                    else -> {
+                        TextButton(onClick = {
+                            showUpdateAvailableDialog = false
+                            viewModel.clearUpdateResult()
+                        }) {
+                            Text("Later")
+                        }
+                    }
                 }
             }
         )

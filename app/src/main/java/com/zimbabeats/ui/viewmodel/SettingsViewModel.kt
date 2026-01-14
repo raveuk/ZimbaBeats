@@ -16,6 +16,8 @@ import com.zimbabeats.data.AppPreferences
 import com.zimbabeats.data.DownloadNetworkPreference
 import com.zimbabeats.data.ThemeMode
 import com.zimbabeats.media.music.MusicPlaybackManager
+import com.zimbabeats.update.ApkDownloader
+import com.zimbabeats.update.DownloadState
 import com.zimbabeats.update.UpdateChecker
 import com.zimbabeats.update.UpdateResult
 import kotlinx.coroutines.Dispatchers
@@ -51,6 +53,9 @@ data class SettingsUiState(
     val isCheckingForUpdate: Boolean = false,
     val updateResult: UpdateResult? = null,
     val author: String = BuildConfig.AUTHOR,
+    // In-app download state
+    val downloadState: DownloadState = DownloadState.Idle,
+    val isDownloading: Boolean = false,
     // Family cloud sync state
     val isFamilyLinked: Boolean = false,
     val isLinkingFamily: Boolean = false,
@@ -69,6 +74,7 @@ class SettingsViewModel(
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
 
     private val updateChecker = UpdateChecker(application)
+    private val apkDownloader = ApkDownloader(application)
 
     // Cache directories
     private val playbackBufferDir: File get() = File(application.cacheDir, "exo_cache")
@@ -429,6 +435,57 @@ class SettingsViewModel(
         val result = _uiState.value.updateResult
         if (result is UpdateResult.UpdateAvailable) {
             updateChecker.openDownloadPage(result.url)
+        }
+    }
+
+    /**
+     * Download APK in-app (bypasses browser restrictions)
+     */
+    fun downloadUpdate() {
+        val result = _uiState.value.updateResult
+        if (result !is UpdateResult.UpdateAvailable) return
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isDownloading = true)
+
+            apkDownloader.downloadApk(result.url, result.version).collect { state ->
+                _uiState.value = _uiState.value.copy(downloadState = state)
+
+                when (state) {
+                    is DownloadState.Completed -> {
+                        _uiState.value = _uiState.value.copy(isDownloading = false)
+                        Toast.makeText(application, "Download complete! Installing...", Toast.LENGTH_SHORT).show()
+                        // Auto-trigger install
+                        apkDownloader.installApkFromDownloads(result.version)
+                    }
+                    is DownloadState.Failed -> {
+                        _uiState.value = _uiState.value.copy(isDownloading = false)
+                        Toast.makeText(application, "Download failed: ${state.error}", Toast.LENGTH_LONG).show()
+                    }
+                    else -> {}
+                }
+            }
+        }
+    }
+
+    /**
+     * Cancel ongoing download
+     */
+    fun cancelDownload() {
+        apkDownloader.cancelDownload()
+        _uiState.value = _uiState.value.copy(
+            isDownloading = false,
+            downloadState = DownloadState.Idle
+        )
+    }
+
+    /**
+     * Install downloaded APK manually
+     */
+    fun installDownloadedUpdate() {
+        val result = _uiState.value.updateResult
+        if (result is UpdateResult.UpdateAvailable) {
+            apkDownloader.installApkFromDownloads(result.version)
         }
     }
 
