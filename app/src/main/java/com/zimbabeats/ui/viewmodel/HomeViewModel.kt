@@ -102,29 +102,11 @@ class HomeViewModel(
                     MoodSection("playtime", "Play Time", "Games & activities"),
                     MoodSection("storytime", "Stories", "Animated adventures")
                 )
-                com.zimbabeats.core.domain.model.AgeRating.TEN_PLUS -> listOf(
-                    MoodSection("bedtime", "Bedtime", "Calm & relaxing videos"),
-                    MoodSection("learning", "Learning Time", "Educational content"),
-                    MoodSection("singalong", "Sing Along", "Fun music & dance"),
-                    MoodSection("adventure", "Adventure", "Exciting cartoon episodes")
-                )
-                com.zimbabeats.core.domain.model.AgeRating.TWELVE_PLUS -> listOf(
-                    MoodSection("chill", "Chill Time", "Relaxing videos"),
-                    MoodSection("creative", "Get Creative", "DIY & crafts"),
-                    MoodSection("explore", "Explore", "Science & discovery"),
-                    MoodSection("music", "Music", "Fun songs & dance")
-                )
                 com.zimbabeats.core.domain.model.AgeRating.THIRTEEN_PLUS -> listOf(
                     MoodSection("chill", "Chill", "Relaxing content"),
                     MoodSection("creative", "Creative", "DIY & art projects"),
                     MoodSection("explore", "Explore", "Science & nature"),
                     MoodSection("gaming", "Gaming", "Game videos & streams")
-                )
-                com.zimbabeats.core.domain.model.AgeRating.FOURTEEN_PLUS -> listOf(
-                    MoodSection("trending", "Trending Now", "What's popular"),
-                    MoodSection("skills", "Learn Skills", "How-to videos"),
-                    MoodSection("entertainment", "Entertainment", "Shows & vlogs"),
-                    MoodSection("music", "Music", "Popular songs")
                 )
                 com.zimbabeats.core.domain.model.AgeRating.SIXTEEN_PLUS -> listOf(
                     MoodSection("vibes", "Good Vibes", "Music & chill content"),
@@ -155,29 +137,11 @@ class HomeViewModel(
                     "playtime" to "kids games activities",
                     "storytime" to "animated stories for kids"
                 )
-                com.zimbabeats.core.domain.model.AgeRating.TEN_PLUS -> mapOf(
-                    "bedtime" to "lullaby songs for kids sleep",
-                    "learning" to "educational videos for kids",
-                    "singalong" to "kids songs dance along",
-                    "adventure" to "peppa pig bluey full episodes"
-                )
-                com.zimbabeats.core.domain.model.AgeRating.TWELVE_PLUS -> mapOf(
-                    "chill" to "relaxing music for kids",
-                    "creative" to "diy crafts for kids",
-                    "explore" to "science experiments for kids",
-                    "music" to "kids pop songs dance"
-                )
                 com.zimbabeats.core.domain.model.AgeRating.THIRTEEN_PLUS -> mapOf(
-                    "chill" to "relaxing nature videos",
-                    "creative" to "art projects for tweens",
-                    "explore" to "national geographic kids",
-                    "gaming" to "minecraft gameplay for kids"
-                )
-                com.zimbabeats.core.domain.model.AgeRating.FOURTEEN_PLUS -> mapOf(
-                    "trending" to "trending videos for teens",
-                    "skills" to "how to tutorials teens",
-                    "entertainment" to "teen shows vlogs",
-                    "music" to "popular music songs teens"
+                    "chill" to "lofi music study beats",
+                    "creative" to "diy crafts tutorials",
+                    "explore" to "national geographic documentary",
+                    "gaming" to "minecraft lets play"
                 )
                 com.zimbabeats.core.domain.model.AgeRating.SIXTEEN_PLUS -> mapOf(
                     "vibes" to "popular music videos 2024",
@@ -214,37 +178,13 @@ class HomeViewModel(
                     VideoCategory("stories", "Story Time", "\uD83D\uDCD6", "bedtime stories for kids"),
                     VideoCategory("animals", "Animals", "\uD83D\uDC3E", "animals for kids learning")
                 )
-                com.zimbabeats.core.domain.model.AgeRating.TEN_PLUS -> listOf(
-                    VideoCategory("cartoons", "Cartoons", "\uD83C\uDFAC", "peppa pig bluey paw patrol"),
-                    VideoCategory("nursery", "Nursery Rhymes", "\uD83C\uDFB5", "nursery rhymes songs"),
-                    VideoCategory("educational", "Learning", "\uD83D\uDCDA", "educational videos for kids"),
-                    VideoCategory("music", "Kids Music", "\uD83C\uDFA4", "kids songs dance"),
-                    VideoCategory("stories", "Story Time", "\uD83D\uDCD6", "bedtime stories for kids"),
-                    VideoCategory("animals", "Animals", "\uD83D\uDC3E", "animals for kids learning")
-                )
-                com.zimbabeats.core.domain.model.AgeRating.TWELVE_PLUS -> listOf(
-                    VideoCategory("cartoons", "Cartoons", "\uD83C\uDFAC", "cartoon network nickelodeon"),
-                    VideoCategory("gaming", "Gaming", "\uD83C\uDFAE", "minecraft roblox for kids"),
-                    VideoCategory("science", "Science", "\uD83D\uDD2C", "science experiments for kids"),
-                    VideoCategory("crafts", "DIY & Crafts", "\u2702\uFE0F", "diy crafts for kids"),
-                    VideoCategory("music", "Music", "\uD83C\uDFB5", "kids pop songs"),
-                    VideoCategory("animals", "Animals & Nature", "\uD83C\uDF0D", "wild animals documentary kids")
-                )
                 com.zimbabeats.core.domain.model.AgeRating.THIRTEEN_PLUS -> listOf(
-                    VideoCategory("science", "Science", "\uD83D\uDD2C", "national geographic kids"),
+                    VideoCategory("science", "Science", "\uD83D\uDD2C", "science documentaries"),
                     VideoCategory("gaming", "Gaming", "\uD83C\uDFAE", "minecraft gameplay"),
-                    VideoCategory("educational", "Educational", "\uD83D\uDCDA", "ted ed videos"),
-                    VideoCategory("crafts", "DIY & Crafts", "\u2702\uFE0F", "diy projects for tweens"),
-                    VideoCategory("music", "Music", "\uD83C\uDFB5", "clean pop songs"),
-                    VideoCategory("nature", "Nature", "\uD83C\uDF0D", "crash course kids")
-                )
-                com.zimbabeats.core.domain.model.AgeRating.FOURTEEN_PLUS -> listOf(
-                    VideoCategory("gaming", "Gaming", "\uD83C\uDFAE", "popular gaming videos"),
+                    VideoCategory("educational", "Educational", "\uD83D\uDCDA", "ted ed"),
+                    VideoCategory("crafts", "DIY & Crafts", "\u2702\uFE0F", "diy projects tutorials"),
                     VideoCategory("music", "Music", "\uD83C\uDFB5", "pop music videos"),
-                    VideoCategory("sports", "Sports", "\u26BD", "sports highlights"),
-                    VideoCategory("tech", "Tech", "\uD83D\uDCBB", "tech videos for teens"),
-                    VideoCategory("howto", "How-To", "\uD83D\uDCA1", "tutorials for teens"),
-                    VideoCategory("vlogs", "Vlogs", "\uD83D\uDCF9", "teen vlogs")
+                    VideoCategory("nature", "Nature", "\uD83C\uDF0D", "nature documentary")
                 )
                 com.zimbabeats.core.domain.model.AgeRating.SIXTEEN_PLUS -> listOf(
                     VideoCategory("music", "Music", "\uD83C\uDFB5", "music videos 2024"),
@@ -285,37 +225,13 @@ class HomeViewModel(
                     PopularChannel("cocomelon", "Cocomelon", null, "cocomelon"),
                     PopularChannel("supersimple", "Super Simple", null, "super simple songs")
                 )
-                com.zimbabeats.core.domain.model.AgeRating.TEN_PLUS -> listOf(
-                    PopularChannel("cocomelon", "Cocomelon", null, "cocomelon"),
-                    PopularChannel("peppapig", "Peppa Pig", null, "peppa pig"),
-                    PopularChannel("pawpatrol", "Paw Patrol", null, "paw patrol"),
-                    PopularChannel("bluey", "Bluey", null, "bluey"),
-                    PopularChannel("babyshark", "Baby Shark", null, "baby shark pinkfong"),
-                    PopularChannel("disney", "Disney Junior", null, "disney junior")
-                )
-                com.zimbabeats.core.domain.model.AgeRating.TWELVE_PLUS -> listOf(
-                    PopularChannel("cartoonnetwork", "Cartoon Network", null, "cartoon network"),
-                    PopularChannel("nickelodeon", "Nickelodeon", null, "nickelodeon"),
-                    PopularChannel("minecraft", "Minecraft", null, "minecraft gameplay"),
-                    PopularChannel("roblox", "Roblox", null, "roblox gameplay"),
-                    PopularChannel("natgeo", "Nat Geo Kids", null, "national geographic kids"),
-                    PopularChannel("dude", "Dude Perfect", null, "dude perfect")
-                )
                 com.zimbabeats.core.domain.model.AgeRating.THIRTEEN_PLUS -> listOf(
-                    PopularChannel("natgeo", "Nat Geo Kids", null, "national geographic kids"),
+                    PopularChannel("natgeo", "National Geographic", null, "national geographic"),
                     PopularChannel("teded", "TED-Ed", null, "ted ed"),
-                    PopularChannel("crashcourse", "Crash Course", null, "crash course kids"),
-                    PopularChannel("minecraft", "Minecraft", null, "minecraft for kids"),
+                    PopularChannel("crashcourse", "Crash Course", null, "crash course"),
+                    PopularChannel("minecraft", "Minecraft", null, "minecraft gameplay"),
                     PopularChannel("dude", "Dude Perfect", null, "dude perfect"),
                     PopularChannel("mrwhosetheboss", "Mrwhosetheboss", null, "mrwhosetheboss")
-                )
-                com.zimbabeats.core.domain.model.AgeRating.FOURTEEN_PLUS -> listOf(
-                    PopularChannel("mrbeast", "MrBeast", null, "mrbeast"),
-                    PopularChannel("markiplier", "Markiplier", null, "markiplier"),
-                    PopularChannel("smosh", "Smosh", null, "smosh"),
-                    PopularChannel("dude", "Dude Perfect", null, "dude perfect"),
-                    PopularChannel("unspeakable", "Unspeakable", null, "unspeakable"),
-                    PopularChannel("sssniperwolf", "SSSniperwolf", null, "sssniperwolf")
                 )
                 com.zimbabeats.core.domain.model.AgeRating.SIXTEEN_PLUS -> listOf(
                     PopularChannel("mrbeast", "MrBeast", null, "mrbeast"),
@@ -351,29 +267,11 @@ class HomeViewModel(
                     "blippi videos for kids",
                     "sesame street episodes"
                 )
-                com.zimbabeats.core.domain.model.AgeRating.TEN_PLUS -> listOf(
-                    "peppa pig full episodes",
-                    "paw patrol",
-                    "bluey episodes",
-                    "disney junior"
-                )
-                com.zimbabeats.core.domain.model.AgeRating.TWELVE_PLUS -> listOf(
-                    "cartoon network",
-                    "nickelodeon shows",
-                    "minecraft for kids",
-                    "roblox gameplay"
-                )
                 com.zimbabeats.core.domain.model.AgeRating.THIRTEEN_PLUS -> listOf(
-                    "national geographic kids",
-                    "science experiments for kids",
-                    "ted ed videos",
-                    "crash course kids"
-                )
-                com.zimbabeats.core.domain.model.AgeRating.FOURTEEN_PLUS -> listOf(
-                    "teen shows",
-                    "family friendly gaming",
-                    "science experiments for kids",
-                    "diy crafts"
+                    "national geographic documentary",
+                    "science experiments",
+                    "ted ed",
+                    "crash course"
                 )
                 com.zimbabeats.core.domain.model.AgeRating.SIXTEEN_PLUS -> listOf(
                     "popular music videos",
@@ -474,10 +372,11 @@ class HomeViewModel(
         return when (ageRatingString) {
             "FIVE_PLUS" -> AgeRating.FIVE_PLUS
             "EIGHT_PLUS" -> AgeRating.EIGHT_PLUS
-            "TEN_PLUS" -> AgeRating.TEN_PLUS
-            "TWELVE_PLUS" -> AgeRating.TWELVE_PLUS
+            // Legacy mappings (map to closest)
+            "TEN_PLUS" -> AgeRating.EIGHT_PLUS
+            "TWELVE_PLUS" -> AgeRating.THIRTEEN_PLUS
             "THIRTEEN_PLUS" -> AgeRating.THIRTEEN_PLUS
-            "FOURTEEN_PLUS" -> AgeRating.FOURTEEN_PLUS
+            "FOURTEEN_PLUS" -> AgeRating.THIRTEEN_PLUS
             "SIXTEEN_PLUS" -> AgeRating.SIXTEEN_PLUS
             else -> AgeRating.ALL
         }
@@ -501,7 +400,16 @@ class HomeViewModel(
                 // Kids mode is ON when linked to family
                 val isKidsMode = isLinkedToFamily
 
-                Log.d(TAG, "Cloud state received - linkedToFamily: $isLinkedToFamily, enabled: $isEnabled, age level: ${currentAgeLevel.displayName}, isKidsMode: $isKidsMode")
+                // IMPORTANT: Safety mode is for young children (5-8)
+                // For ages 13+, use regular YouTube (WEB) with CloudContentFilter
+                // This ensures age-appropriate content is available for teens
+                val useYouTubeKidsApi = isKidsMode && currentAgeLevel in listOf(
+                    AgeRating.FIVE_PLUS,
+                    AgeRating.EIGHT_PLUS
+                )
+                searchRepository.setKidSafeMode(useYouTubeKidsApi)
+
+                Log.d(TAG, "Cloud state received - linkedToFamily: $isLinkedToFamily, enabled: $isEnabled, age level: ${currentAgeLevel.displayName}, isKidsMode: $isKidsMode, useYouTubeKidsApi: $useYouTubeKidsApi")
                 Log.d(TAG, "Previous values - enabled: $previousParentalEnabled, age: ${previousAgeLevel?.displayName}")
 
                 // IMPORTANT: Check for initial load BEFORE updating previous values
@@ -583,6 +491,14 @@ class HomeViewModel(
                         Log.d(TAG, "=== AGE RATING CHANGED (FAST PATH) ===")
                         Log.d(TAG, "Age rating: ${currentAgeLevel.displayName} -> ${newAgeLevel.displayName}")
                         Log.d(TAG, "Triggering immediate refresh...")
+
+                        // Update safety mode based on new age level
+                        val useYouTubeKidsApi = newAgeLevel in listOf(
+                            AgeRating.FIVE_PLUS,
+                            AgeRating.EIGHT_PLUS
+                        )
+                        searchRepository.setKidSafeMode(useYouTubeKidsApi)
+                        Log.d(TAG, "YouTube Kids API: $useYouTubeKidsApi for age ${newAgeLevel.displayName}")
 
                         // Update UI state with new age level
                         val ageCategories = getCategoriesForAge(newAgeLevel)
@@ -876,10 +792,7 @@ class HomeViewModel(
             AgeRating.ALL -> AgeGroup.UNDER_16
             AgeRating.FIVE_PLUS -> AgeGroup.UNDER_5
             AgeRating.EIGHT_PLUS -> AgeGroup.UNDER_8
-            AgeRating.TEN_PLUS -> AgeGroup.UNDER_10
-            AgeRating.TWELVE_PLUS -> AgeGroup.UNDER_12
             AgeRating.THIRTEEN_PLUS -> AgeGroup.UNDER_13
-            AgeRating.FOURTEEN_PLUS -> AgeGroup.UNDER_14
             AgeRating.SIXTEEN_PLUS -> AgeGroup.UNDER_16
         }
     }
@@ -889,7 +802,7 @@ class HomeViewModel(
      * 1. Cloud Content Filter (Firebase-based from parent app)
      * 2. Local VideoContentFilter with strictMode (for younger age groups)
      *
-     * For Under 5/8/10, videos must pass BOTH filters to be shown.
+     * For Under 5/8, videos must pass BOTH filters to be shown.
      * This catches content that has no explicit keywords but is still inappropriate.
      * Runs on Default dispatcher for performance.
      */
@@ -904,7 +817,7 @@ class HomeViewModel(
         val currentAgeLevel = _uiState.value.selectedAgeLevel
         val ageGroup = ageRatingToAgeGroup(currentAgeLevel)
         val useStrictLocalFilter = currentAgeLevel in listOf(
-            AgeRating.FIVE_PLUS, AgeRating.EIGHT_PLUS, AgeRating.TEN_PLUS
+            AgeRating.FIVE_PLUS, AgeRating.EIGHT_PLUS
         )
 
         Log.d(TAG, "Filtering ${videos.size} videos - Age: ${currentAgeLevel.displayName}, Strict local filter: $useStrictLocalFilter")
@@ -958,24 +871,79 @@ class HomeViewModel(
 
     /**
      * Manual refresh - pull to refresh
-     * Provides smooth refresh experience without clearing existing content
+     * Keeps existing content visible while refreshing (no shimmer)
+     * Spinner dismisses when data is loaded, not before
      */
     fun refreshVideos() {
         viewModelScope.launch {
             Log.d(TAG, "Manual refresh triggered")
             _uiState.value = _uiState.value.copy(isRefreshing = true)
 
-            // Load fresh content (keeps existing content visible during load)
-            loadVideoContent()
-            // Also reload mood sections with age-specific content
-            loadMoodSections(_uiState.value.selectedAgeLevel)
-            // Refresh user content (watch history, favorites)
-            loadUserContent()
+            try {
+                // Refresh video content WITHOUT setting isLoading (keep content visible)
+                val trendingResult = videoRepository.fetchTrendingVideos(20)
+                when (trendingResult) {
+                    is Resource.Success -> {
+                        if (trendingResult.data.isNotEmpty()) {
+                            _uiState.value = _uiState.value.copy(
+                                videos = filterVideosByBridge(trendingResult.data)
+                            )
+                            Log.d(TAG, "Refreshed trending: ${trendingResult.data.size} videos")
+                        }
+                    }
+                    is Resource.Error -> {
+                        Log.e(TAG, "Refresh trending failed: ${trendingResult.message}")
+                    }
+                    else -> {}
+                }
 
-            // Small delay for smooth UI transition
-            kotlinx.coroutines.delay(300)
-            _uiState.value = _uiState.value.copy(isRefreshing = false)
-            Log.d(TAG, "Manual refresh complete")
+                // Refresh mood sections in parallel (fire-and-forget)
+                refreshMoodSectionsInBackground(_uiState.value.selectedAgeLevel)
+
+                // Refresh quick picks
+                loadQuickPicks()
+
+            } catch (e: Exception) {
+                Log.e(TAG, "Error during refresh: ${e.message}")
+            } finally {
+                _uiState.value = _uiState.value.copy(isRefreshing = false)
+                Log.d(TAG, "Refresh complete")
+            }
+        }
+    }
+
+    /**
+     * Refresh mood sections in background without blocking
+     * Updates content progressively as each section loads
+     */
+    private fun refreshMoodSectionsInBackground(ageLevel: AgeRating) {
+        val isKidsMode = _uiState.value.parentalControlEnabled
+        val moodQueries = if (isKidsMode) getMoodQueriesForAge(ageLevel) else GENERAL_MOOD_QUERIES
+        val moods = if (isKidsMode) getMoodSectionsForAge(ageLevel) else GENERAL_MOODS
+
+        moods.forEach { mood ->
+            viewModelScope.launch {
+                val query = moodQueries[mood.id] ?: return@launch
+                try {
+                    when (val result = searchRepository.searchVideos(query, 8)) {
+                        is Resource.Success -> {
+                            val filteredVideos = filterVideosByBridge(result.data.videos)
+                            val updatedMoods = _uiState.value.moodSections.map { section ->
+                                if (section.id == mood.id) {
+                                    section.copy(videos = filteredVideos, isLoading = false)
+                                } else section
+                            }
+                            _uiState.value = _uiState.value.copy(moodSections = updatedMoods)
+                        }
+                        is Resource.Error -> {
+                            Log.e(TAG, "Failed to refresh mood ${mood.title}: ${result.message}")
+                        }
+                        else -> {}
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Exception refreshing mood ${mood.title}: ${e.message}")
+                }
+            }
         }
     }
 

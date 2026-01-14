@@ -217,18 +217,7 @@ data class ParentalSettings(
                 // HYBRID: Allow if content has ANY kid-friendly indicator
                 KID_FRIENDLY_INDICATORS.any { indicator -> content.contains(indicator) }
             }
-            AgeRating.TEN_PLUS -> {
-                // Block known adult/pop artists
-                if (BLOCKED_ARTISTS.any { artist -> content.contains(artist) }) {
-                    return false
-                }
-                // Block content not suitable for under 10
-                if (BLOCKED_UNDER_10.any { keyword -> content.contains(keyword) }) return false
-
-                // HYBRID: Allow if content has ANY kid-friendly indicator
-                KID_FRIENDLY_INDICATORS.any { indicator -> content.contains(indicator) }
-            }
-            AgeRating.TWELVE_PLUS, AgeRating.THIRTEEN_PLUS, AgeRating.FOURTEEN_PLUS, AgeRating.SIXTEEN_PLUS -> {
+            AgeRating.THIRTEEN_PLUS, AgeRating.SIXTEEN_PLUS -> {
                 // Less strict - block explicit (done above) and artists
                 if (BLOCKED_ARTISTS.any { artist -> content.contains(artist) }) {
                     return false
@@ -261,7 +250,7 @@ data class ParentalSettings(
         }
 
         // Block known adult artists/performers for kids
-        if (selectedAgeLevel in listOf(AgeRating.FIVE_PLUS, AgeRating.TEN_PLUS)) {
+        if (selectedAgeLevel in listOf(AgeRating.FIVE_PLUS, AgeRating.EIGHT_PLUS)) {
             if (BLOCKED_ARTISTS.any { artist -> queryLower.contains(artist) }) {
                 return false
             }
@@ -273,7 +262,7 @@ data class ParentalSettings(
                 if (BLOCKED_UNDER_5.any { keyword -> queryLower.contains(keyword) }) return false
                 if (BLOCKED_UNDER_10.any { keyword -> queryLower.contains(keyword) }) return false
             }
-            AgeRating.TEN_PLUS -> {
+            AgeRating.EIGHT_PLUS -> {
                 if (BLOCKED_UNDER_10.any { keyword -> queryLower.contains(keyword) }) return false
             }
             else -> {}

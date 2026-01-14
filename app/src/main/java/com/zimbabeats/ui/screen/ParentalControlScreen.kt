@@ -554,10 +554,11 @@ private fun formatAgeRating(rating: String): String {
         "ALL" -> "All Ages"
         "FIVE_PLUS" -> "Kids Under 5"
         "EIGHT_PLUS" -> "Kids Under 8"
-        "TEN_PLUS" -> "Kids Under 10"
-        "TWELVE_PLUS" -> "Kids Under 12"
+        // Legacy mappings for backward compatibility
+        "TEN_PLUS" -> "Kids Under 8"
+        "TWELVE_PLUS" -> "Kids Under 13"
         "THIRTEEN_PLUS" -> "Kids Under 13"
-        "FOURTEEN_PLUS" -> "Kids Under 14"
+        "FOURTEEN_PLUS" -> "Kids Under 13"
         "SIXTEEN_PLUS" -> "Kids Under 16"
         else -> rating
     }

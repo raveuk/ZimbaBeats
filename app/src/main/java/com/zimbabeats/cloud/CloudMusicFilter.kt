@@ -62,17 +62,38 @@ class CloudMusicFilter(
             "nickelodeon",
             "sesame street",
 
+            // Popular kids TV shows & characters
+            "peppa pig", "peppa",
+            "paw patrol",
+            "bluey",
+            "dora", "dora the explorer",
+            "daniel tiger",
+            "blue's clues", "blues clues",
+            "barney",
+            "thomas the tank engine", "thomas and friends",
+            "bob the builder",
+            "shaun the sheep",
+            "big bird", "elmo", "cookie monster",
+            "numberblocks", "alphablocks",
+            "bubble guppies",
+            "team umizoomi",
+            "yo gabba gabba",
+            "teletubbies",
+
             // Classical (safe for all)
             "mozart for babies",
             "beethoven for babies",
             "classical baby",
             "baby einstein",
+            "lullaby", "lullabies",
 
             // Family-friendly
             "kidz bop",
             "the wiggles", "wiggles",
             "raffi",
-            "laurie berkner"
+            "laurie berkner",
+            "kids songs", "nursery rhymes",
+            "children's music"
         )
     }
 
@@ -102,7 +123,7 @@ class CloudMusicFilter(
     fun isWhitelistModeActive(): Boolean {
         val settings = _musicSettings.value
         return settings.whitelistModeEnabled && settings.ageRating in listOf(
-            "FIVE_PLUS", "EIGHT_PLUS", "TEN_PLUS", "TWELVE_PLUS", "THIRTEEN_PLUS", "FOURTEEN_PLUS"
+            "FIVE_PLUS", "EIGHT_PLUS", "THIRTEEN_PLUS"
         )
     }
 
@@ -214,14 +235,17 @@ class CloudMusicFilter(
                         Log.e(TAG, "Error parsing music filter settings", e)
                     }
                 } else {
-                    // No music_filter document - use PERMISSIVE defaults (don't block everything)
-                    // Default to whitelistModeEnabled=false so music isn't blocked when no settings exist
+                    // No music_filter document - use RESTRICTIVE defaults for child safety
+                    // Whitelist mode ON with default kids artists enabled = safe kids content works
+                    // Parent can then customize by creating the music_filter document
                     _musicSettings.value = MusicFilterSettings(
-                        whitelistModeEnabled = false,  // CRITICAL: Don't block all music by default
-                        ageRating = "ALL"  // CRITICAL: Allow all until parent sets restrictions
+                        whitelistModeEnabled = true,   // SECURITY: Whitelist mode ON by default
+                        ageRating = "EIGHT_PLUS",      // SECURITY: Conservative default age
+                        defaultKidsArtistsEnabled = true,  // Kids music (CoComelon, etc.) still works
+                        blockExplicit = true           // Always block explicit content
                     )
                     settingsLoaded = true
-                    Log.d(TAG, "No music_filter document found at $pathInfo - using PERMISSIVE defaults (whitelist disabled)")
+                    Log.d(TAG, "No music_filter document found at $pathInfo - using RESTRICTIVE defaults (whitelist enabled, default kids artists ON)")
                 }
             }
     }
@@ -570,13 +594,13 @@ class CloudMusicFilter(
  * Music filter settings - SEPARATE from video content_filter
  */
 data class MusicFilterSettings(
-    // Age rating - default to permissive (ALL) when no settings exist
-    // Parent must actively configure restrictions
-    val ageRating: String = "ALL",
+    // Age rating - default to EIGHT_PLUS (restrictive) for child safety
+    // Parent can relax restrictions by configuring the music_filter document
+    val ageRating: String = "EIGHT_PLUS",
 
-    // WHITELIST MODE - default to FALSE (permissive) until parent enables
-    // When true + empty lists = blocks ALL music, so default must be false
-    val whitelistModeEnabled: Boolean = false,
+    // WHITELIST MODE - default to TRUE (restrictive) for child safety
+    // Combined with defaultKidsArtistsEnabled=true, safe kids music still works
+    val whitelistModeEnabled: Boolean = true,
 
     // Parent-added allowed artists (whitelist)
     val allowedArtists: List<String> = emptyList(),

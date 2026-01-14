@@ -248,10 +248,7 @@ fun AgeRating.toKidzSafeRating(): KidzSafeRating = when (this) {
     AgeRating.ALL -> KidzSafeRating.ALL
     AgeRating.FIVE_PLUS -> KidzSafeRating.UNDER_5
     AgeRating.EIGHT_PLUS -> KidzSafeRating.UNDER_8
-    AgeRating.TEN_PLUS -> KidzSafeRating.UNDER_10
-    AgeRating.TWELVE_PLUS -> KidzSafeRating.UNDER_12
     AgeRating.THIRTEEN_PLUS -> KidzSafeRating.UNDER_13
-    AgeRating.FOURTEEN_PLUS -> KidzSafeRating.UNDER_14
     AgeRating.SIXTEEN_PLUS -> KidzSafeRating.UNDER_16
 }
 
@@ -262,9 +259,9 @@ fun KidzSafeRating.toAgeRating(): AgeRating = when (this) {
     KidzSafeRating.ALL -> AgeRating.ALL
     KidzSafeRating.UNDER_5 -> AgeRating.FIVE_PLUS
     KidzSafeRating.UNDER_8 -> AgeRating.EIGHT_PLUS
-    KidzSafeRating.UNDER_10 -> AgeRating.TEN_PLUS
-    KidzSafeRating.UNDER_12 -> AgeRating.TWELVE_PLUS
+    KidzSafeRating.UNDER_10 -> AgeRating.EIGHT_PLUS  // Map to closest: 8
+    KidzSafeRating.UNDER_12 -> AgeRating.THIRTEEN_PLUS  // Map to closest: 13
     KidzSafeRating.UNDER_13 -> AgeRating.THIRTEEN_PLUS
-    KidzSafeRating.UNDER_14 -> AgeRating.FOURTEEN_PLUS
+    KidzSafeRating.UNDER_14 -> AgeRating.THIRTEEN_PLUS  // Map to closest: 13
     KidzSafeRating.UNDER_16 -> AgeRating.SIXTEEN_PLUS
 }

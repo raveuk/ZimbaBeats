@@ -56,13 +56,22 @@ class SearchViewModel(
                 val isLinkedToFamily = pairingStatus is PairingStatus.Paired
                 val isKidSafeMode = isLinkedToFamily
 
-                // Enable YouTube Kids mode for searches when parental controls are active
-                searchRepository.setKidSafeMode(isKidSafeMode)
+                // Get the age rating from cloud settings
+                val ageRatingString = cloudPairingClient.cloudSettings.value?.ageRating
+
+                // Use safety mode for young children (5-8)
+                // For ages 13+, use regular YouTube (WEB) with CloudContentFilter
+                val useYouTubeKidsApi = isKidSafeMode && ageRatingString in listOf(
+                    "FIVE_PLUS", "EIGHT_PLUS"
+                )
+
+                android.util.Log.d("SearchViewModel", "Kid safe mode: isLinkedToFamily=$isLinkedToFamily, ageRating=$ageRatingString, useYouTubeKidsApi=$useYouTubeKidsApi")
+                searchRepository.setKidSafeMode(useYouTubeKidsApi)
 
                 // Re-filter existing results when settings change
                 val currentResults = _uiState.value.searchResults
                 _uiState.value = _uiState.value.copy(
-                    kidSafeModeEnabled = isKidSafeMode,
+                    kidSafeModeEnabled = useYouTubeKidsApi,
                     searchResults = if (currentResults.isNotEmpty()) filterVideosByCloud(currentResults) else currentResults
                 )
             }

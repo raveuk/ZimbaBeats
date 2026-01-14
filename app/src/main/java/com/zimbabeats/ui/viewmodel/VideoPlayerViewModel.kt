@@ -754,10 +754,11 @@ class VideoPlayerViewModel(
         return when (ageRatingString) {
             "FIVE_PLUS" -> AgeRating.FIVE_PLUS
             "EIGHT_PLUS" -> AgeRating.EIGHT_PLUS
-            "TEN_PLUS" -> AgeRating.TEN_PLUS
-            "TWELVE_PLUS" -> AgeRating.TWELVE_PLUS
+            // Legacy mappings (map to closest)
+            "TEN_PLUS" -> AgeRating.EIGHT_PLUS
+            "TWELVE_PLUS" -> AgeRating.THIRTEEN_PLUS
             "THIRTEEN_PLUS" -> AgeRating.THIRTEEN_PLUS
-            "FOURTEEN_PLUS" -> AgeRating.FOURTEEN_PLUS
+            "FOURTEEN_PLUS" -> AgeRating.THIRTEEN_PLUS
             "SIXTEEN_PLUS" -> AgeRating.SIXTEEN_PLUS
             else -> AgeRating.ALL
         }
@@ -771,10 +772,7 @@ class VideoPlayerViewModel(
             AgeRating.ALL -> AgeGroup.UNDER_16
             AgeRating.FIVE_PLUS -> AgeGroup.UNDER_5
             AgeRating.EIGHT_PLUS -> AgeGroup.UNDER_8
-            AgeRating.TEN_PLUS -> AgeGroup.UNDER_10
-            AgeRating.TWELVE_PLUS -> AgeGroup.UNDER_12
             AgeRating.THIRTEEN_PLUS -> AgeGroup.UNDER_13
-            AgeRating.FOURTEEN_PLUS -> AgeGroup.UNDER_14
             AgeRating.SIXTEEN_PLUS -> AgeGroup.UNDER_16
         }
     }
@@ -794,7 +792,7 @@ class VideoPlayerViewModel(
         val currentAgeLevel = getCurrentAgeRating()
         val ageGroup = ageRatingToAgeGroup(currentAgeLevel)
         val useStrictLocalFilter = currentAgeLevel in listOf(
-            AgeRating.FIVE_PLUS, AgeRating.EIGHT_PLUS, AgeRating.TEN_PLUS
+            AgeRating.FIVE_PLUS, AgeRating.EIGHT_PLUS
         )
 
         Log.d(TAG, "Filtering ${videos.size} related videos - Age: ${currentAgeLevel.displayName}, Strict local filter: $useStrictLocalFilter")

@@ -276,7 +276,8 @@ private fun VideoHomeContent(
             uiState.recentlyWatched.isNotEmpty() ||
             uiState.mostWatched.isNotEmpty() ||
             uiState.favorites.isNotEmpty() ||
-            uiState.quickPicks.isNotEmpty()
+            uiState.quickPicks.isNotEmpty() ||
+            uiState.moodSections.any { it.videos.isNotEmpty() }
 
     if (!hasContent && uiState.isLoading) {
         // Show loading shimmer

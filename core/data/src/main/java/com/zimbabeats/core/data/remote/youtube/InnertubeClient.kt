@@ -28,13 +28,10 @@ class InnertubeClient(private val httpClient: HttpClient) {
         private const val ANDROID_SDK_VERSION = 30
         private const val ANDROID_OS_VERSION = "11"
 
-        // Use WEB client for search
+        // Use WEB client for search (WEB_KIDS no longer works - returns 400 errors)
+        // Safety mode is controlled via user.enableSafetyMode in context
         private const val SEARCH_CLIENT_NAME = "WEB"
-        private const val SEARCH_CLIENT_VERSION = "2.20231219.04.00"
-
-        // YouTube Kids client for kid-safe content
-        private const val KIDS_CLIENT_NAME = "WEB_KIDS"
-        private const val KIDS_CLIENT_VERSION = "2.20231219.00.00"
+        private const val SEARCH_CLIENT_VERSION = "2.20250222.10.00" // Updated version
     }
 
     // Flag to enable kid-safe mode
@@ -228,23 +225,26 @@ class InnertubeClient(private val httpClient: HttpClient) {
 
     /**
      * Search for videos using Innertube API
-     * Uses WEB_KIDS client when kid-safe mode is enabled for additional protection
+     * Uses WEB client with enableSafetyMode in user context for content filtering
+     * CloudContentFilter provides additional age-specific filtering
      */
     suspend fun searchVideos(query: String): List<YouTubeVideo> = withContext(Dispatchers.IO) {
         try {
-            // Choose client based on kid-safe mode
-            val clientName = if (kidSafeModeEnabled) KIDS_CLIENT_NAME else SEARCH_CLIENT_NAME
-            val clientVersion = if (kidSafeModeEnabled) KIDS_CLIENT_VERSION else SEARCH_CLIENT_VERSION
-            Log.d(TAG, "Searching for: $query (kidSafeMode: $kidSafeModeEnabled, client: $clientName)")
+            Log.d(TAG, "Searching for: $query (safetyMode: $kidSafeModeEnabled)")
 
-            // Build Innertube search request - use WEB_KIDS for kids mode, WEB otherwise
+            // Build Innertube search request with user context for safety mode
             val requestBody = buildJsonObject {
                 putJsonObject("context") {
                     putJsonObject("client") {
-                        put("clientName", clientName)
-                        put("clientVersion", clientVersion)
+                        put("clientName", SEARCH_CLIENT_NAME)
+                        put("clientVersion", SEARCH_CLIENT_VERSION)
                         put("hl", "en")
                         put("gl", "US")
+                    }
+                    // Add user context with safety mode settings
+                    putJsonObject("user") {
+                        put("enableSafetyMode", kidSafeModeEnabled)
+                        put("lockedSafetyMode", false)
                     }
                 }
                 put("query", query)
@@ -309,10 +309,18 @@ class InnertubeClient(private val httpClient: HttpClient) {
                             ?.firstOrNull()?.jsonObject
                             ?.get("text")?.jsonPrimitive?.contentOrNull ?: "Unknown"
 
-                        val channelName = video["ownerText"]?.jsonObject
+                        val ownerTextRuns = video["ownerText"]?.jsonObject
                             ?.get("runs")?.jsonArray
                             ?.firstOrNull()?.jsonObject
+
+                        val channelName = ownerTextRuns
                             ?.get("text")?.jsonPrimitive?.contentOrNull ?: "Unknown"
+
+                        // Extract channelId from navigationEndpoint.browseEndpoint.browseId
+                        val channelId = ownerTextRuns
+                            ?.get("navigationEndpoint")?.jsonObject
+                            ?.get("browseEndpoint")?.jsonObject
+                            ?.get("browseId")?.jsonPrimitive?.contentOrNull ?: ""
 
                         val thumbnail = video["thumbnail"]?.jsonObject
                             ?.get("thumbnails")?.jsonArray
@@ -332,7 +340,7 @@ class InnertubeClient(private val httpClient: HttpClient) {
                                 description = null,
                                 thumbnailUrl = thumbnail,
                                 channelName = channelName,
-                                channelId = "",
+                                channelId = channelId,
                                 duration = 0,
                                 viewCount = parseViewCount(viewCountText),
                                 publishedAt = System.currentTimeMillis(),
@@ -442,22 +450,26 @@ class InnertubeClient(private val httpClient: HttpClient) {
 
     /**
      * Search for videos with spelling correction support
-     * Uses WEB_KIDS client when kid-safe mode is enabled for additional protection
+     * Uses WEB client with enableSafetyMode in user context for content filtering
+     * CloudContentFilter provides additional age-specific filtering
      */
     suspend fun searchVideosWithCorrection(query: String): SearchResultWithCorrection = withContext(Dispatchers.IO) {
         try {
-            // Choose client based on kid-safe mode
-            val clientName = if (kidSafeModeEnabled) KIDS_CLIENT_NAME else SEARCH_CLIENT_NAME
-            val clientVersion = if (kidSafeModeEnabled) KIDS_CLIENT_VERSION else SEARCH_CLIENT_VERSION
-            Log.d(TAG, "Searching with correction for: $query (kidSafeMode: $kidSafeModeEnabled, client: $clientName)")
+            Log.d(TAG, "Searching with correction for: $query (safetyMode: $kidSafeModeEnabled)")
 
+            // Build Innertube search request with user context for safety mode
             val requestBody = buildJsonObject {
                 putJsonObject("context") {
                     putJsonObject("client") {
-                        put("clientName", clientName)
-                        put("clientVersion", clientVersion)
+                        put("clientName", SEARCH_CLIENT_NAME)
+                        put("clientVersion", SEARCH_CLIENT_VERSION)
                         put("hl", "en")
                         put("gl", "US")
+                    }
+                    // Add user context with safety mode settings
+                    putJsonObject("user") {
+                        put("enableSafetyMode", kidSafeModeEnabled)
+                        put("lockedSafetyMode", false)
                     }
                 }
                 put("query", query)
@@ -528,10 +540,18 @@ class InnertubeClient(private val httpClient: HttpClient) {
                             ?.firstOrNull()?.jsonObject
                             ?.get("text")?.jsonPrimitive?.contentOrNull ?: "Unknown"
 
-                        val channelName = video["ownerText"]?.jsonObject
+                        val ownerTextRuns2 = video["ownerText"]?.jsonObject
                             ?.get("runs")?.jsonArray
                             ?.firstOrNull()?.jsonObject
+
+                        val channelName = ownerTextRuns2
                             ?.get("text")?.jsonPrimitive?.contentOrNull ?: "Unknown"
+
+                        // Extract channelId from navigationEndpoint.browseEndpoint.browseId
+                        val channelId = ownerTextRuns2
+                            ?.get("navigationEndpoint")?.jsonObject
+                            ?.get("browseEndpoint")?.jsonObject
+                            ?.get("browseId")?.jsonPrimitive?.contentOrNull ?: ""
 
                         val thumbnail = video["thumbnail"]?.jsonObject
                             ?.get("thumbnails")?.jsonArray
@@ -548,7 +568,7 @@ class InnertubeClient(private val httpClient: HttpClient) {
                                 description = null,
                                 thumbnailUrl = thumbnail,
                                 channelName = channelName,
-                                channelId = "",
+                                channelId = channelId,
                                 duration = 0,
                                 viewCount = parseViewCount(viewCountText),
                                 publishedAt = System.currentTimeMillis(),
@@ -631,15 +651,23 @@ class InnertubeClient(private val httpClient: HttpClient) {
                     ?.get("simpleText")?.jsonPrimitive?.contentOrNull
                 ?: "Unknown"
 
-            val channelName = video["ownerText"]?.jsonObject
+            // Try ownerText first, then shortBylineText for channel info
+            val ownerTextRuns = video["ownerText"]?.jsonObject
                 ?.get("runs")?.jsonArray
                 ?.firstOrNull()?.jsonObject
-                ?.get("text")?.jsonPrimitive?.contentOrNull
                 ?: video["shortBylineText"]?.jsonObject
                     ?.get("runs")?.jsonArray
                     ?.firstOrNull()?.jsonObject
-                    ?.get("text")?.jsonPrimitive?.contentOrNull
+
+            val channelName = ownerTextRuns
+                ?.get("text")?.jsonPrimitive?.contentOrNull
                 ?: "Unknown"
+
+            // Extract channelId from navigationEndpoint.browseEndpoint.browseId
+            val channelId = ownerTextRuns
+                ?.get("navigationEndpoint")?.jsonObject
+                ?.get("browseEndpoint")?.jsonObject
+                ?.get("browseId")?.jsonPrimitive?.contentOrNull ?: ""
 
             val thumbnail = video["thumbnail"]?.jsonObject
                 ?.get("thumbnails")?.jsonArray
@@ -658,7 +686,7 @@ class InnertubeClient(private val httpClient: HttpClient) {
                 description = null,
                 thumbnailUrl = thumbnail,
                 channelName = channelName,
-                channelId = "",
+                channelId = channelId,
                 duration = 0,
                 viewCount = parseViewCount(viewCountText),
                 publishedAt = System.currentTimeMillis(),

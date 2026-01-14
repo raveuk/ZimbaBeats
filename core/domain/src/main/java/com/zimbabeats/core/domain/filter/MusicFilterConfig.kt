@@ -15,23 +15,18 @@ object MusicFilterConfig {
             strictMode = true,
             blockExplicit = true
         ),
-        AgeGroup.UNDER_10 to MusicAgeConfig(
+        AgeGroup.UNDER_8 to MusicAgeConfig(
             maxDuration = 420,          // 7 minutes max
             strictMode = true,
             blockExplicit = true
         ),
-        AgeGroup.UNDER_12 to MusicAgeConfig(
+        AgeGroup.UNDER_13 to MusicAgeConfig(
             maxDuration = 600,          // 10 minutes max
             strictMode = false,
             blockExplicit = true
         ),
-        AgeGroup.UNDER_14 to MusicAgeConfig(
-            maxDuration = 900,          // 15 minutes max
-            strictMode = false,
-            blockExplicit = true
-        ),
         AgeGroup.UNDER_16 to MusicAgeConfig(
-            maxDuration = 1200,         // 20 minutes max
+            maxDuration = 900,          // 15 minutes max
             strictMode = false,
             blockExplicit = true        // Still block explicit for under 16
         )
@@ -49,17 +44,14 @@ object MusicFilterConfig {
             "UCeirmJxuV9HM9VdG0ykDJhg", // Little Baby Bum
             "UCPPJnlbQSvdXhFOZXWqangg"  // BabyBus
         ),
-        AgeGroup.UNDER_10 to setOf(
+        AgeGroup.UNDER_8 to setOf(
             "UCBnZ16ahKA2DZ_T5W0FPUXg", // CoComelon
             "UC4NALVCmcmL5ntpKx19zoJQ", // Pinkfong
             "UC-Gm4EN7nNNR3k67J8ywF4A", // Super Simple Songs
             "UCeirmJxuV9HM9VdG0ykDJhg"  // Little Baby Bum
         ),
-        AgeGroup.UNDER_12 to setOf(
-            // Expand to more general family-friendly artists
-        ),
-        AgeGroup.UNDER_14 to setOf(),
-        AgeGroup.UNDER_16 to setOf()
+        AgeGroup.UNDER_13 to setOf(),  // All family-friendly artists allowed
+        AgeGroup.UNDER_16 to setOf()   // No artist restrictions
     )
 
     /**
@@ -138,7 +130,7 @@ object MusicFilterConfig {
             // Dark themes
             "hate", "hatred", "revenge", "angry", "rage"
         ),
-        AgeGroup.UNDER_10 to setOf(
+        AgeGroup.UNDER_8 to setOf(
             "kill", "death", "murder", "blood", "gun", "weapon", "war",
             "horror", "demon", "devil", "hell", "satan",
             "sex", "sexy", "sexual", "nude", "naked", "porn", "xxx",
@@ -148,7 +140,7 @@ object MusicFilterConfig {
             "explicit", "uncensored", "18+", "mature", "adult",
             "twerk", "stripper", "strip club"
         ),
-        AgeGroup.UNDER_12 to setOf(
+        AgeGroup.UNDER_13 to setOf(
             "murder", "blood", "gun", "weapon",
             "sex", "sexy", "sexual", "nude", "naked", "porn", "xxx",
             "drug", "drugs", "cocaine", "weed", "marijuana",
@@ -156,13 +148,6 @@ object MusicFilterConfig {
             "suicide", "suicidal",
             "explicit", "18+", "adult only",
             "twerk", "stripper"
-        ),
-        AgeGroup.UNDER_14 to setOf(
-            "sex", "sexual", "nude", "naked", "porn", "xxx",
-            "drug", "cocaine", "weed",
-            "fuck", "nigga", "nigger", "whore", "slut",
-            "suicide method", "self harm",
-            "explicit", "18+", "adult only"
         ),
         AgeGroup.UNDER_16 to setOf(
             "porn", "xxx", "nude",

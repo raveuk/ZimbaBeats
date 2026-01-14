@@ -69,9 +69,9 @@ private fun determineKidFriendly(video: YouTubeVideo): Boolean {
 private fun determineAgeRating(ageLimit: Int): AgeRating = when {
     ageLimit == 0 -> AgeRating.ALL
     ageLimit <= 5 -> AgeRating.FIVE_PLUS
-    ageLimit <= 10 -> AgeRating.TEN_PLUS
-    ageLimit <= 12 -> AgeRating.TWELVE_PLUS
-    else -> AgeRating.FOURTEEN_PLUS
+    ageLimit <= 8 -> AgeRating.EIGHT_PLUS
+    ageLimit <= 13 -> AgeRating.THIRTEEN_PLUS
+    else -> AgeRating.SIXTEEN_PLUS
 }
 
 /**

@@ -57,13 +57,15 @@ fun VideoProgressEntity.toDomain(): VideoProgress = VideoProgress(
 fun String.toAgeRating(): AgeRating = when (this) {
     "ALL" -> AgeRating.ALL
     "5+" -> AgeRating.FIVE_PLUS
-    "10+" -> AgeRating.TEN_PLUS
-    "12+" -> AgeRating.TWELVE_PLUS
-    "14+" -> AgeRating.FOURTEEN_PLUS
+    "8+" -> AgeRating.EIGHT_PLUS
+    "13+" -> AgeRating.THIRTEEN_PLUS
     "16+" -> AgeRating.SIXTEEN_PLUS
-    // Legacy support for old values
+    // Legacy support for old values (map to closest)
     "3+" -> AgeRating.FIVE_PLUS
-    "7+" -> AgeRating.TEN_PLUS
+    "7+" -> AgeRating.EIGHT_PLUS
+    "10+" -> AgeRating.EIGHT_PLUS
+    "12+" -> AgeRating.THIRTEEN_PLUS
+    "14+" -> AgeRating.THIRTEEN_PLUS
     else -> AgeRating.ALL
 }
 
@@ -71,10 +73,7 @@ fun AgeRating.toEntityString(): String = when (this) {
     AgeRating.ALL -> "ALL"
     AgeRating.FIVE_PLUS -> "5+"
     AgeRating.EIGHT_PLUS -> "8+"
-    AgeRating.TEN_PLUS -> "10+"
-    AgeRating.TWELVE_PLUS -> "12+"
     AgeRating.THIRTEEN_PLUS -> "13+"
-    AgeRating.FOURTEEN_PLUS -> "14+"
     AgeRating.SIXTEEN_PLUS -> "16+"
 }
 

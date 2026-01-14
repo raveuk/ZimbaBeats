@@ -24,10 +24,7 @@ enum class AgeRating(val displayName: String, val ageLimit: Int) {
     ALL("All Ages", 0),
     FIVE_PLUS("Kids Under 5", 5),
     EIGHT_PLUS("Kids Under 8", 8),
-    TEN_PLUS("Kids Under 10", 10),
-    TWELVE_PLUS("Kids Under 12", 12),
     THIRTEEN_PLUS("Kids Under 13", 13),
-    FOURTEEN_PLUS("Kids Under 14", 14),
     SIXTEEN_PLUS("Kids Under 16", 16)
 }
 

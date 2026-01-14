@@ -19,4 +19,7 @@ dependencies {
 
     // Koin
     implementation(libs.koin.core)
+
+    // Testing
+    testImplementation("junit:junit:4.13.2")
 }

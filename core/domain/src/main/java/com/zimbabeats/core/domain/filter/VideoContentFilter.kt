@@ -148,10 +148,7 @@ class VideoContentFilter {
             AgeRating.ALL -> AgeGroup.UNDER_16
             AgeRating.FIVE_PLUS -> AgeGroup.UNDER_5
             AgeRating.EIGHT_PLUS -> AgeGroup.UNDER_8
-            AgeRating.TEN_PLUS -> AgeGroup.UNDER_10
-            AgeRating.TWELVE_PLUS -> AgeGroup.UNDER_12
             AgeRating.THIRTEEN_PLUS -> AgeGroup.UNDER_13
-            AgeRating.FOURTEEN_PLUS -> AgeGroup.UNDER_14
             AgeRating.SIXTEEN_PLUS -> AgeGroup.UNDER_16
         }
     }

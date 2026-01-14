@@ -65,7 +65,14 @@ class MusicSearchViewModel(
      */
     private fun observeFilterSettings() {
         viewModelScope.launch {
-            musicFilter.musicSettings.collect { settings ->
+            // BUG-001 FIX: Add null safety - musicFilter may be null when not linked to family
+            val filter = musicFilter
+            if (filter == null) {
+                Log.d(TAG, "Not linked to family - music filter not active, skipping settings observation")
+                return@launch
+            }
+
+            filter.musicSettings.collect { settings ->
                 Log.d(TAG, "Music filter settings changed - re-filtering ${unfilteredResults.size} results")
                 if (unfilteredResults.isNotEmpty()) {
                     val filteredResults = filterMusicResults(unfilteredResults)
@@ -166,7 +173,13 @@ class MusicSearchViewModel(
             }
 
             // If linked to family, apply MUSIC whitelist filter
+            // BUG-002 FIX: Add null safety - musicFilter may be null when not linked to family
             val filter = musicFilter
+            if (filter == null) {
+                // Not linked to family - allow all music (only global blocks applied above)
+                return@filter true
+            }
+
             // SECURITY: Block content until filter settings are loaded
             if (!filter.hasLoadedSettings()) {
                 Log.w(TAG, "Music filter settings not yet loaded - BLOCKING search result until loaded: $title")
@@ -194,7 +207,14 @@ class MusicSearchViewModel(
      * Check if a search query is allowed by music filter (Firebase-based whitelist).
      */
     private fun isSearchAllowed(query: String): Boolean {
+        // BUG-003 FIX: Add null safety - musicFilter may be null when not linked to family
         val filter = musicFilter
+        if (filter == null) {
+            // Not linked to family - allow all searches (only global blocks apply)
+            Log.d(TAG, "Not linked to family - allowing search query: $query")
+            return true
+        }
+
         // SECURITY: Block search until filter settings are loaded
         if (!filter.hasLoadedSettings()) {
             Log.w(TAG, "Music filter settings not yet loaded - BLOCKING search query until loaded: $query")
