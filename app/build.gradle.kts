@@ -35,8 +35,8 @@ android {
         applicationId = "com.zimbabeats"
         minSdk = 24
         targetSdk = 36
-        versionCode = 26
-        versionName = "1.0.26"
+        versionCode = 28
+        versionName = "1.0.28"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -83,12 +83,27 @@ android {
         abortOnError = false
     }
 
-    // Rename APK output to ZimbaBeats.apk
+    // ABI splits - generate separate APKs for each architecture
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a", "armeabi-v7a", "x86_64")
+            isUniversalApk = true // Also generate a universal APK with all ABIs
+        }
+    }
+
+    // Rename APK outputs with architecture suffix
     applicationVariants.all {
         val variant = this
         variant.outputs.all {
             val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
-            output.outputFileName = "ZimbaBeats.apk"
+            val abi = output.getFilter(com.android.build.api.variant.FilterConfiguration.FilterType.ABI.name)
+            output.outputFileName = if (abi != null) {
+                "ZimbaBeats-$abi.apk"
+            } else {
+                "ZimbaBeats.apk"
+            }
         }
     }
 }

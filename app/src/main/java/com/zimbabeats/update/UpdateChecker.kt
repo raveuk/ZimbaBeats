@@ -32,11 +32,13 @@ class UpdateChecker(private val context: Context) {
 
     /**
      * Check for updates from GitHub releases.
+     * Filters to only find main app releases (excludes -family tags).
      */
     suspend fun checkForUpdate(): UpdateResult = withContext(Dispatchers.IO) {
         try {
             val repo = BuildConfig.GITHUB_REPO
-            val url = URL("$GITHUB_API_BASE/$repo/releases/latest")
+            // Query all releases to filter for main app only
+            val url = URL("$GITHUB_API_BASE/$repo/releases")
 
             val connection = url.openConnection() as HttpURLConnection
             connection.apply {
@@ -55,19 +57,31 @@ class UpdateChecker(private val context: Context) {
                 }
 
                 val responseBody = connection.inputStream.bufferedReader().use { it.readText() }
-                val release = json.decodeFromString<GitHubRelease>(responseBody)
+                val releases = json.decodeFromString<List<GitHubRelease>>(responseBody)
+
+                // Find latest release for main app (exclude -family tags)
+                val release = releases
+                    .filter { !it.tagName.contains("-family", ignoreCase = true) }
+                    .maxByOrNull { parseVersionForSort(it.tagName) }
+
+                if (release == null) {
+                    Log.d(TAG, "No main app releases found")
+                    return@withContext UpdateResult.NoUpdate
+                }
 
                 val latestVersion = release.tagName.removePrefix("v").removePrefix("V")
                 val currentVersion = getCurrentVersion()
 
-                Log.d(TAG, "Current: $currentVersion, Latest: $latestVersion")
+                Log.d(TAG, "Current: $currentVersion, Latest: $latestVersion (tag: ${release.tagName})")
 
                 if (isNewerVersion(currentVersion, latestVersion)) {
                     // Find the APK asset for direct download
-                    // Look for ZimbaBeats.apk (main app)
+                    // Look for ZimbaBeats.apk (main app, not Family)
                     val apkAsset = release.assets.find { asset ->
                         asset.name.equals("ZimbaBeats.apk", ignoreCase = true) ||
-                        asset.name.contains("ZimbaBeats", ignoreCase = true) && asset.name.endsWith(".apk", ignoreCase = true)
+                        (asset.name.contains("ZimbaBeats", ignoreCase = true) &&
+                         !asset.name.contains("Family", ignoreCase = true) &&
+                         asset.name.endsWith(".apk", ignoreCase = true))
                     }
 
                     // Use direct APK URL if found, otherwise fall back to release page
@@ -94,6 +108,17 @@ class UpdateChecker(private val context: Context) {
             Log.e(TAG, "Failed to check for updates", e)
             UpdateResult.Error(e.message ?: "Unknown error occurred")
         }
+    }
+
+    /**
+     * Parse version string for sorting (returns comparable integer).
+     */
+    private fun parseVersionForSort(tag: String): Int {
+        val version = tag.removePrefix("v").removePrefix("V")
+        val parts = version.split(".").mapNotNull { it.toIntOrNull() }
+        return parts.getOrElse(0) { 0 } * 10000 +
+               parts.getOrElse(1) { 0 } * 100 +
+               parts.getOrElse(2) { 0 }
     }
 
     /**
