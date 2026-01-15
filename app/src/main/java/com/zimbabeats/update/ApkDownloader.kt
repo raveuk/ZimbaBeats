@@ -106,7 +106,8 @@ class ApkDownloader(private val context: Context) {
             }
 
             // Poll for progress updates
-            while (true) {
+            var downloadComplete = false
+            while (!downloadComplete) {
                 val query = DownloadManager.Query().setFilterById(currentDownloadId)
                 val cursor = downloadManager.query(query)
 
@@ -114,27 +115,44 @@ class ApkDownloader(private val context: Context) {
                     val statusIndex = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS)
                     val status = cursor.getInt(statusIndex)
 
-                    if (status == DownloadManager.STATUS_RUNNING || status == DownloadManager.STATUS_PENDING) {
-                        val bytesDownloadedIndex = cursor.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)
-                        val bytesTotalIndex = cursor.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES)
+                    when (status) {
+                        DownloadManager.STATUS_RUNNING, DownloadManager.STATUS_PENDING -> {
+                            val bytesDownloadedIndex = cursor.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)
+                            val bytesTotalIndex = cursor.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES)
 
-                        val bytesDownloaded = cursor.getLong(bytesDownloadedIndex)
-                        val bytesTotal = cursor.getLong(bytesTotalIndex)
+                            val bytesDownloaded = cursor.getLong(bytesDownloadedIndex)
+                            val bytesTotal = cursor.getLong(bytesTotalIndex)
 
-                        val progress = if (bytesTotal > 0) {
-                            ((bytesDownloaded * 100) / bytesTotal).toInt()
-                        } else {
-                            0
+                            val progress = if (bytesTotal > 0) {
+                                ((bytesDownloaded * 100) / bytesTotal).toInt()
+                            } else {
+                                0
+                            }
+
+                            trySend(DownloadState.Downloading(progress))
                         }
-
-                        trySend(DownloadState.Downloading(progress))
-                    } else if (status == DownloadManager.STATUS_SUCCESSFUL || status == DownloadManager.STATUS_FAILED) {
-                        cursor.close()
-                        break
+                        DownloadManager.STATUS_SUCCESSFUL -> {
+                            val uriIndex = cursor.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI)
+                            val localUri = cursor.getString(uriIndex)
+                            Log.d(TAG, "Download complete (polling): $localUri")
+                            trySend(DownloadState.Downloading(100)) // Show 100% first
+                            trySend(DownloadState.Completed(localUri ?: ""))
+                            downloadComplete = true
+                        }
+                        DownloadManager.STATUS_FAILED -> {
+                            val reasonIndex = cursor.getColumnIndex(DownloadManager.COLUMN_REASON)
+                            val reason = cursor.getInt(reasonIndex)
+                            Log.e(TAG, "Download failed (polling) with reason: $reason")
+                            trySend(DownloadState.Failed("Download failed (error: $reason)"))
+                            downloadComplete = true
+                        }
                     }
                 }
                 cursor.close()
-                delay(500) // Poll every 500ms
+
+                if (!downloadComplete) {
+                    delay(500) // Poll every 500ms
+                }
             }
 
             awaitClose {
