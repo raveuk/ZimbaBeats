@@ -45,7 +45,7 @@ The application is built using modern Android development practices, including J
 ## Screenshots    
  <p align="center">          
  <img src="?raw=true" width="200" />          
-  <img src="?raw=true" width="200" />          
+  <img src="https://github.com/raveuk/ZimbaBeats/blob/main/fastlane/metadata/android/en-US/images/phoneScreenshots/pic.png?raw=true" width="200" />          
    <img src="?raw=true" width="200" />          
    <img src="?raw=true" width="200" /> </p> <p align="center">          
 
@@ -174,7 +174,7 @@ Timely reporting of issues is essential for maintaining application stability an
 
 **License:** GNU General Public License v3.0 (Open Source)
 
-<a href="https://github.com/raveuk/ZimbaBeats/releases/download/v1.0.28/ZimbaBeats.apk">
+<a href="https://github.com/raveuk/ZimbaBeats/releases/download/v1.0.33/ZimbaBeats.apk">
   <img src="https://img.shields.io/badge/Download-ZimbaBeats-blue?style=for-the-badge&logo=android" alt="Download ZimbaBeats"/>
 </a>
 
@@ -182,7 +182,7 @@ Timely reporting of issues is essential for maintaining application stability an
 
 **License:** Proprietary - All Rights Reserved
 
-<a href="https://github.com/raveuk/ZimbaBeats/releases/download/v1.0.28/ZimbaBeats-Family.apk">
+<a href="https://github.com/raveuk/ZimbaBeats/releases/download/v1.0.33/ZimbaBeats-Family.apk">
   <img src="https://img.shields.io/badge/Download-ZimbaBeats%20Family-green?style=for-the-badge&logo=android" alt="Download ZimbaBeats Family"/>
 </a>
 
@@ -323,8 +323,9 @@ ZimbaBeats is committed to protecting user privacy:
 ---
 
 <p align="center">
-  <sub>Copyright 2025 ZimbaBeats. All rights reserved where applicable.</sub>
+  <sub>Copyright 2024 - 2030 ZimbaBeats. All rights reserved where applicable.</sub>
 </p>
+
 
 
 
