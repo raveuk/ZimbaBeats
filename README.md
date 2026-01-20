@@ -16,7 +16,7 @@
     <img src="https://img.shields.io/github/downloads/raveuk/ZimbaBeats/total?style=flat-square&logo=android" alt="Downloads"/>
   </a>
   <a href="LICENSE">
-    <img src="https://img.shields.io/badge/License-GPL%20v3.0-blue?style=flat-square" alt="License"/>
+    <img src="https://img.shields.io/badge/License-Proprietary-red?style=flat-square" alt="License"/>
   </a>
   <a href="https://github.com/raveuk/ZimbaBeats/issues">
     <img src="https://img.shields.io/github/issues/raveuk/ZimbaBeats?style=flat-square" alt="Issues"/>
@@ -25,6 +25,11 @@
     <img src="https://img.shields.io/badge/User_Guide-Setup Guide-blue?style=flat-Round" alt="User Guide"/>
    </a>
 </p>
+
+---
+
+> **⚠️ IMPORTANT NOTICE**
+> This repository is **proprietary software**. Cloning, forking, copying, or redistributing this code is **strictly prohibited** without written permission. Violators will be reported and may face legal action. See [LICENSE](LICENSE) for details.
 
 ---
 
@@ -259,50 +264,6 @@ When a parent removes a child device from their family account:
 
 ---
 
-## Building from Source
-
-### Prerequisites
-
-- Android Studio Hedgehog (2023.1.1) or later
-- Java Development Kit 17
-- Android SDK 34
-- Gradle 8.0 or later
-
-### Build Instructions
-
-```bash
-# Clone the repository
-git clone https://github.com/raveuk/ZimbaBeats.git
-
-# Navigate to project directory
-cd ZimbaBeats
-
-# Build debug variant
-./gradlew assembleDebug
-
-# Build release variant
-./gradlew assembleRelease
-```
-
-### Build Outputs
-
-| Variant | Location |
-|---------|----------|
-| Debug | `app/build/outputs/apk/debug/app-debug.apk` |
-| Release | `app/build/outputs/apk/release/app-release.apk` |
-
----
-
-## Contributing
-
-Contributions to ZimbaBeats are welcome. Please adhere to the following procedures:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/description`)
-3. Implement changes with appropriate documentation
-4. Ensure all existing tests pass
-5. Submit a pull request with a comprehensive description of changes
-
 ---
 
 ## Support
@@ -317,42 +278,27 @@ If you find ZimbaBeats useful, consider supporting the development:
 
 ## License
 
-### ZimbaBeats (Child App)
-
 ```
-ZimbaBeats - Child-Safe
-Copyright (C) 2025 ZimbaBeats
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program. If not, see <https://www.gnu.org/licenses/>.
-```
-
-### ZimbaBeats Family (Parent App)
-
-This software application, including all source code, object code, documentation,
-design elements, user interface components, algorithms, and associated intellectual
-property, is the exclusive property of ZimbaBeats.
-
-ZimbaBeatsFamily has been developed entirely from original work. No source code,
-libraries, or components from third-party open source projects have been
-incorporated into this application. All code is original and proprietary.
-
-## ZimbaBeats Family - Parental Control Application
-Copyright (C) 2025 ZimbaBeats
-All Rights Reserved
+ZimbaBeats Proprietary License
+Copyright (c) 2024-2030 ZimbaBeats (raveuk)
+All Rights Reserved.
 
 This software is proprietary and confidential.
-Unauthorized copying, distribution, or use is strictly prohibited.
+Unauthorized copying, cloning, forking, modification, distribution,
+or deployment is strictly prohibited.
+
+PERMITTED:
+✓ Download official APK releases for personal use
+✓ View source code for educational purposes only
+
+PROHIBITED:
+✗ Clone, fork, or copy this repository
+✗ Modify or create derivative works
+✗ Redistribute in any form
+✗ Deploy on any server or hosting platform
+✗ Use code in other projects
+
+Violations will be reported and may result in legal action.
 ```
 
 ---

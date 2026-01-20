@@ -1,5 +1,7 @@
 ﻿package com.zimbabeats.ui.screen.music
 
+import android.app.Activity
+import android.view.WindowManager
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -22,6 +24,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -44,8 +47,18 @@ fun MusicPlayerScreen(
     onNavigateBack: () -> Unit,
     viewModel: MusicPlayerViewModel = koinViewModel()
 ) {
+    val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
     val playerState by viewModel.playerState.collectAsState()
+
+    // Keep screen on while music player is active
+    DisposableEffect(Unit) {
+        val activity = context as? Activity
+        activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        onDispose {
+            activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
 
     var showQueue by remember { mutableStateOf(false) }
 
@@ -57,12 +70,12 @@ fun MusicPlayerScreen(
         if (playerState.isPlaying) {
             // Update more frequently for smoother slider movement
             while (playerState.isPlaying) {
-                currentPosition = viewModel.getPlayer().currentPosition.toLong().coerceAtLeast(0L)
+                currentPosition = viewModel.getPlayer()?.currentPosition?.coerceAtLeast(0L) ?: 0L
                 delay(250) // Update every 250ms for smooth slider
             }
         } else {
             // Update once when paused to show accurate position
-            currentPosition = viewModel.getPlayer().currentPosition.toLong().coerceAtLeast(0L)
+            currentPosition = viewModel.getPlayer()?.currentPosition?.coerceAtLeast(0L) ?: 0L
         }
     }
 
