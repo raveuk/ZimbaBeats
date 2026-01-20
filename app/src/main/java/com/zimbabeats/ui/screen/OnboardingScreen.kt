@@ -63,7 +63,6 @@ fun OnboardingScreen(
                     isLinked = uiState.isLinked,
                     linkingError = uiState.linkingError,
                     onCodeEntered = { code -> viewModel.linkWithFamily(code) },
-                    onSkip = { viewModel.completeOnboarding(onComplete) },
                     onContinue = { viewModel.completeOnboarding(onComplete) },
                     onClearError = { viewModel.clearError() }
                 )
@@ -167,7 +166,6 @@ private fun FamilyCodeStep(
     isLinked: Boolean,
     linkingError: String?,
     onCodeEntered: (String) -> Unit,
-    onSkip: () -> Unit,
     onContinue: () -> Unit,
     onClearError: () -> Unit
 ) {
@@ -276,19 +274,10 @@ private fun FamilyCodeStep(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            TextButton(
-                onClick = onSkip,
-                enabled = !isLinking
-            ) {
-                Text("Skip for Now", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
             Text(
-                text = "You can link to family anytime from Settings",
+                text = "Family app pairing is required to use ZimbaBeats",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                color = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
             )
         } else {
             Icon(
