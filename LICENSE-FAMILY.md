@@ -1,6 +1,6 @@
 # ZimbaBeats Family - Proprietary License
 
-**Copyright (C) 2025 ZimbaBeats. All Rights Reserved.**
+**Copyright (C) 2024 - 2030 ZimbaBeats. All Rights Reserved.**
 
 ---
 
