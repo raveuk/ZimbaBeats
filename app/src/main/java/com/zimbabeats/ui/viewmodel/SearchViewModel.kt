@@ -175,6 +175,13 @@ class SearchViewModel(
         return videos.sortedByDescending { calculateRelevanceScore(it, query) }
     }
 
+    /**
+     * Sort videos by upload date (newest first).
+     */
+    private fun sortByLatest(videos: List<Video>): List<Video> {
+        return videos.sortedByDescending { it.publishedAt }
+    }
+
     private fun loadRecentSearches() {
         viewModelScope.launch {
             searchRepository.getRecentSearchQueries(10).collect { queries ->
@@ -274,7 +281,7 @@ class SearchViewModel(
                 // Only show local results as suggestions, don't set hasSearched
                 // hasSearched should only be true after explicit YouTube API search
                 val filtered = filterVideosByCloud(results)
-                val sorted = sortByRelevance(filtered, query)
+                val sorted = sortByLatest(filtered)
                 _uiState.value = _uiState.value.copy(
                     searchResults = sorted
                     // Note: NOT setting hasSearched = true here
@@ -322,9 +329,9 @@ class SearchViewModel(
             when (val result = searchRepository.searchVideos(query, maxResults = 100)) {
                 is Resource.Success -> {
                     val searchResult = result.data
-                    // First apply safety filtering via Bridge, then sort by relevance to the search query
+                    // First apply safety filtering via Bridge, then sort by latest (newest first)
                     val filteredVideos = filterVideosByCloud(searchResult.videos)
-                    val sortedVideos = sortByRelevance(filteredVideos, query)
+                    val sortedVideos = sortByLatest(filteredVideos)
                     _uiState.value = _uiState.value.copy(
                         searchResults = sortedVideos,
                         isSearching = false,

@@ -85,11 +85,15 @@ class MusicPlaybackManager(
     private var sleepTimerJob: Job? = null
     private var positionUpdateJob: Job? = null
     private var trackCompletionJob: Job? = null
+    private var prefetchJob: Job? = null
     private var playbackStartTime: Long = 0L
 
     // Pending playback - stored when service not yet connected
     private var pendingStreamUrl: String? = null
     private var pendingTrack: Track? = null
+
+    // Cache for prefetched stream URLs (trackId -> streamUrl)
+    private val streamUrlCache = mutableMapOf<String, String>()
 
     private val _playbackState = MutableStateFlow(MusicPlaybackState())
     val playbackState: StateFlow<MusicPlaybackState> = _playbackState.asStateFlow()
@@ -222,6 +226,49 @@ class MusicPlaybackManager(
                 _playerState.value = _playerState.value.copy(
                     currentVideoTitle = mediaMetadata.title?.toString()
                 )
+            }
+
+            override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                // Handle track transitions from notification Next/Previous buttons
+                val mediaId = mediaItem?.mediaId ?: return
+                Log.d(TAG, "Media item transition: $mediaId, reason: $reason")
+
+                // Handle placeholder transitions (fallback for before prefetch completes)
+                when (mediaId) {
+                    "next_placeholder" -> {
+                        Log.d(TAG, "Next button pressed from notification (placeholder)")
+                        mediaController?.pause()
+                        skipToNext()
+                        return
+                    }
+                    "prev_placeholder" -> {
+                        Log.d(TAG, "Previous button pressed from notification (placeholder)")
+                        mediaController?.pause()
+                        skipToPrevious()
+                        return
+                    }
+                }
+
+                // Handle real track transitions (when prefetched URLs are used)
+                val state = _playbackState.value
+                val currentTrack = state.currentTrack ?: return
+
+                // If transitioning to a different track ID, update our playback state
+                if (mediaId != currentTrack.id) {
+                    val newTrackIndex = state.queue.indexOfFirst { it.id == mediaId }
+                    if (newTrackIndex >= 0 && newTrackIndex != state.currentIndex) {
+                        Log.d(TAG, "Track transition from notification: ${state.queue[newTrackIndex].title}")
+                        _playbackState.value = state.copy(
+                            currentTrack = state.queue[newTrackIndex],
+                            currentIndex = newTrackIndex
+                        )
+                        // Prefetch nearby tracks for the new position
+                        val streamUrl = streamUrlCache[mediaId]
+                        if (streamUrl != null) {
+                            prefetchNearbyTracks(newTrackIndex, state.queue, streamUrl, mediaId)
+                        }
+                    }
+                }
             }
         })
     }
@@ -434,6 +481,144 @@ class MusicPlaybackManager(
     }
 
     /**
+     * Prefetch stream URLs for nearby tracks in the queue.
+     * This enables smooth next/previous transitions in the notification.
+     */
+    private fun prefetchNearbyTracks(currentIndex: Int, queue: List<Track>, currentStreamUrl: String, currentTrackId: String) {
+        prefetchJob?.cancel()
+        prefetchJob = scope.launch(Dispatchers.IO) {
+            // Cache current track's URL
+            streamUrlCache[currentTrackId] = currentStreamUrl
+
+            // Prefetch next track
+            if (currentIndex + 1 < queue.size) {
+                val nextTrack = queue[currentIndex + 1]
+                if (!streamUrlCache.containsKey(nextTrack.id)) {
+                    Log.d(TAG, "Prefetching next track: ${nextTrack.title}")
+                    try {
+                        when (val result = musicRepository.getPlayerData(nextTrack.id)) {
+                            is Resource.Success -> {
+                                streamUrlCache[nextTrack.id] = result.data.streamUrl
+                                Log.d(TAG, "Prefetched next track URL: ${nextTrack.title}")
+                                // Update notification with real URLs
+                                withContext(Dispatchers.Main) {
+                                    updateMediaSessionQueue()
+                                }
+                            }
+                            else -> Log.e(TAG, "Failed to prefetch next track")
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error prefetching next track", e)
+                    }
+                }
+            }
+
+            // Prefetch previous track
+            if (currentIndex > 0) {
+                val prevTrack = queue[currentIndex - 1]
+                if (!streamUrlCache.containsKey(prevTrack.id)) {
+                    Log.d(TAG, "Prefetching previous track: ${prevTrack.title}")
+                    try {
+                        when (val result = musicRepository.getPlayerData(prevTrack.id)) {
+                            is Resource.Success -> {
+                                streamUrlCache[prevTrack.id] = result.data.streamUrl
+                                Log.d(TAG, "Prefetched previous track URL: ${prevTrack.title}")
+                                // Update notification with real URLs
+                                withContext(Dispatchers.Main) {
+                                    updateMediaSessionQueue()
+                                }
+                            }
+                            else -> Log.e(TAG, "Failed to prefetch previous track")
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error prefetching previous track", e)
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Update the MediaSession queue with prefetched URLs.
+     */
+    private fun updateMediaSessionQueue() {
+        val controller = mediaController ?: return
+        val state = _playbackState.value
+        val currentTrack = state.currentTrack ?: return
+
+        val currentStreamUrl = streamUrlCache[currentTrack.id] ?: return
+
+        val hasNextTrack = state.currentIndex < state.queue.size - 1
+        val hasPrevTrack = state.currentIndex > 0
+
+        if (!hasNextTrack && !hasPrevTrack) return
+
+        val mediaItems = mutableListOf<MediaItem>()
+        var startIndex = 0
+
+        // Add previous track if available and prefetched
+        if (hasPrevTrack) {
+            val prevTrack = state.queue[state.currentIndex - 1]
+            val prevStreamUrl = streamUrlCache[prevTrack.id]
+            if (prevStreamUrl != null) {
+                mediaItems.add(MediaItem.Builder()
+                    .setMediaId(prevTrack.id)
+                    .setUri(Uri.parse(prevStreamUrl))
+                    .setMediaMetadata(
+                        MediaMetadata.Builder()
+                            .setTitle(prevTrack.title)
+                            .setArtist(prevTrack.artistName)
+                            .setAlbumTitle(prevTrack.albumName)
+                            .setArtworkUri(prevTrack.thumbnailUrl?.let { Uri.parse(it) })
+                            .build()
+                    )
+                    .build())
+                startIndex = 1
+            }
+        }
+
+        // Add current track
+        mediaItems.add(MediaItem.Builder()
+            .setMediaId(currentTrack.id)
+            .setUri(Uri.parse(currentStreamUrl))
+            .setMediaMetadata(
+                MediaMetadata.Builder()
+                    .setTitle(currentTrack.title)
+                    .setArtist(currentTrack.artistName)
+                    .setAlbumTitle(currentTrack.albumName)
+                    .setArtworkUri(currentTrack.thumbnailUrl?.let { Uri.parse(it) })
+                    .build()
+            )
+            .build())
+
+        // Add next track if available and prefetched
+        if (hasNextTrack) {
+            val nextTrack = state.queue[state.currentIndex + 1]
+            val nextStreamUrl = streamUrlCache[nextTrack.id]
+            if (nextStreamUrl != null) {
+                mediaItems.add(MediaItem.Builder()
+                    .setMediaId(nextTrack.id)
+                    .setUri(Uri.parse(nextStreamUrl))
+                    .setMediaMetadata(
+                        MediaMetadata.Builder()
+                            .setTitle(nextTrack.title)
+                            .setArtist(nextTrack.artistName)
+                            .setAlbumTitle(nextTrack.albumName)
+                            .setArtworkUri(nextTrack.thumbnailUrl?.let { Uri.parse(it) })
+                            .build()
+                    )
+                    .build())
+            }
+        }
+
+        if (mediaItems.size > 1) {
+            val currentPosition = controller.currentPosition
+            controller.setMediaItems(mediaItems, startIndex, currentPosition)
+            Log.d(TAG, "Updated MediaSession queue with ${mediaItems.size} items")
+        }
+    }
+
+    /**
      * Play a list of tracks starting at the given index.
      */
     fun playTracks(tracks: List<Track>, startIndex: Int = 0) {
@@ -478,11 +663,68 @@ class MusicPlaybackManager(
             )
             .build()
 
-        controller.setMediaItem(mediaItem)
+        // Check if there are more tracks in the queue to enable Next button
+        val state = _playbackState.value
+        val hasNextTrack = state.currentIndex < state.queue.size - 1
+        val hasPrevTrack = state.currentIndex > 0
+
+        if (hasNextTrack || hasPrevTrack) {
+            // Add queue items with proper metadata to show Next/Previous buttons
+            val mediaItems = mutableListOf<MediaItem>()
+            var startIndex = 0
+
+            if (hasPrevTrack) {
+                // Add previous track with its metadata
+                val prevTrack = state.queue[state.currentIndex - 1]
+                mediaItems.add(MediaItem.Builder()
+                    .setMediaId("prev_placeholder")
+                    .setUri(Uri.parse(streamUrl)) // Will be intercepted before playing
+                    .setMediaMetadata(
+                        MediaMetadata.Builder()
+                            .setTitle(prevTrack.title)
+                            .setArtist(prevTrack.artistName)
+                            .setAlbumTitle(prevTrack.albumName)
+                            .setArtworkUri(prevTrack.thumbnailUrl?.let { Uri.parse(it) })
+                            .build()
+                    )
+                    .build())
+                startIndex = 1
+            }
+
+            // Add current track
+            mediaItems.add(mediaItem)
+
+            if (hasNextTrack) {
+                // Add next track with its metadata
+                val nextTrack = state.queue[state.currentIndex + 1]
+                mediaItems.add(MediaItem.Builder()
+                    .setMediaId("next_placeholder")
+                    .setUri(Uri.parse(streamUrl)) // Will be intercepted before playing
+                    .setMediaMetadata(
+                        MediaMetadata.Builder()
+                            .setTitle(nextTrack.title)
+                            .setArtist(nextTrack.artistName)
+                            .setAlbumTitle(nextTrack.albumName)
+                            .setArtworkUri(nextTrack.thumbnailUrl?.let { Uri.parse(it) })
+                            .build()
+                    )
+                    .build())
+            }
+
+            controller.setMediaItems(mediaItems, startIndex, 0)
+        } else {
+            controller.setMediaItem(mediaItem)
+        }
+
         controller.prepare()
         controller.play()
 
         Log.d(TAG, "Playback started via service for: ${track.title}")
+
+        // Prefetch nearby tracks for smooth next/previous transitions
+        // Note: 'state' is already defined earlier in this function
+        val currentState = _playbackState.value
+        prefetchNearbyTracks(currentState.currentIndex, currentState.queue, streamUrl, track.id)
     }
 
     fun play() {
