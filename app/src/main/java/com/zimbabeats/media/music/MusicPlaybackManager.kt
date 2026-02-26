@@ -17,6 +17,8 @@ import com.zimbabeats.core.domain.model.music.Track
 import com.zimbabeats.core.domain.repository.MusicRepository
 import com.zimbabeats.core.domain.util.Resource
 import com.zimbabeats.media.service.PlaybackService
+import com.zimbabeats.media.datasource.StreamResolver
+import com.zimbabeats.media.datasource.StreamResolverHolder
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -26,7 +28,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.util.concurrent.Executors
 
 /**
@@ -85,15 +86,11 @@ class MusicPlaybackManager(
     private var sleepTimerJob: Job? = null
     private var positionUpdateJob: Job? = null
     private var trackCompletionJob: Job? = null
-    private var prefetchJob: Job? = null
     private var playbackStartTime: Long = 0L
 
     // Pending playback - stored when service not yet connected
     private var pendingStreamUrl: String? = null
     private var pendingTrack: Track? = null
-
-    // Cache for prefetched stream URLs (trackId -> streamUrl)
-    private val streamUrlCache = mutableMapOf<String, String>()
 
     private val _playbackState = MutableStateFlow(MusicPlaybackState())
     val playbackState: StateFlow<MusicPlaybackState> = _playbackState.asStateFlow()
@@ -104,7 +101,33 @@ class MusicPlaybackManager(
     // Content filter reference
     private val contentFilter get() = cloudPairingClient?.contentFilter
 
+    /**
+     * StreamResolver implementation that resolves track IDs to stream URLs on-demand.
+     * This allows loading full queue with just track IDs into ExoPlayer,
+     * with streams resolved when playback actually starts (like SimpMusic).
+     */
+    private val streamResolver = object : StreamResolver {
+        override suspend fun resolveStreamUrl(trackId: String): String? {
+            Log.d(TAG, "StreamResolver: Resolving stream for track: $trackId")
+            return when (val result = musicRepository.getPlayerData(trackId)) {
+                is Resource.Success -> {
+                    Log.d(TAG, "StreamResolver: Resolved stream URL for: ${result.data.track.title}")
+                    result.data.streamUrl
+                }
+                is Resource.Error -> {
+                    Log.e(TAG, "StreamResolver: Failed to resolve stream for $trackId: ${result.message}")
+                    null
+                }
+                else -> null
+            }
+        }
+    }
+
     init {
+        // Register our stream resolver so PlaybackService can resolve track IDs to URLs
+        StreamResolverHolder.resolver = streamResolver
+        Log.d(TAG, "StreamResolver registered with StreamResolverHolder")
+
         // Start position updates (lightweight, doesn't need service)
         startPositionUpdates()
         // Listen for track completion
@@ -229,45 +252,27 @@ class MusicPlaybackManager(
             }
 
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-                // Handle track transitions from notification Next/Previous buttons
+                // Sync app state when ExoPlayer changes tracks (via notification or auto-advance)
                 val mediaId = mediaItem?.mediaId ?: return
-                Log.d(TAG, "Media item transition: $mediaId, reason: $reason")
-
-                // Handle placeholder transitions (fallback for before prefetch completes)
-                when (mediaId) {
-                    "next_placeholder" -> {
-                        Log.d(TAG, "Next button pressed from notification (placeholder)")
-                        mediaController?.pause()
-                        skipToNext()
-                        return
-                    }
-                    "prev_placeholder" -> {
-                        Log.d(TAG, "Previous button pressed from notification (placeholder)")
-                        mediaController?.pause()
-                        skipToPrevious()
-                        return
-                    }
+                val reasonStr = when (reason) {
+                    Player.MEDIA_ITEM_TRANSITION_REASON_AUTO -> "AUTO"
+                    Player.MEDIA_ITEM_TRANSITION_REASON_SEEK -> "SEEK"
+                    Player.MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED -> "PLAYLIST_CHANGED"
+                    Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT -> "REPEAT"
+                    else -> "UNKNOWN"
                 }
+                Log.d(TAG, "Media item transition: $mediaId, reason: $reasonStr")
 
-                // Handle real track transitions (when prefetched URLs are used)
+                // Update app state to match ExoPlayer's current item
                 val state = _playbackState.value
-                val currentTrack = state.currentTrack ?: return
-
-                // If transitioning to a different track ID, update our playback state
-                if (mediaId != currentTrack.id) {
-                    val newTrackIndex = state.queue.indexOfFirst { it.id == mediaId }
-                    if (newTrackIndex >= 0 && newTrackIndex != state.currentIndex) {
-                        Log.d(TAG, "Track transition from notification: ${state.queue[newTrackIndex].title}")
-                        _playbackState.value = state.copy(
-                            currentTrack = state.queue[newTrackIndex],
-                            currentIndex = newTrackIndex
-                        )
-                        // Prefetch nearby tracks for the new position
-                        val streamUrl = streamUrlCache[mediaId]
-                        if (streamUrl != null) {
-                            prefetchNearbyTracks(newTrackIndex, state.queue, streamUrl, mediaId)
-                        }
-                    }
+                val newIndex = state.queue.indexOfFirst { it.id == mediaId }
+                if (newIndex >= 0 && newIndex != state.currentIndex) {
+                    Log.d(TAG, "Syncing app state: index $newIndex, track: ${state.queue[newIndex].title}")
+                    _playbackState.value = state.copy(
+                        currentIndex = newIndex,
+                        currentTrack = state.queue[newIndex]
+                    )
+                    loadedTrackId = mediaId
                 }
             }
         })
@@ -481,144 +486,6 @@ class MusicPlaybackManager(
     }
 
     /**
-     * Prefetch stream URLs for nearby tracks in the queue.
-     * This enables smooth next/previous transitions in the notification.
-     */
-    private fun prefetchNearbyTracks(currentIndex: Int, queue: List<Track>, currentStreamUrl: String, currentTrackId: String) {
-        prefetchJob?.cancel()
-        prefetchJob = scope.launch(Dispatchers.IO) {
-            // Cache current track's URL
-            streamUrlCache[currentTrackId] = currentStreamUrl
-
-            // Prefetch next track
-            if (currentIndex + 1 < queue.size) {
-                val nextTrack = queue[currentIndex + 1]
-                if (!streamUrlCache.containsKey(nextTrack.id)) {
-                    Log.d(TAG, "Prefetching next track: ${nextTrack.title}")
-                    try {
-                        when (val result = musicRepository.getPlayerData(nextTrack.id)) {
-                            is Resource.Success -> {
-                                streamUrlCache[nextTrack.id] = result.data.streamUrl
-                                Log.d(TAG, "Prefetched next track URL: ${nextTrack.title}")
-                                // Update notification with real URLs
-                                withContext(Dispatchers.Main) {
-                                    updateMediaSessionQueue()
-                                }
-                            }
-                            else -> Log.e(TAG, "Failed to prefetch next track")
-                        }
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Error prefetching next track", e)
-                    }
-                }
-            }
-
-            // Prefetch previous track
-            if (currentIndex > 0) {
-                val prevTrack = queue[currentIndex - 1]
-                if (!streamUrlCache.containsKey(prevTrack.id)) {
-                    Log.d(TAG, "Prefetching previous track: ${prevTrack.title}")
-                    try {
-                        when (val result = musicRepository.getPlayerData(prevTrack.id)) {
-                            is Resource.Success -> {
-                                streamUrlCache[prevTrack.id] = result.data.streamUrl
-                                Log.d(TAG, "Prefetched previous track URL: ${prevTrack.title}")
-                                // Update notification with real URLs
-                                withContext(Dispatchers.Main) {
-                                    updateMediaSessionQueue()
-                                }
-                            }
-                            else -> Log.e(TAG, "Failed to prefetch previous track")
-                        }
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Error prefetching previous track", e)
-                    }
-                }
-            }
-        }
-    }
-
-    /**
-     * Update the MediaSession queue with prefetched URLs.
-     */
-    private fun updateMediaSessionQueue() {
-        val controller = mediaController ?: return
-        val state = _playbackState.value
-        val currentTrack = state.currentTrack ?: return
-
-        val currentStreamUrl = streamUrlCache[currentTrack.id] ?: return
-
-        val hasNextTrack = state.currentIndex < state.queue.size - 1
-        val hasPrevTrack = state.currentIndex > 0
-
-        if (!hasNextTrack && !hasPrevTrack) return
-
-        val mediaItems = mutableListOf<MediaItem>()
-        var startIndex = 0
-
-        // Add previous track if available and prefetched
-        if (hasPrevTrack) {
-            val prevTrack = state.queue[state.currentIndex - 1]
-            val prevStreamUrl = streamUrlCache[prevTrack.id]
-            if (prevStreamUrl != null) {
-                mediaItems.add(MediaItem.Builder()
-                    .setMediaId(prevTrack.id)
-                    .setUri(Uri.parse(prevStreamUrl))
-                    .setMediaMetadata(
-                        MediaMetadata.Builder()
-                            .setTitle(prevTrack.title)
-                            .setArtist(prevTrack.artistName)
-                            .setAlbumTitle(prevTrack.albumName)
-                            .setArtworkUri(prevTrack.thumbnailUrl?.let { Uri.parse(it) })
-                            .build()
-                    )
-                    .build())
-                startIndex = 1
-            }
-        }
-
-        // Add current track
-        mediaItems.add(MediaItem.Builder()
-            .setMediaId(currentTrack.id)
-            .setUri(Uri.parse(currentStreamUrl))
-            .setMediaMetadata(
-                MediaMetadata.Builder()
-                    .setTitle(currentTrack.title)
-                    .setArtist(currentTrack.artistName)
-                    .setAlbumTitle(currentTrack.albumName)
-                    .setArtworkUri(currentTrack.thumbnailUrl?.let { Uri.parse(it) })
-                    .build()
-            )
-            .build())
-
-        // Add next track if available and prefetched
-        if (hasNextTrack) {
-            val nextTrack = state.queue[state.currentIndex + 1]
-            val nextStreamUrl = streamUrlCache[nextTrack.id]
-            if (nextStreamUrl != null) {
-                mediaItems.add(MediaItem.Builder()
-                    .setMediaId(nextTrack.id)
-                    .setUri(Uri.parse(nextStreamUrl))
-                    .setMediaMetadata(
-                        MediaMetadata.Builder()
-                            .setTitle(nextTrack.title)
-                            .setArtist(nextTrack.artistName)
-                            .setAlbumTitle(nextTrack.albumName)
-                            .setArtworkUri(nextTrack.thumbnailUrl?.let { Uri.parse(it) })
-                            .build()
-                    )
-                    .build())
-            }
-        }
-
-        if (mediaItems.size > 1) {
-            val currentPosition = controller.currentPosition
-            controller.setMediaItems(mediaItems, startIndex, currentPosition)
-            Log.d(TAG, "Updated MediaSession queue with ${mediaItems.size} items")
-        }
-    }
-
-    /**
      * Play a list of tracks starting at the given index.
      */
     fun playTracks(tracks: List<Track>, startIndex: Int = 0) {
@@ -637,7 +504,11 @@ class MusicPlaybackManager(
 
     /**
      * Play media through the MediaController (PlaybackService)
-     * Creates a MediaItem with metadata for the notification
+     *
+     * FULL QUEUE APPROACH (like SimpMusic):
+     * Loads ALL queue items into ExoPlayer with just track IDs as URIs.
+     * The StreamResolvingDataSourceFactory resolves URLs on-demand when playback starts.
+     * This allows notification next/previous buttons to work correctly.
      */
     private fun playViaMediaController(streamUrl: String, track: Track) {
         val controller = mediaController
@@ -649,82 +520,42 @@ class MusicPlaybackManager(
             return
         }
 
-        Log.d(TAG, "Playing via MediaController: ${track.title}")
-
-        val mediaItem = MediaItem.Builder()
-            .setUri(Uri.parse(streamUrl))
-            .setMediaMetadata(
-                MediaMetadata.Builder()
-                    .setTitle(track.title)
-                    .setArtist(track.artistName)
-                    .setAlbumTitle(track.albumName)
-                    .setArtworkUri(track.thumbnailUrl?.let { Uri.parse(it) })
-                    .build()
-            )
-            .build()
-
-        // Check if there are more tracks in the queue to enable Next button
         val state = _playbackState.value
-        val hasNextTrack = state.currentIndex < state.queue.size - 1
-        val hasPrevTrack = state.currentIndex > 0
+        val queue = state.queue
+        val currentIndex = state.currentIndex
 
-        if (hasNextTrack || hasPrevTrack) {
-            // Add queue items with proper metadata to show Next/Previous buttons
-            val mediaItems = mutableListOf<MediaItem>()
-            var startIndex = 0
+        Log.d(TAG, "Playing via MediaController: ${track.title} (index $currentIndex of ${queue.size})")
 
-            if (hasPrevTrack) {
-                // Add previous track with its metadata
-                val prevTrack = state.queue[state.currentIndex - 1]
-                mediaItems.add(MediaItem.Builder()
-                    .setMediaId("prev_placeholder")
-                    .setUri(Uri.parse(streamUrl)) // Will be intercepted before playing
-                    .setMediaMetadata(
-                        MediaMetadata.Builder()
-                            .setTitle(prevTrack.title)
-                            .setArtist(prevTrack.artistName)
-                            .setAlbumTitle(prevTrack.albumName)
-                            .setArtworkUri(prevTrack.thumbnailUrl?.let { Uri.parse(it) })
-                            .build()
-                    )
-                    .build())
-                startIndex = 1
-            }
-
-            // Add current track
-            mediaItems.add(mediaItem)
-
-            if (hasNextTrack) {
-                // Add next track with its metadata
-                val nextTrack = state.queue[state.currentIndex + 1]
-                mediaItems.add(MediaItem.Builder()
-                    .setMediaId("next_placeholder")
-                    .setUri(Uri.parse(streamUrl)) // Will be intercepted before playing
-                    .setMediaMetadata(
-                        MediaMetadata.Builder()
-                            .setTitle(nextTrack.title)
-                            .setArtist(nextTrack.artistName)
-                            .setAlbumTitle(nextTrack.albumName)
-                            .setArtworkUri(nextTrack.thumbnailUrl?.let { Uri.parse(it) })
-                            .build()
-                    )
-                    .build())
-            }
-
-            controller.setMediaItems(mediaItems, startIndex, 0)
-        } else {
-            controller.setMediaItem(mediaItem)
+        // Build MediaItems for ALL tracks in queue with track ID as URI
+        // The ResolvingDataSource will resolve the actual stream URL on-demand
+        val mediaItems = queue.map { queueTrack ->
+            MediaItem.Builder()
+                .setMediaId(queueTrack.id)
+                // Use track ID as URI - StreamResolvingDataSourceFactory will resolve it
+                .setUri(queueTrack.id)
+                .setMediaMetadata(
+                    MediaMetadata.Builder()
+                        .setTitle(queueTrack.title)
+                        .setArtist(queueTrack.artistName)
+                        .setAlbumTitle(queueTrack.albumName)
+                        .setArtworkUri(queueTrack.thumbnailUrl?.let { Uri.parse(it) })
+                        .build()
+                )
+                .build()
         }
 
+        if (mediaItems.isEmpty()) {
+            Log.e(TAG, "No items in queue to play")
+            return
+        }
+
+        // Set full queue and seek to current index
+        Log.d(TAG, "Setting ${mediaItems.size} items in ExoPlayer queue, starting at index $currentIndex")
+        controller.setMediaItems(mediaItems, currentIndex, 0L)
         controller.prepare()
         controller.play()
 
-        Log.d(TAG, "Playback started via service for: ${track.title}")
-
-        // Prefetch nearby tracks for smooth next/previous transitions
-        // Note: 'state' is already defined earlier in this function
-        val currentState = _playbackState.value
-        prefetchNearbyTracks(currentState.currentIndex, currentState.queue, streamUrl, track.id)
+        Log.d(TAG, "Full queue loaded, playback started for: ${track.title}")
     }
 
     fun play() {
@@ -740,30 +571,33 @@ class MusicPlaybackManager(
     }
 
     fun skipToNext() {
-        val state = _playbackState.value
-        val nextIndex = state.currentIndex + 1
-        if (nextIndex < state.queue.size) {
-            _playbackState.value = state.copy(currentIndex = nextIndex)
-            loadedTrackId = null
-            loadTrack(state.queue[nextIndex].id)
+        val controller = mediaController
+        if (controller != null && controller.hasNextMediaItem()) {
+            Log.d(TAG, "Skipping to next via ExoPlayer")
+            controller.seekToNextMediaItem()
+            // State will be updated via onMediaItemTransition listener
+        } else {
+            Log.d(TAG, "No next item in ExoPlayer queue")
         }
     }
 
     fun skipToPrevious() {
         val controller = mediaController
-        if (controller != null && controller.currentPosition > 3000) {
+        if (controller == null) return
+
+        // If more than 3 seconds played, restart current track
+        if (controller.currentPosition > 3000) {
             controller.seekTo(0)
             return
         }
 
-        val state = _playbackState.value
-        val prevIndex = state.currentIndex - 1
-        if (prevIndex >= 0) {
-            _playbackState.value = state.copy(currentIndex = prevIndex)
-            loadedTrackId = null
-            loadTrack(state.queue[prevIndex].id)
+        // Otherwise go to previous
+        if (controller.hasPreviousMediaItem()) {
+            Log.d(TAG, "Skipping to previous via ExoPlayer")
+            controller.seekToPreviousMediaItem()
+            // State will be updated via onMediaItemTransition listener
         } else {
-            controller?.seekTo(0)
+            controller.seekTo(0)
         }
     }
 

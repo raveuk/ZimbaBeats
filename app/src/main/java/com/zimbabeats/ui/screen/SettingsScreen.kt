@@ -505,7 +505,7 @@ fun SettingsScreen(
             // Copyright
             item {
                 Text(
-                    text = "© 2024-2025 ZimbaBeats. All rights reserved.",
+                    text = "© 2024-2030 ZimbaBeats. All rights reserved.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier
@@ -567,7 +567,7 @@ fun SettingsScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Copyright (C) 2024-2025 ZimbaBeats",
+                        text = "Copyright (C) 2024-2030 ZimbaBeats",
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Spacer(modifier = Modifier.height(16.dp))

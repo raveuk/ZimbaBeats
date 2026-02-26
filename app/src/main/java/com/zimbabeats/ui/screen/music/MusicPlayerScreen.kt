@@ -297,8 +297,7 @@ private fun PlayerContent(
                 .weight(1f)  // Takes remaining space
                 .fillMaxWidth()
                 .aspectRatio(1f, matchHeightConstraintsFirst = true) // Square, but height-constrained
-                .clip(RoundedCornerShape(12.dp))
-                .clickable(onClick = onToggleLyrics),
+                .clip(RoundedCornerShape(12.dp)),
             contentAlignment = Alignment.Center
         ) {
             if (showLyrics) {
@@ -310,7 +309,7 @@ private fun PlayerContent(
             } else {
                 AsyncImage(
                     model = track.thumbnailUrl,
-                    contentDescription = "Album art for ${track.title}. Tap to show lyrics.",
+                    contentDescription = "Album art for ${track.title}",
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
                 )
@@ -339,6 +338,17 @@ private fun PlayerContent(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
+                )
+            }
+            IconButton(
+                onClick = onToggleLyrics,
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Lyrics,
+                    contentDescription = if (showLyrics) "Hide lyrics" else "Show lyrics",
+                    modifier = Modifier.size(20.dp),
+                    tint = if (showLyrics) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             IconButton(

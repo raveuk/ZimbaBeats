@@ -13,7 +13,9 @@ import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import com.zimbabeats.media.R
+import com.zimbabeats.media.datasource.StreamResolvingDataSourceFactory
 import com.zimbabeats.media.notification.PlaybackNotificationManager
+import android.util.Log
 
 /**
  * Background playback service for MarelikayBeats
@@ -53,9 +55,9 @@ class PlaybackService : MediaSessionService() {
             .setUsage(C.USAGE_MEDIA)
             .build()
 
-        // Create data source factory with YouTube TV/embedded client headers
+        // Create base HTTP data source factory with YouTube TV/embedded client headers
         // TV client streams often bypass "n" parameter throttling
-        val dataSourceFactory = DefaultHttpDataSource.Factory()
+        val httpDataSourceFactory = DefaultHttpDataSource.Factory()
             .setUserAgent("Mozilla/5.0 (ChromiumStylePlatform) Cobalt/Version")
             .setDefaultRequestProperties(mapOf(
                 "Accept" to "*/*",
@@ -67,7 +69,12 @@ class PlaybackService : MediaSessionService() {
             .setReadTimeoutMs(30000)
             .setAllowCrossProtocolRedirects(true)
 
-        val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory)
+        // Wrap with StreamResolvingDataSourceFactory for on-demand URL resolution
+        // This allows loading full queue with just track IDs, resolving streams when playback starts
+        val resolvingDataSourceFactory = StreamResolvingDataSourceFactory(httpDataSourceFactory)
+        Log.d("PlaybackService", "Created StreamResolvingDataSourceFactory for on-demand URL resolution")
+
+        val mediaSourceFactory = DefaultMediaSourceFactory(resolvingDataSourceFactory)
 
         player = ExoPlayer.Builder(this)
             .setMediaSourceFactory(mediaSourceFactory)
