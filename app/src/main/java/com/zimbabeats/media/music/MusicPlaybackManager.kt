@@ -533,6 +533,8 @@ class MusicPlaybackManager(
                 .setMediaId(queueTrack.id)
                 // Use track ID as URI - StreamResolvingDataSourceFactory will resolve it
                 .setUri(queueTrack.id)
+                // CRITICAL: setCustomCacheKey ensures dataSpec.key is set for our resolver
+                .setCustomCacheKey(queueTrack.id)
                 .setMediaMetadata(
                     MediaMetadata.Builder()
                         .setTitle(queueTrack.title)
