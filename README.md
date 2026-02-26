@@ -15,6 +15,7 @@
   <a href="https://github.com/raveuk/ZimbaBeats/releases">
     <img src="https://img.shields.io/github/downloads/raveuk/ZimbaBeats/total?style=flat-square&logo=android" alt="Downloads"/>
   </a>
+  <img src="https://img.shields.io/badge/Age%20Rating-Everyone-brightgreen?style=flat-square" alt="Age Rating: Everyone"/>
   <a href="LICENSE">
     <img src="https://img.shields.io/badge/License-Proprietary-red?style=flat-square" alt="License"/>
   </a>
