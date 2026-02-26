@@ -387,11 +387,18 @@ class MusicPlaybackManager(
 
                     // Only fetch radio queue if we don't already have a queue set
                     val currentQueue = _playbackState.value.queue
-                    val trackInQueue = currentQueue.any { it.id == trackId }
-                    Log.d(TAG, "Current queue size: ${currentQueue.size}, track in queue: $trackInQueue")
+                    val currentIndex = _playbackState.value.currentIndex
+                    val existingIndex = currentQueue.indexOfFirst { it.id == trackId }
+                    Log.d(TAG, "Current queue size: ${currentQueue.size}, existingIndex: $existingIndex, currentIndex: $currentIndex")
 
-                    val finalQueue = if (currentQueue.isEmpty() || !trackInQueue) {
-                        Log.d(TAG, "Fetching radio queue for track: $trackId")
+                    // Determine final queue and index
+                    val (finalQueue, finalIndex) = if (existingIndex >= 0) {
+                        // Track found in existing queue - preserve queue and use correct index
+                        Log.d(TAG, "Track found in existing queue at index $existingIndex, preserving queue")
+                        currentQueue to existingIndex
+                    } else if (currentQueue.isEmpty()) {
+                        // No queue - fetch radio queue
+                        Log.d(TAG, "Queue empty, fetching radio queue for track: $trackId")
                         val radioResult = musicRepository.getRadio(trackId)
                         val queue = if (radioResult is Resource.Success) {
                             Log.d(TAG, "Radio queue fetched successfully: ${radioResult.data.size} tracks")
@@ -401,23 +408,37 @@ class MusicPlaybackManager(
                             emptyList()
                         }
 
-                        if (queue.none { it.id == trackId }) {
+                        val finalQ = if (queue.none { it.id == trackId }) {
                             Log.d(TAG, "Adding current track to start of queue")
                             listOf(track) + queue
                         } else {
                             queue
                         }
+                        finalQ to finalQ.indexOfFirst { it.id == trackId }.coerceAtLeast(0)
                     } else {
-                        Log.d(TAG, "Using existing queue (album/playlist)")
-                        currentQueue
+                        // Track not in queue but queue exists - add track and use new queue
+                        Log.d(TAG, "Track not in existing queue, adding and fetching radio")
+                        val radioResult = musicRepository.getRadio(trackId)
+                        val queue = if (radioResult is Resource.Success) {
+                            filterQueueForParentalControls(radioResult.data)
+                        } else {
+                            emptyList()
+                        }
+
+                        val finalQ = if (queue.none { it.id == trackId }) {
+                            listOf(track) + queue
+                        } else {
+                            queue
+                        }
+                        finalQ to finalQ.indexOfFirst { it.id == trackId }.coerceAtLeast(0)
                     }
 
-                    Log.d(TAG, "Final queue size: ${finalQueue.size}")
+                    Log.d(TAG, "Final queue size: ${finalQueue.size}, final index: $finalIndex")
 
                     _playbackState.value = _playbackState.value.copy(
                         currentTrack = track,
                         queue = finalQueue,
-                        currentIndex = finalQueue.indexOfFirst { it.id == trackId }.coerceAtLeast(0),
+                        currentIndex = finalIndex,
                         isLoading = false,
                         isBlocked = false,
                         blockReason = null
