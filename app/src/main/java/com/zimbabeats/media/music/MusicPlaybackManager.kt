@@ -642,6 +642,27 @@ class MusicPlaybackManager(
         }
     }
 
+    /**
+     * Seek to a specific index in the already-loaded ExoPlayer queue.
+     * Use this when clicking queue items instead of loadTrack() to avoid reloading the queue.
+     */
+    fun seekToQueueIndex(index: Int) {
+        val controller = mediaController
+        if (controller == null) {
+            Log.w(TAG, "Cannot seek to queue index: MediaController not connected")
+            return
+        }
+
+        val mediaItemCount = controller.mediaItemCount
+        if (index in 0 until mediaItemCount) {
+            Log.d(TAG, "Seeking to queue index: $index of $mediaItemCount")
+            controller.seekTo(index, 0L)
+            // State will be updated via onMediaItemTransition listener
+        } else {
+            Log.w(TAG, "Invalid queue index: $index, mediaItemCount: $mediaItemCount")
+        }
+    }
+
     fun setSleepTimer(minutes: Int) {
         cancelSleepTimer()
 
