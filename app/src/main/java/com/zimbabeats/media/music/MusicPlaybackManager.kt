@@ -547,7 +547,25 @@ class MusicPlaybackManager(
         }
 
         if (mediaItems.isEmpty()) {
-            Log.e(TAG, "No items in queue to play")
+            // Fallback: play single track with pre-resolved URL if queue is empty
+            Log.w(TAG, "Queue empty, falling back to single track playback")
+            val singleItem = MediaItem.Builder()
+                .setMediaId(track.id)
+                .setUri(streamUrl)
+                .setCustomCacheKey(track.id)
+                .setMediaMetadata(
+                    MediaMetadata.Builder()
+                        .setTitle(track.title)
+                        .setArtist(track.artistName)
+                        .setAlbumTitle(track.albumName)
+                        .setArtworkUri(track.thumbnailUrl?.let { Uri.parse(it) })
+                        .build()
+                )
+                .build()
+            controller.setMediaItem(singleItem)
+            controller.prepare()
+            controller.play()
+            Log.d(TAG, "Single track playback started for: ${track.title}")
             return
         }
 
