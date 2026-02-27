@@ -1,0 +1,1002 @@
+--------- beginning of main
+02-27 12:32:00.036  5548  5584 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.036  5548  5584 D CloudMusicFilter: BLOCKED: Explicit content
+02-27 12:32:00.036  5548  5584 D MusicHomeViewModel: Item 'MONACO' blocked by music filter: EXPLICIT_CONTENT
+02-27 12:32:00.036  5548  5584 D CloudMusicFilter: === Checking music: 'You Know My Name (feat. Jimi Cravity)' by 'Tasha Cobbs Leonard' ===
+02-27 12:32:00.036  5548  5584 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.036  5548  5584 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.036  5548  5584 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.036  5548  5584 D CloudMusicFilter: === Checking music: 'High Hopes' by 'Panic! At The Disco' ===
+02-27 12:32:00.036  5548  5584 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.036  5548  5584 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.036  5548  5584 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.037  5548  5584 D CloudMusicFilter: === Checking music: 'Empty Out Your Pockets' by 'Juice WRLD' ===
+02-27 12:32:00.037  5548  5584 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.037  5548  5584 D CloudMusicFilter: BLOCKED: Explicit content
+02-27 12:32:00.037  5548  5584 D MusicHomeViewModel: Item 'Empty Out Your Pockets' blocked by music filter: EXPLICIT_CONTENT
+02-27 12:32:00.037  5548  5584 D CloudMusicFilter: === Checking music: 'God I'm Just Grateful' by 'Elevation Worship' ===
+02-27 12:32:00.037  5548  5584 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.037  5548  5584 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.037  5548  5584 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.037  5548  5584 D CloudMusicFilter: === Checking music: 'Yahweh Flow (Live In San Francisco)' by 'Tye Tribbett' ===
+02-27 12:32:00.037  5548  5584 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.037  5548  5584 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.037  5548  5584 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.038  5548  5584 D CloudMusicFilter: === Checking music: 'Satisfied' by 'Original Broadway Cast of Hamilton' ===
+02-27 12:32:00.038  5548  5584 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.038  5548  5584 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.038  5548  5584 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.038  5548  5584 D CloudMusicFilter: === Checking music: 'Texas' by 'BigXthaPlug' ===
+02-27 12:32:00.038  5548  5584 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.038  5548  5584 D CloudMusicFilter: BLOCKED: Explicit content
+02-27 12:32:00.038  5548  5584 D MusicHomeViewModel: Item 'Texas' blocked by music filter: EXPLICIT_CONTENT
+02-27 12:32:00.038  5548  5584 D CloudMusicFilter: === Checking music: 'DÁKITI' by 'Bad Bunny' ===
+02-27 12:32:00.038  5548  5584 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.038  5548  5584 D CloudMusicFilter: BLOCKED: Explicit content
+02-27 12:32:00.038  5548  5584 D MusicHomeViewModel: Item 'DÁKITI' blocked by music filter: EXPLICIT_CONTENT
+02-27 12:32:00.038  5548  5584 D CloudMusicFilter: === Checking music: 'Paint The Town Red' by 'Doja Cat' ===
+02-27 12:32:00.038  5548  5584 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.039  5548  5584 D CloudMusicFilter: BLOCKED: Explicit content
+02-27 12:32:00.039  5548  5584 D MusicHomeViewModel: Item 'Paint The Town Red' blocked by music filter: EXPLICIT_CONTENT
+02-27 12:32:00.039  5548  5584 D CloudMusicFilter: === Checking music: 'American Boy (feat. Kanye West)' by 'Estelle' ===
+02-27 12:32:00.039  5548  5584 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.039  5548  5584 D CloudMusicFilter: BLOCKED: Explicit content
+02-27 12:32:00.039  5548  5584 D MusicHomeViewModel: Item 'American Boy (feat. Kanye West)' blocked by music filter: EXPLICIT_CONTENT
+02-27 12:32:00.039  5548  5584 D CloudMusicFilter: === Checking music: 'this is what heartbreak feels like' by 'JVKE' ===
+02-27 12:32:00.039  5548  5584 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.040  5548  5584 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.040  5548  5584 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.040  5548  5584 D CloudMusicFilter: === Checking music: 'The Line (from the series Arcane League of Legends)' by 'Twenty One Pilots' ===
+02-27 12:32:00.040  5548  5584 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.040  5548  5584 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.040  5548  5584 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.040  5548  5584 D CloudMusicFilter: === Checking music: 'Miss You (Bonus Track)' by 'Oliver Tree' ===
+02-27 12:32:00.040  5548  5584 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.040  5548  5584 D CloudMusicFilter: BLOCKED: Explicit content
+02-27 12:32:00.041  5548  5584 D MusicHomeViewModel: Item 'Miss You (Bonus Track)' blocked by music filter: EXPLICIT_CONTENT
+02-27 12:32:00.041  5548  5584 D CloudMusicFilter: === Checking music: 'Wish (Audiomack Trap Symphony Version)' by 'Trippie Redd' ===
+02-27 12:32:00.041  5548  5584 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.041  5548  5584 D CloudMusicFilter: BLOCKED: Explicit content
+02-27 12:32:00.042  5548  5612 D CloudMusicFilter: === Checking music: 'Viva La Vida' by 'Coldplay - Topic' ===
+02-27 12:32:00.042  5548  5612 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.042  5548  5612 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.042  5548  5612 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.042  5548  5612 D CloudMusicFilter: === Checking music: 'Blinding Lights' by 'The Weeknd - Topic' ===
+02-27 12:32:00.042  5548  5612 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.042  5548  5612 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.042  5548  5612 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.042  5548  5612 D CloudMusicFilter: === Checking music: 'Eyes Wide Open' by 'Gotye' ===
+02-27 12:32:00.042  5548  5612 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.042  5548  5612 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.042  5548  5612 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.043  5548  5612 D CloudMusicFilter: === Checking music: 'Thunder' by 'Imagine Dragons' ===
+02-27 12:32:00.043  5548  5584 D MusicHomeViewModel: Item 'Wish (Audiomack Trap Symphony Version)' blocked by music filter: EXPLICIT_CONTENT
+02-27 12:32:00.045  5548  5612 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.045  5548  5612 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.045  5548  5612 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.045  5548  5612 D CloudMusicFilter: === Checking music: 'Every Breath You Take' by 'The Police' ===
+02-27 12:32:00.045  5548  5612 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.045  5548  5612 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.045  5548  5612 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.046  5548  5612 D CloudMusicFilter: === Checking music: 'Stressed Out' by 'twenty one pilots' ===
+02-27 12:32:00.046  5548  5612 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.046  5548  5612 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.046  5548  5612 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.046  5548  5612 D CloudMusicFilter: === Checking music: 'Beautiful Things' by 'Benson Boone' ===
+02-27 12:32:00.046  5548  5612 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.046  5548  5612 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.046  5548  5612 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.046  5548  5584 D CloudMusicFilter: === Checking music: 'Blinding Lights' by 'The Weeknd - Topic' ===
+02-27 12:32:00.047  5548  5584 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.047  5548  5584 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.047  5548  5584 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.047  5548  5619 D CloudMusicFilter: === Checking music: 'Feel-Good Pop & Rock' by 'Ed Sheeran, The Script, Imagine Dragons, Sheppard' ===
+02-27 12:32:00.047  5548  5619 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.047  5548  5619 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.047  5548  5619 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.047  5548  5584 D CloudMusicFilter: === Checking music: 'Viva La Vida' by 'Coldplay - Topic' ===
+02-27 12:32:00.047  5548  5619 D CloudMusicFilter: === Checking music: 'Feelin' Good in the 90s' by 'Oasis, Primal Scream, Dodgy, Ocean Colour Scene' ===
+02-27 12:32:00.047  5548  5584 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.047  5548  5584 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.048  5548  5612 D CloudMusicFilter: === Checking music: 'Riptide' by 'Vance Joy' ===
+02-27 12:32:00.048  5548  5584 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.048  5548  5612 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.048  5548  5612 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.048  5548  5619 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.048  5548  5619 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.048  5548  5619 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.048  5548  5619 D CloudMusicFilter: === Checking music: 'Feelin' Good in the 80s' by 'Bobby Brown, Dolly Parton, Olivia Newton-John, Daryl Hall & John Oates' ===
+02-27 12:32:00.048  5548  5619 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.048  5548  5619 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.048  5548  5584 D CloudMusicFilter: === Checking music: 'Eyes Wide Open' by 'Gotye' ===
+02-27 12:32:00.048  5548  5584 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.049  5548  5584 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.049  5548  5584 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.049  5548  5584 D CloudMusicFilter: === Checking music: 'Thunder' by 'Imagine Dragons' ===
+02-27 12:32:00.049  5548  5584 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.049  5548  5584 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.050  5548  5619 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.050  5548  5619 D CloudMusicFilter: === Checking music: 'Feel-Good R&B Vibes' by 'Bruno Mars, Anderson .Paak, Drake, J Hus' ===
+02-27 12:32:00.050  5548  5619 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.050  5548  5619 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.051  5548  5619 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.051  5548  5612 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.051  5548  5584 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.051  5548  5584 D CloudMusicFilter: === Checking music: 'Every Breath You Take' by 'The Police' ===
+02-27 12:32:00.051  5548  5584 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.052  5548  5584 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.052  5548  5584 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.052  5548  5612 D CloudMusicFilter: === Checking music: 'Summertime Sadness' by 'Lana Del Rey' ===
+02-27 12:32:00.052  5548  5584 D CloudMusicFilter: === Checking music: 'Stressed Out' by 'twenty one pilots' ===
+02-27 12:32:00.052  5548  5584 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.052  5548  5612 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.052  5548  5612 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.052  5548  5584 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.052  5548  5612 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.052  5548  5619 D CloudMusicFilter: === Checking music: 'Feel-Good Pop Hits' by 'OneRepublic, Jessie J, Benson Boone, Myles Smith' ===
+02-27 12:32:00.053  5548  5619 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.053  5548  5619 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.053  5548  5612 D CloudMusicFilter: === Checking music: 'Wonderwall' by 'Oasis' ===
+02-27 12:32:00.053  5548  5584 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.053  5548  5612 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.053  5548  5612 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.053  5548  5612 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.053  5548  5619 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.053  5548  5584 D CloudMusicFilter: === Checking music: 'Beautiful Things' by 'Benson Boone' ===
+02-27 12:32:00.053  5548  5584 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.053  5548  5584 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.054  5548  5619 D CloudMusicFilter: === Checking music: 'Ultimate Feel-Good' by 'Elton John, Fleetwood Mac, Coldplay, Mark Ronson' ===
+02-27 12:32:00.054  5548  5584 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.054  5548  5584 D CloudMusicFilter: === Checking music: 'Riptide' by 'Vance Joy' ===
+02-27 12:32:00.054  5548  5619 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.054  5548  5548 D MusicHomeViewModel: Loaded 10 most played, 10 after filtering
+02-27 12:32:00.054  5548  5619 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.054  5548  5619 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.054  5548  5584 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.054  5548  5584 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.055  5548  5584 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.055  5548  5619 D CloudMusicFilter: === Checking music: 'Happy Pop Hits' by 'Myles Smith, Ed Sheeran, Calum Scott, OneRepublic' ===
+02-27 12:32:00.055  5548  5619 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.055  5548  5619 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.055  5548  5612 D CloudMusicFilter: === Checking music: 'Viva La Vida' by 'Coldplay - Topic' ===
+02-27 12:32:00.055  5548  5612 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.055  5548  5612 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.055  5548  5612 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.056  5548  5612 D CloudMusicFilter: === Checking music: 'Blinding Lights' by 'The Weeknd - Topic' ===
+02-27 12:32:00.056  5548  5612 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.056  5548  5612 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.056  5548  5612 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.056  5548  5612 D CloudMusicFilter: === Checking music: 'Eyes Wide Open' by 'Gotye' ===
+02-27 12:32:00.057  5548  5612 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.057  5548  5612 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.057  5548  5584 D CloudMusicFilter: === Checking music: 'Summertime Sadness' by 'Lana Del Rey' ===
+02-27 12:32:00.057  5548  5584 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.057  5548  5584 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.058  5548  5584 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.058  5548  5584 D CloudMusicFilter: === Checking music: 'Wonderwall' by 'Oasis' ===
+02-27 12:32:00.058  5548  5584 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.058  5548  5584 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.058  5548  5584 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.058  5548  5619 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.058  5548  5548 D MusicHomeViewModel: Loaded 10 recently played, 10 after filtering
+02-27 12:32:00.059  5548  5619 D CloudMusicFilter: === Checking music: 'Feelin' Good in the '00s' by 'Britney Spears, Mariah Carey, Justin Timberlake, Gwen Stefani' ===
+02-27 12:32:00.059  5548  5612 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.059  5548  5612 D CloudMusicFilter: === Checking music: 'Thunder' by 'Imagine Dragons' ===
+02-27 12:32:00.059  5548  5612 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.059  5548  5612 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.059  5548  5612 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.059  5548  5612 D CloudMusicFilter: === Checking music: 'Every Breath You Take' by 'The Police' ===
+02-27 12:32:00.059  5548  5612 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.060  5548  5612 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.060  5548  5612 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.060  5548  5619 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.060  5548  5619 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.060  5548  5612 D CloudMusicFilter: === Checking music: 'Stressed Out' by 'twenty one pilots' ===
+02-27 12:32:00.060  5548  5612 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.060  5548  5619 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.060  5548  5612 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.061  5548  5612 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.061  5548  5612 D CloudMusicFilter: === Checking music: 'Beautiful Things' by 'Benson Boone' ===
+02-27 12:32:00.061  5548  5612 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.061  5548  5612 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.061  5548  5612 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.061  5548  5612 D CloudMusicFilter: === Checking music: 'Riptide' by 'Vance Joy' ===
+02-27 12:32:00.061  5548  5612 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.061  5548  5612 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.061  5548  5619 D CloudMusicFilter: === Checking music: 'Feel-Good Dance Hits' by 'David Guetta, Calvin Harris, Jazzy, Joel Corry' ===
+02-27 12:32:00.061  5548  5619 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.061  5548  5619 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.061  5548  5619 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.062  5548  5619 D CloudMusicFilter: === Checking music: 'Indie Disco' by 'The Killers, Kasabian, The Pigeon Detectives, The Wombats' ===
+02-27 12:32:00.062  5548  5619 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.062  5548  5619 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.062  5548  5619 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.062  5548  5584 D CloudMusicFilter: === Checking music: 'Blinding Lights' by 'The Weeknd - Topic' ===
+02-27 12:32:00.062  5548  5584 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.062  5548  5584 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.062  5548  5612 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.063  5548  5584 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.063  5548  5584 D CloudMusicFilter: === Checking music: 'Viva La Vida' by 'Coldplay - Topic' ===
+02-27 12:32:00.063  5548  5584 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.063  5548  5612 D CloudMusicFilter: === Checking music: 'Summertime Sadness' by 'Lana Del Rey' ===
+02-27 12:32:00.063  5548  5612 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.063  5548  5612 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.063  5548  5612 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.063  5548  5584 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.063  5548  5612 D CloudMusicFilter: === Checking music: 'Wonderwall' by 'Oasis' ===
+02-27 12:32:00.063  5548  5584 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.063  5548  5612 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.064  5548  5612 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.064  5548  5612 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.064  5548  5584 D CloudMusicFilter: === Checking music: 'Eyes Wide Open' by 'Gotye' ===
+02-27 12:32:00.064  5548  5584 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.064  5548  5584 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.064  5548  5548 D MusicHomeViewModel: Loaded 10 most played, 10 after filtering
+02-27 12:32:00.064  5548  5584 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.064  5548  5584 D CloudMusicFilter: === Checking music: 'Thunder' by 'Imagine Dragons' ===
+02-27 12:32:00.064  5548  5584 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.065  5548  5584 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.065  5548  5584 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.065  5548  5584 D CloudMusicFilter: === Checking music: 'Every Breath You Take' by 'The Police' ===
+02-27 12:32:00.065  5548  5584 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.065  5548  5584 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.065  5548  5584 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.065  5548  5584 D CloudMusicFilter: === Checking music: 'Stressed Out' by 'twenty one pilots' ===
+02-27 12:32:00.065  5548  5584 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.066  5548  5584 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.066  5548  5584 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.066  5548  5584 D CloudMusicFilter: === Checking music: 'Beautiful Things' by 'Benson Boone' ===
+02-27 12:32:00.066  5548  5584 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.066  5548  5584 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.066  5548  5584 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.066  5548  5584 D CloudMusicFilter: === Checking music: 'Riptide' by 'Vance Joy' ===
+02-27 12:32:00.067  5548  5584 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.067  5548  5584 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.067  5548  5584 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.067  5548  5584 D CloudMusicFilter: === Checking music: 'Summertime Sadness' by 'Lana Del Rey' ===
+02-27 12:32:00.068  5548  5584 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.068  5548  5584 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.068  5548  5584 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.069  5548  5584 D CloudMusicFilter: === Checking music: 'Wonderwall' by 'Oasis' ===
+02-27 12:32:00.069  5548  5584 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.069  5548  5584 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.069  5548  5619 D CloudMusicFilter: === Checking music: 'Mellow Pop Classics' by 'Avril Lavigne, Robbie Williams, Lewis Capaldi, Ed Sheeran' ===
+02-27 12:32:00.069  5548  5619 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.069  5548  5619 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.069  5548  5619 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.070  5548  5584 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.070  5548  5619 D CloudMusicFilter: === Checking music: 'Soft Rock Ballads' by 'Eagles, Fleetwood Mac, Air Supply, Foreigner' ===
+02-27 12:32:00.070  5548  5619 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.070  5548  5619 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.070  5548  5619 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.070  5548  5619 D CloudMusicFilter: === Checking music: 'All-Time Pumped-Up Hits' by 'David Guetta, Calvin Harris, Becky Hill, Avicii' ===
+02-27 12:32:00.070  5548  5619 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.070  5548  5619 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.070  5548  5619 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.071  5548  5619 D CloudMusicFilter: === Checking music: 'Laid-Back Sofa Pop' by 'Benson Boone, Lewis Capaldi, Billie Eilish, Myles Smith' ===
+02-27 12:32:00.071  5548  5619 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.071  5548  5619 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.071  5548  5619 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.071  5548  5548 D MusicHomeViewModel: Loaded 10 recently played, 10 after filtering
+02-27 12:32:00.072  5548  5619 D CloudMusicFilter: === Checking music: 'Chill EDM Hits' by 'Kygo, The Chainsmokers, Martin Garrix, Lost Frequencies' ===
+02-27 12:32:00.072  5548  5619 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.072  5548  5619 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.072  5548  5619 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.073  5548  5619 D CloudMusicFilter: === Checking music: 'Chilled Hip-Hop' by 'A$AP Rocky, Kid Cudi, 6LACK, Aesop Rock' ===
+02-27 12:32:00.073  5548  5619 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.073  5548  5619 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.073  5548  5619 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.073  5548  5619 D CloudMusicFilter: === Checking music: 'Acoustic Singer-Songwriters' by 'Hozier, Jonah Kagen, Noah Cyrus, Lizzy McAlpine' ===
+02-27 12:32:00.073  5548  5619 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:00.073  5548  5619 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:00.073  5548  5619 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:00.074  5548  5548 D MusicHomeViewModel: Loaded 3 sections from browse API (from 3 raw)
+02-27 12:32:01.116  1021  1115 D ControlsListingControllerImpl: Subscribing callback, service count: 0
+02-27 12:32:01.118  1021  1115 D ControlsListingControllerImpl: Unsubscribing callback
+02-27 12:32:01.466  1021  1115 I QuickAccessWalletTile: QAW service is unavailable, recreating the wallet client.
+02-27 12:32:02.068   730  1060 D MediaSessionService: onSessionPlaybackStateChanged: record=com.zimbabeats/androidx.media3.session.id./7 (userId=0) playbackState=PlaybackState {state=PLAYING(3), position=8943, buffered position=20041, speed=1.0, updated=9080471, actions=7340031, custom actions=[], active item id=0, error=null}
+02-27 12:32:02.080  1139  1139 I droid.bluetooth: AssetManager2(0x728bfbbebbb8) locale list changing from [] to [en-US]
+02-27 12:32:02.080  1139  1139 W MediaControlGattService: Feature PLAYBACK_SPEED(BIT 8) support: true
+02-27 12:32:02.081  1139  1139 W MediaControlGattService: Feature PLAYBACK_SPEED(BIT 8) support: true
+02-27 12:32:02.081  1139  1139 W MediaControlGattService: Feature PLAYBACK_SPEED(BIT 8) support: true
+02-27 12:32:02.081  1139  1139 W MediaControlGattService: Feature TRACK_POSITION(BIT 7) support: true
+02-27 12:32:02.081  1139  1139 W MediaControlGattService: Feature TRACK_POSITION_NOTIFY support: true
+02-27 12:32:02.081  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:02.081  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:02.082  1139  1139 I AdapterProperties: getBondedDevices: length=0
+02-27 12:32:02.083  1139  1139 W MediaControlGattService: Feature PLAYER_NAME(BIT 1) support: true
+02-27 12:32:02.083  1139  1139 W MediaControlGattService: Feature PLAYER_NAME(BIT 1) support: true
+02-27 12:32:02.083  1139  1139 W MediaControlGattService: Feature MEDIA_CONTROL_POINT_OPCODES_SUPPORTED(BIT 19) support: true
+02-27 12:32:02.083  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:02.083  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:02.083  1139  1139 W MediaControlGattService: Feature SEEKING_SPEED(BIT 9) support: true
+02-27 12:32:02.083  1139  1139 W MediaControlGattService: Feature SEEKING_SPEED(BIT 9) support: true
+02-27 12:32:02.084  1139  1139 W MediaControlGattService: Feature SEEKING_SPEED(BIT 9) support: true
+02-27 12:32:02.093  1139  1139 I bluetooth: system/btif/avrcp/avrcp_service.cc:536 SendMediaUpdate: track_changed=false :  play_state=true :  queue=false
+02-27 12:32:02.311  5548  5905 D BufferPoolAccessor2.0: bufferpool2 0x728b5bc086b8 : 5(28800 size) total buffers - 4(23040 size) used buffers - 488/493 (recycle/alloc) - 5/977 (fetch/transfer)
+02-27 12:32:02.313   631  5906 D BufferPoolAccessor2.0: bufferpool2 0x700e0d59ee78 : 3(276480 size) total buffers - 1(92160 size) used buffers - 483/486 (recycle/alloc) - 3/485 (fetch/transfer)
+02-27 12:32:05.073   730  1060 D MediaSessionService: onSessionPlaybackStateChanged: record=com.zimbabeats/androidx.media3.session.id./7 (userId=0) playbackState=PlaybackState {state=PLAYING(3), position=11952, buffered position=25801, speed=1.0, updated=9083476, actions=7340031, custom actions=[], active item id=0, error=null}
+02-27 12:32:05.085  1139  1139 W MediaControlGattService: Feature PLAYBACK_SPEED(BIT 8) support: true
+02-27 12:32:05.085  1139  1139 W MediaControlGattService: Feature PLAYBACK_SPEED(BIT 8) support: true
+02-27 12:32:05.085  1139  1139 W MediaControlGattService: Feature PLAYBACK_SPEED(BIT 8) support: true
+02-27 12:32:05.085  1139  1139 W MediaControlGattService: Feature TRACK_POSITION(BIT 7) support: true
+02-27 12:32:05.086  1139  1139 W MediaControlGattService: Feature TRACK_POSITION_NOTIFY support: true
+02-27 12:32:05.086  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:05.086  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:05.087  1139  1139 I AdapterProperties: getBondedDevices: length=0
+02-27 12:32:05.087  1139  1139 W MediaControlGattService: Feature PLAYER_NAME(BIT 1) support: true
+02-27 12:32:05.087  1139  1139 W MediaControlGattService: Feature PLAYER_NAME(BIT 1) support: true
+02-27 12:32:05.087  1139  1139 W MediaControlGattService: Feature MEDIA_CONTROL_POINT_OPCODES_SUPPORTED(BIT 19) support: true
+02-27 12:32:05.087  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:05.087  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:05.087  1139  1139 W MediaControlGattService: Feature SEEKING_SPEED(BIT 9) support: true
+02-27 12:32:05.087  1139  1139 W MediaControlGattService: Feature SEEKING_SPEED(BIT 9) support: true
+02-27 12:32:05.087  1139  1139 W MediaControlGattService: Feature SEEKING_SPEED(BIT 9) support: true
+02-27 12:32:05.097  1139  1139 I bluetooth: system/btif/avrcp/avrcp_service.cc:536 SendMediaUpdate: track_changed=false :  play_state=true :  queue=false
+02-27 12:32:05.097  1139  1175 I droid.bluetooth: Waiting for a blocking GC ProfileSaver
+02-27 12:32:05.122  1139  1175 I droid.bluetooth: WaitForGcToComplete blocked ProfileSaver on NativeAlloc for 24.769ms
+02-27 12:32:05.284  5548  5619 D YouTubeMusicClient: Fetching lyrics for: RmYCOm4ehKs
+02-27 12:32:05.290  5548  5548 D MusicPlayerScreen: Screen opened with trackId: RmYCOm4ehKs
+02-27 12:32:05.290  5548  5548 D MusicPlayerScreen: UI State - isLoading: false, error: null, track: Save Your Tears
+02-27 12:32:05.503  5548  5619 D YouTubeMusicClient: Searching LRCLIB for: Save Your Tears by The Weeknd
+02-27 12:32:05.504  5548  5619 D YouTubeMusicClient: LRCLIB get: https://lrclib.net/api/get?track_name=Save+Your+Tears&artist_name=The+Weeknd&duration=216
+02-27 12:32:05.791  5548  5612 D YouTubeMusicClient: LRCLIB: Found 37 lyrics lines (synced: true)
+02-27 12:32:05.794  5548  5548 D MusicPlayerViewModel: Lyrics loaded for track: RmYCOm4ehKs, available: true
+02-27 12:32:05.805  5548  5548 D MusicPlayerScreen: Screen opened with trackId: RmYCOm4ehKs
+02-27 12:32:05.805  5548  5548 D MusicPlayerScreen: UI State - isLoading: false, error: null, track: Save Your Tears
+02-27 12:32:06.386  1179  1361 D SatelliteController: iisInCarrierRoamingNbIotNtn: satellite is disabled
+02-27 12:32:06.390   730  1060 W IPCThreadState: Sending oneway calls to frozen process.
+02-27 12:32:07.417  5548  5905 D BufferPoolAccessor2.0: bufferpool2 0x728b5bc086b8 : 5(28800 size) total buffers - 4(23040 size) used buffers - 743/748 (recycle/alloc) - 5/1487 (fetch/transfer)
+02-27 12:32:07.418   631  5906 D BufferPoolAccessor2.0: bufferpool2 0x700e0d59ee78 : 3(276480 size) total buffers - 1(92160 size) used buffers - 738/741 (recycle/alloc) - 3/740 (fetch/transfer)
+02-27 12:32:08.088   730  1060 D MediaSessionService: onSessionPlaybackStateChanged: record=com.zimbabeats/androidx.media3.session.id./7 (userId=0) playbackState=PlaybackState {state=PLAYING(3), position=14966, buffered position=31581, speed=1.0, updated=9086491, actions=7340031, custom actions=[], active item id=0, error=null}
+02-27 12:32:08.099  1139  1139 I droid.bluetooth: AssetManager2(0x728bfbbebed8) locale list changing from [] to [en-US]
+02-27 12:32:08.100  1139  1139 W MediaControlGattService: Feature PLAYBACK_SPEED(BIT 8) support: true
+02-27 12:32:08.100  1139  1139 W MediaControlGattService: Feature PLAYBACK_SPEED(BIT 8) support: true
+02-27 12:32:08.100  1139  1139 W MediaControlGattService: Feature PLAYBACK_SPEED(BIT 8) support: true
+02-27 12:32:08.100  1139  1139 W MediaControlGattService: Feature TRACK_POSITION(BIT 7) support: true
+02-27 12:32:08.100  1139  1139 W MediaControlGattService: Feature TRACK_POSITION_NOTIFY support: true
+02-27 12:32:08.100  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:08.100  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:08.102  1139  1139 I AdapterProperties: getBondedDevices: length=0
+02-27 12:32:08.102  1139  1139 W MediaControlGattService: Feature PLAYER_NAME(BIT 1) support: true
+02-27 12:32:08.102  1139  1139 W MediaControlGattService: Feature PLAYER_NAME(BIT 1) support: true
+02-27 12:32:08.102  1139  1139 W MediaControlGattService: Feature MEDIA_CONTROL_POINT_OPCODES_SUPPORTED(BIT 19) support: true
+02-27 12:32:08.102  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:08.102  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:08.102  1139  1139 W MediaControlGattService: Feature SEEKING_SPEED(BIT 9) support: true
+02-27 12:32:08.102  1139  1139 W MediaControlGattService: Feature SEEKING_SPEED(BIT 9) support: true
+02-27 12:32:08.102  1139  1139 W MediaControlGattService: Feature SEEKING_SPEED(BIT 9) support: true
+02-27 12:32:08.112  1139  1139 I bluetooth: system/btif/avrcp/avrcp_service.cc:536 SendMediaUpdate: track_changed=false :  play_state=true :  queue=false
+02-27 12:32:09.732   545   651 D AF::Track: interceptBuffer: took 510us to intercept 0 tracks
+02-27 12:32:11.096   730   755 D MediaSessionService: onSessionPlaybackStateChanged: record=com.zimbabeats/androidx.media3.session.id./7 (userId=0) playbackState=PlaybackState {state=PLAYING(3), position=17974, buffered position=37361, speed=1.0, updated=9089499, actions=7340031, custom actions=[], active item id=0, error=null}
+02-27 12:32:11.107  1139  1139 W MediaControlGattService: Feature PLAYBACK_SPEED(BIT 8) support: true
+02-27 12:32:11.108  1139  1139 W MediaControlGattService: Feature PLAYBACK_SPEED(BIT 8) support: true
+02-27 12:32:11.108  1139  1139 W MediaControlGattService: Feature PLAYBACK_SPEED(BIT 8) support: true
+02-27 12:32:11.108  1139  1139 W MediaControlGattService: Feature TRACK_POSITION(BIT 7) support: true
+02-27 12:32:11.108  1139  1139 W MediaControlGattService: Feature TRACK_POSITION_NOTIFY support: true
+02-27 12:32:11.108  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:11.108  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:11.109  1139  1139 I AdapterProperties: getBondedDevices: length=0
+02-27 12:32:11.110  1139  1139 W MediaControlGattService: Feature PLAYER_NAME(BIT 1) support: true
+02-27 12:32:11.110  1139  1139 W MediaControlGattService: Feature PLAYER_NAME(BIT 1) support: true
+02-27 12:32:11.110  1139  1139 W MediaControlGattService: Feature MEDIA_CONTROL_POINT_OPCODES_SUPPORTED(BIT 19) support: true
+02-27 12:32:11.110  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:11.110  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:11.110  1139  1139 W MediaControlGattService: Feature SEEKING_SPEED(BIT 9) support: true
+02-27 12:32:11.110  1139  1139 W MediaControlGattService: Feature SEEKING_SPEED(BIT 9) support: true
+02-27 12:32:11.110  1139  1139 W MediaControlGattService: Feature SEEKING_SPEED(BIT 9) support: true
+02-27 12:32:11.123  1139  1139 I bluetooth: system/btif/avrcp/avrcp_service.cc:536 SendMediaUpdate: track_changed=false :  play_state=true :  queue=false
+02-27 12:32:11.683   545   651 D AF::Track: interceptBuffer: took 660us to intercept 0 tracks
+02-27 12:32:12.511  5548  5905 D BufferPoolAccessor2.0: bufferpool2 0x728b5bc086b8 : 5(28800 size) total buffers - 4(23040 size) used buffers - 998/1003 (recycle/alloc) - 5/1997 (fetch/transfer)
+02-27 12:32:12.513   631  5906 D BufferPoolAccessor2.0: bufferpool2 0x700e0d59ee78 : 3(276480 size) total buffers - 1(92160 size) used buffers - 993/996 (recycle/alloc) - 3/995 (fetch/transfer)
+02-27 12:32:12.681   545   651 D AF::Track: interceptBuffer: took 600us to intercept 0 tracks
+02-27 12:32:14.102   730  1060 D MediaSessionService: onSessionPlaybackStateChanged: record=com.zimbabeats/androidx.media3.session.id./7 (userId=0) playbackState=PlaybackState {state=PLAYING(3), position=20983, buffered position=44121, speed=1.0, updated=9092505, actions=7340031, custom actions=[], active item id=0, error=null}
+02-27 12:32:14.115  1139  1139 I droid.bluetooth: AssetManager2(0x728bfbbe9f98) locale list changing from [] to [en-US]
+02-27 12:32:14.116  1139  1139 W MediaControlGattService: Feature PLAYBACK_SPEED(BIT 8) support: true
+02-27 12:32:14.116  1139  1139 W MediaControlGattService: Feature PLAYBACK_SPEED(BIT 8) support: true
+02-27 12:32:14.116  1139  1139 W MediaControlGattService: Feature PLAYBACK_SPEED(BIT 8) support: true
+02-27 12:32:14.116  1139  1139 W MediaControlGattService: Feature TRACK_POSITION(BIT 7) support: true
+02-27 12:32:14.116  1139  1139 W MediaControlGattService: Feature TRACK_POSITION_NOTIFY support: true
+02-27 12:32:14.116  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:14.116  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:14.117  1139  1139 I AdapterProperties: getBondedDevices: length=0
+02-27 12:32:14.118  1139  1139 W MediaControlGattService: Feature PLAYER_NAME(BIT 1) support: true
+02-27 12:32:14.118  1139  1139 W MediaControlGattService: Feature PLAYER_NAME(BIT 1) support: true
+02-27 12:32:14.118  1139  1139 W MediaControlGattService: Feature MEDIA_CONTROL_POINT_OPCODES_SUPPORTED(BIT 19) support: true
+02-27 12:32:14.118  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:14.118  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:14.118  1139  1139 W MediaControlGattService: Feature SEEKING_SPEED(BIT 9) support: true
+02-27 12:32:14.118  1139  1139 W MediaControlGattService: Feature SEEKING_SPEED(BIT 9) support: true
+02-27 12:32:14.118  1139  1139 W MediaControlGattService: Feature SEEKING_SPEED(BIT 9) support: true
+02-27 12:32:14.127  1139  1139 I bluetooth: system/btif/avrcp/avrcp_service.cc:536 SendMediaUpdate: track_changed=false :  play_state=true :  queue=false
+02-27 12:32:16.385  1179  1361 D SatelliteController: iisInCarrierRoamingNbIotNtn: satellite is disabled
+02-27 12:32:16.391   730  1060 W IPCThreadState: Sending oneway calls to frozen process.
+02-27 12:32:17.119   730  1060 D MediaSessionService: onSessionPlaybackStateChanged: record=com.zimbabeats/androidx.media3.session.id./7 (userId=0) playbackState=PlaybackState {state=PLAYING(3), position=24002, buffered position=49921, speed=1.0, updated=9095523, actions=7340031, custom actions=[], active item id=0, error=null}
+02-27 12:32:17.130  1139  1139 I bluetooth: system/btif/avrcp/avrcp_service.cc:536 SendMediaUpdate: track_changed=false :  play_state=true :  queue=false
+02-27 12:32:17.143  1139  1139 W MediaControlGattService: Feature PLAYBACK_SPEED(BIT 8) support: true
+02-27 12:32:17.143  1139  1139 W MediaControlGattService: Feature PLAYBACK_SPEED(BIT 8) support: true
+02-27 12:32:17.143  1139  1139 W MediaControlGattService: Feature PLAYBACK_SPEED(BIT 8) support: true
+02-27 12:32:17.143  1139  1139 W MediaControlGattService: Feature TRACK_POSITION(BIT 7) support: true
+02-27 12:32:17.144  1139  1139 W MediaControlGattService: Feature TRACK_POSITION_NOTIFY support: true
+02-27 12:32:17.144  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:17.144  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:17.145  1139  1139 I AdapterProperties: getBondedDevices: length=0
+02-27 12:32:17.146  1139  1139 W MediaControlGattService: Feature PLAYER_NAME(BIT 1) support: true
+02-27 12:32:17.146  1139  1139 W MediaControlGattService: Feature PLAYER_NAME(BIT 1) support: true
+02-27 12:32:17.147  1139  1139 W MediaControlGattService: Feature MEDIA_CONTROL_POINT_OPCODES_SUPPORTED(BIT 19) support: true
+02-27 12:32:17.147  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:17.147  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:17.147  1139  1139 W MediaControlGattService: Feature SEEKING_SPEED(BIT 9) support: true
+02-27 12:32:17.147  1139  1139 W MediaControlGattService: Feature SEEKING_SPEED(BIT 9) support: true
+02-27 12:32:17.147  1139  1139 W MediaControlGattService: Feature SEEKING_SPEED(BIT 9) support: true
+02-27 12:32:17.631  5548  5905 D BufferPoolAccessor2.0: bufferpool2 0x728b5bc086b8 : 5(28800 size) total buffers - 1(5760 size) used buffers - 1251/1256 (recycle/alloc) - 5/2508 (fetch/transfer)
+02-27 12:32:17.646   631  5906 D BufferPoolAccessor2.0: bufferpool2 0x700e0d59ee78 : 3(276480 size) total buffers - 1(92160 size) used buffers - 1249/1252 (recycle/alloc) - 3/1251 (fetch/transfer)
+02-27 12:32:19.422  5548  5548 D MusicPlaybackManager: Playback state: BUFFERING
+02-27 12:32:19.423  5548  5548 D MusicPlaybackManager: isPlaying changed: false
+--------- beginning of system
+02-27 12:32:19.429   730   755 E AppOps  : attributionTag  not declared in manifest of com.zimbabeats
+02-27 12:32:19.430   730   755 E AppOps  : attributionTag  not declared in manifest of com.zimbabeats
+02-27 12:32:19.431   730   755 D MediaSessionService: onSessionPlaybackStateChanged: record=com.zimbabeats/androidx.media3.session.id./7 (userId=0) playbackState=PlaybackState {state=BUFFERING(6), position=0, buffered position=0, speed=0.0, updated=9097835, actions=7340031, custom actions=[], active item id=0, error=null}
+02-27 12:32:19.433  5548  5905 D CCodecBuffers: [c2.android.opus.decoder#615:1D-Output.Impl[N]] Client returned a buffer it does not own according to our record: 0
+02-27 12:32:19.433  5548  5905 D CCodecBuffers: [c2.android.opus.decoder#615:1D-Output.Impl[N]] Client returned a buffer it does not own according to our record: 1
+02-27 12:32:19.433  5548  5690 D MediaCodec: keep callback message for reclaim
+02-27 12:32:19.434  5548  5905 I CCodecConfig: query failed after returning 8 values (BAD_INDEX)
+02-27 12:32:19.434   730  1060 D MediaSessionService: onSessionPlaybackStateChanged: record=com.zimbabeats/androidx.media3.session.id./7 (userId=0) playbackState=PlaybackState {state=BUFFERING(6), position=0, buffered position=0, speed=0.0, updated=9097838, actions=7340031, custom actions=[], active item id=0, error=null}
+02-27 12:32:19.436   730  1060 D MediaSessionService: onSessionPlaybackStateChanged: record=com.zimbabeats/androidx.media3.session.id./7 (userId=0) playbackState=PlaybackState {state=BUFFERING(6), position=0, buffered position=0, speed=0.0, updated=9097840, actions=7340031, custom actions=[], active item id=0, error=null}
+02-27 12:32:19.440  5548  5905 W Codec2Client: query -- param skipped: index = 1342179345.
+02-27 12:32:19.440  5548  5905 W Codec2Client: query -- param skipped: index = 2415921170.
+02-27 12:32:19.442  5548  5548 D MusicPlayerScreen: Screen opened with trackId: RmYCOm4ehKs
+02-27 12:32:19.442  5548  5548 D MusicPlayerScreen: UI State - isLoading: false, error: null, track: Save Your Tears
+02-27 12:32:19.443  1021  1298 D MediaDataManager: State updated outside of notification
+02-27 12:32:19.445  1139  1139 I bluetooth: system/btif/avrcp/avrcp_service.cc:536 SendMediaUpdate: track_changed=false :  play_state=true :  queue=false
+02-27 12:32:19.450  1021  1021 W ConstraintSet: id unknown center_vertical_guideline
+02-27 12:32:19.450  1021  1021 W ConstraintSet: id unknown action_button_guideline
+02-27 12:32:19.450  1021  1021 W ConstraintSet: id unknown icon
+02-27 12:32:19.450  1021  1021 W ConstraintSet: id unknown media_seamless
+02-27 12:32:19.450  1021  1021 W ConstraintSet: id unknown media_action_barrier_start
+02-27 12:32:19.450  1021  1021 W ConstraintSet: id unknown media_action_barrier_end
+02-27 12:32:19.450  1021  1021 W ConstraintSet: id unknown media_action_barrier_top
+02-27 12:32:19.451  1021  1021 W ConstraintSet: id unknown remove_text
+02-27 12:32:19.451  1021  1021 W ConstraintSet: id unknown settings
+02-27 12:32:19.451  1021  1021 W ConstraintSet: id unknown dismiss
+02-27 12:32:19.451  1021  1021 W ConstraintSet: id unknown cancel
+02-27 12:32:19.454  1139  1139 I droid.bluetooth: AssetManager2(0x728bfbbeaf38) locale list changing from [] to [en-US]
+02-27 12:32:19.455  1139  1139 W MediaControlGattService: Feature PLAYBACK_SPEED(BIT 8) support: true
+02-27 12:32:19.455  1139  1139 W MediaControlGattService: Feature PLAYBACK_SPEED(BIT 8) support: true
+02-27 12:32:19.456  1139  1139 W MediaControlGattService: Feature PLAYBACK_SPEED(BIT 8) support: true
+02-27 12:32:19.456  1139  1139 W MediaControlGattService: Feature PLAYBACK_SPEED_NOTIFY support: true
+02-27 12:32:19.457  1139  1139 I AdapterProperties: getBondedDevices: length=0
+02-27 12:32:19.458  1139  1139 W MediaControlGattService: Feature TRACK_POSITION(BIT 7) support: true
+02-27 12:32:19.459  1139  1139 W MediaControlGattService: Feature TRACK_POSITION_NOTIFY support: true
+02-27 12:32:19.459  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:19.459  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:19.460  1139  1139 I AdapterProperties: getBondedDevices: length=0
+02-27 12:32:19.460  1139  1139 W MediaControlGattService: Feature PLAYER_NAME(BIT 1) support: true
+02-27 12:32:19.461  1139  1139 W MediaControlGattService: Feature PLAYER_NAME(BIT 1) support: true
+02-27 12:32:19.461  1139  1139 W MediaControlGattService: Feature MEDIA_CONTROL_POINT_OPCODES_SUPPORTED(BIT 19) support: true
+02-27 12:32:19.461  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:19.461  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:19.462  1139  1139 I AdapterProperties: getBondedDevices: length=0
+02-27 12:32:19.462  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:19.462  1139  1139 W MediaControlGattService: Feature SEEKING_SPEED(BIT 9) support: true
+02-27 12:32:19.462  1139  1139 W MediaControlGattService: Feature SEEKING_SPEED(BIT 9) support: true
+02-27 12:32:19.462  1139  1139 W MediaControlGattService: Feature SEEKING_SPEED(BIT 9) support: true
+02-27 12:32:19.463  1139  1139 W MediaPlayerWrapper: onPlaybackStateChanged(): com.zimbabeats tried to update with no new data
+02-27 12:32:19.465  1139  1139 W MediaPlayerWrapper: onPlaybackStateChanged(): com.zimbabeats tried to update with no new data
+02-27 12:32:19.466  1139  1139 W MediaPlayerWrapper: onPlaybackStateChanged(): com.zimbabeats tried to update with no new data
+02-27 12:32:19.467  1139  1139 W MediaPlayerWrapper: onPlaybackStateChanged(): com.zimbabeats tried to update with no new data
+02-27 12:32:19.474  1021  1052 I ndroid.systemui: Waiting for a blocking GC ProfileSaver
+02-27 12:32:19.562  1021  1052 I ndroid.systemui: WaitForGcToComplete blocked ProfileSaver on Background for 88.470ms
+02-27 12:32:19.569  5548  5899 D StreamResolver: Resolving stream for: RmYCOm4ehKs
+02-27 12:32:19.569  5548  5899 D StreamResolver: Using cached URL for: RmYCOm4ehKs
+02-27 12:32:19.722  1904  2316 W AiAiEcho: LyftNotificationParser Ridesharing ETA not enabled
+02-27 12:32:19.723  1904  2316 I AiAiEcho: SmartspaceNotificationPredictor no parser can handle this notification or notification is invalid
+02-27 12:32:19.731  1190  1190 I NotificationListener: received notification removed event - com.zimbabeats#UserHandle{0},category=-1
+02-27 12:32:19.743   545   562 D NativePermissionController: checkPermission: missing 1 for 10222
+02-27 12:32:19.743   545   562 D NativePermissionController: checkPermission: missing 3 for 10222
+02-27 12:32:19.743   545   562 D NativePermissionController: checkPermission: missing 5 for 10222
+02-27 12:32:19.744   545   562 W AudioFlinger: createTrack_l(): mismatch between requested flags (00000008) and output flags (00000002)
+02-27 12:32:19.745   545   562 D AudioFlinger: Client defaulted notificationFrames to 8720 for frameCount 17440
+02-27 12:32:19.745   545   562 I AF::PthrPatchRecord: creating track with enforcement level 0
+02-27 12:32:19.793   730  1938 E AppOps  : attributionTag  not declared in manifest of com.zimbabeats
+02-27 12:32:19.798   730  1938 E AppOps  : attributionTag  not declared in manifest of com.zimbabeats
+02-27 12:32:19.803   545   562 D NativePermissionController: checkPermission: missing 13 for 10222
+02-27 12:32:19.805   545  1163 D NativePermissionController: checkPermission: missing 13 for 10222
+02-27 12:32:19.809   545  1163 D NativePermissionController: checkPermission: missing 13 for 10222
+02-27 12:32:19.809   545  1163 D NativePermissionController: checkPermission: missing 13 for 10222
+02-27 12:32:19.809   730  1060 D MediaSessionService: onSessionPlaybackStateChanged: record=com.zimbabeats/androidx.media3.session.id./7 (userId=0) playbackState=PlaybackState {state=PLAYING(3), position=81, buffered position=2781, speed=1.0, updated=9098212, actions=7340031, custom actions=[], active item id=0, error=null}
+02-27 12:32:19.813   730  1938 D MediaSessionService: onSessionPlaybackStateChanged: record=com.zimbabeats/androidx.media3.session.id./7 (userId=0) playbackState=PlaybackState {state=PLAYING(3), position=81, buffered position=2781, speed=1.0, updated=9098216, actions=7340031, custom actions=[], active item id=0, error=null}
+02-27 12:32:19.820  1139  1139 W MediaControlGattService: Feature PLAYBACK_SPEED(BIT 8) support: true
+02-27 12:32:19.820  1139  1139 W MediaControlGattService: Feature PLAYBACK_SPEED(BIT 8) support: true
+02-27 12:32:19.820  1139  1139 W MediaControlGattService: Feature PLAYBACK_SPEED(BIT 8) support: true
+02-27 12:32:19.820  1139  1139 W MediaControlGattService: Feature PLAYBACK_SPEED_NOTIFY support: true
+02-27 12:32:19.821  1139  1139 I AdapterProperties: getBondedDevices: length=0
+02-27 12:32:19.822  1021  1298 D MediaDataManager: State updated outside of notification
+02-27 12:32:19.823  1139  1139 W MediaControlGattService: Feature TRACK_POSITION(BIT 7) support: true
+02-27 12:32:19.823  5548  5548 D MusicPlaybackManager: Playback state: READY
+02-27 12:32:19.823  1139  1139 W MediaControlGattService: Feature TRACK_POSITION_NOTIFY support: true
+02-27 12:32:19.823  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:19.823  5548  5548 D MusicPlaybackManager: isPlaying changed: true
+02-27 12:32:19.836  1139  1139 I AdapterProperties: getBondedDevices: length=0
+02-27 12:32:19.836  1139  1139 W MediaControlGattService: Feature PLAYER_NAME(BIT 1) support: true
+02-27 12:32:19.837  1139  1139 W MediaControlGattService: Feature PLAYER_NAME(BIT 1) support: true
+02-27 12:32:19.837  1139  1139 W MediaControlGattService: Feature MEDIA_CONTROL_POINT_OPCODES_SUPPORTED(BIT 19) support: true
+02-27 12:32:19.837  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:19.837  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:19.838  1139  1139 I AdapterProperties: getBondedDevices: length=0
+02-27 12:32:19.839  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:19.840  1021  1021 W ConstraintSet: id unknown center_vertical_guideline
+02-27 12:32:19.840  1021  1021 W ConstraintSet: id unknown action_button_guideline
+02-27 12:32:19.840  1139  1139 W MediaControlGattService: Feature SEEKING_SPEED(BIT 9) support: true
+02-27 12:32:19.840  1139  1139 W MediaControlGattService: Feature SEEKING_SPEED(BIT 9) support: true
+02-27 12:32:19.840  1021  1021 W ConstraintSet: id unknown icon
+02-27 12:32:19.840  1021  1021 W ConstraintSet: id unknown media_seamless
+02-27 12:32:19.840  1139  1139 W MediaControlGattService: Feature SEEKING_SPEED(BIT 9) support: true
+02-27 12:32:19.840  1021  1021 W ConstraintSet: id unknown media_action_barrier_start
+02-27 12:32:19.841  1021  1021 W ConstraintSet: id unknown media_action_barrier_end
+02-27 12:32:19.841  1021  1021 W ConstraintSet: id unknown media_action_barrier_top
+02-27 12:32:19.841  1021  1021 W ConstraintSet: id unknown remove_text
+02-27 12:32:19.841  1021  1021 W ConstraintSet: id unknown settings
+02-27 12:32:19.841  1021  1021 W ConstraintSet: id unknown dismiss
+02-27 12:32:19.842  1021  1021 W ConstraintSet: id unknown cancel
+02-27 12:32:19.857  1139  1139 I bluetooth: system/btif/avrcp/avrcp_service.cc:536 SendMediaUpdate: track_changed=false :  play_state=true :  queue=false
+02-27 12:32:19.858  1139  1139 W MediaPlayerWrapper: onPlaybackStateChanged(): com.zimbabeats tried to update with no new data
+02-27 12:32:19.859  1139  1139 W MediaPlayerWrapper: onPlaybackStateChanged(): com.zimbabeats tried to update with no new data
+02-27 12:32:19.859  5548  5548 D MusicPlayerScreen: Screen opened with trackId: RmYCOm4ehKs
+02-27 12:32:19.863  5548  5548 D MusicPlayerScreen: UI State - isLoading: false, error: null, track: Save Your Tears
+02-27 12:32:19.917  5548  5690 D AudioTrack: getTimestamp_l(29): device stall time corrected using current time 9098321196600
+02-27 12:32:20.083  1904  2316 W AiAiEcho: LyftNotificationParser Ridesharing ETA not enabled
+02-27 12:32:20.089  1904  2316 I AiAiEcho: SmartspaceNotificationPredictor no parser can handle this notification or notification is invalid
+02-27 12:32:20.093  1190  1190 I NotificationListener: received notification removed event - com.zimbabeats#UserHandle{0},category=-1
+02-27 12:32:20.126  1021  1121 W MediaDataLoader: Invalid album art uri https://lh3.googleusercontent.com/JDKz3Anlyo49xBhFcFx13QD_Tk4-kqdiYTo15gtkL93nE8biWyZ7o0BPyW6RnXVxcXaJ5DgU5nJ_0NjJ=w544-h544-l90-rj
+02-27 12:32:20.126  1021  1121 W MediaDataLoader: Invalid album art uri https://lh3.googleusercontent.com/JDKz3Anlyo49xBhFcFx13QD_Tk4-kqdiYTo15gtkL93nE8biWyZ7o0BPyW6RnXVxcXaJ5DgU5nJ_0NjJ=w544-h544-l90-rj
+02-27 12:32:20.126  1021  1121 W MediaDataLoader: Invalid album art uri https://lh3.googleusercontent.com/JDKz3Anlyo49xBhFcFx13QD_Tk4-kqdiYTo15gtkL93nE8biWyZ7o0BPyW6RnXVxcXaJ5DgU5nJ_0NjJ=w544-h544-l90-rj
+02-27 12:32:20.464  5548  5548 D MusicPlaybackManager: Playback state: BUFFERING
+02-27 12:32:20.464  5548  5548 D MusicPlaybackManager: isPlaying changed: false
+02-27 12:32:20.471   730  1928 E AppOps  : attributionTag  not declared in manifest of com.zimbabeats
+02-27 12:32:20.471   730  1060 E AppOps  : attributionTag  not declared in manifest of com.zimbabeats
+02-27 12:32:20.474   730  1928 D MediaSessionService: onSessionPlaybackStateChanged: record=com.zimbabeats/androidx.media3.session.id./7 (userId=0) playbackState=PlaybackState {state=BUFFERING(6), position=0, buffered position=0, speed=0.0, updated=9098877, actions=7340031, custom actions=[], active item id=0, error=null}
+02-27 12:32:20.475  5548  5690 D MediaCodec: keep callback message for reclaim
+02-27 12:32:20.478  5548  5905 I CCodecConfig: query failed after returning 8 values (BAD_INDEX)
+02-27 12:32:20.479   730  1928 D MediaSessionService: onSessionPlaybackStateChanged: record=com.zimbabeats/androidx.media3.session.id./7 (userId=0) playbackState=PlaybackState {state=BUFFERING(6), position=0, buffered position=0, speed=0.0, updated=9098883, actions=7340031, custom actions=[], active item id=0, error=null}
+02-27 12:32:20.481  5548  5905 W Codec2Client: query -- param skipped: index = 1342179345.
+02-27 12:32:20.481   730  1060 D MediaSessionService: onSessionPlaybackStateChanged: record=com.zimbabeats/androidx.media3.session.id./7 (userId=0) playbackState=PlaybackState {state=BUFFERING(6), position=0, buffered position=0, speed=0.0, updated=9098885, actions=7340031, custom actions=[], active item id=0, error=null}
+02-27 12:32:20.482  5548  5905 W Codec2Client: query -- param skipped: index = 2415921170.
+02-27 12:32:20.486  5548  5548 D MusicPlayerScreen: Screen opened with trackId: RmYCOm4ehKs
+02-27 12:32:20.486  5548  5548 D MusicPlayerScreen: UI State - isLoading: false, error: null, track: Save Your Tears
+02-27 12:32:20.491  1021  1104 W MediaDataLoader: Invalid album art uri https://lh3.googleusercontent.com/JDKz3Anlyo49xBhFcFx13QD_Tk4-kqdiYTo15gtkL93nE8biWyZ7o0BPyW6RnXVxcXaJ5DgU5nJ_0NjJ=w544-h544-l90-rj
+02-27 12:32:20.491  1021  1104 W MediaDataLoader: Invalid album art uri https://lh3.googleusercontent.com/JDKz3Anlyo49xBhFcFx13QD_Tk4-kqdiYTo15gtkL93nE8biWyZ7o0BPyW6RnXVxcXaJ5DgU5nJ_0NjJ=w544-h544-l90-rj
+02-27 12:32:20.491  1021  1104 W MediaDataLoader: Invalid album art uri https://lh3.googleusercontent.com/JDKz3Anlyo49xBhFcFx13QD_Tk4-kqdiYTo15gtkL93nE8biWyZ7o0BPyW6RnXVxcXaJ5DgU5nJ_0NjJ=w544-h544-l90-rj
+02-27 12:32:20.493  1139  1139 I droid.bluetooth: AssetManager2(0x728bfbbed4b8) locale list changing from [] to [en-US]
+02-27 12:32:20.494  1139  1139 W MediaControlGattService: Feature PLAYBACK_SPEED(BIT 8) support: true
+02-27 12:32:20.494  1139  1139 W MediaControlGattService: Feature PLAYBACK_SPEED(BIT 8) support: true
+02-27 12:32:20.494  1139  1139 W MediaControlGattService: Feature PLAYBACK_SPEED(BIT 8) support: true
+02-27 12:32:20.494  1139  1139 W MediaControlGattService: Feature PLAYBACK_SPEED_NOTIFY support: true
+02-27 12:32:20.495  1139  1139 I AdapterProperties: getBondedDevices: length=0
+02-27 12:32:20.496  1139  1139 W MediaControlGattService: Feature TRACK_POSITION(BIT 7) support: true
+02-27 12:32:20.496  1139  1139 W MediaControlGattService: Feature TRACK_POSITION_NOTIFY support: true
+02-27 12:32:20.496  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:20.496  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:20.497  1139  1139 I AdapterProperties: getBondedDevices: length=0
+02-27 12:32:20.497  1139  1139 W MediaControlGattService: Feature PLAYER_NAME(BIT 1) support: true
+02-27 12:32:20.497  1139  1139 W MediaControlGattService: Feature PLAYER_NAME(BIT 1) support: true
+02-27 12:32:20.498  1139  1139 W MediaControlGattService: Feature MEDIA_CONTROL_POINT_OPCODES_SUPPORTED(BIT 19) support: true
+02-27 12:32:20.498  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:20.498  1021  1298 D MediaDataManager: State updated outside of notification
+02-27 12:32:20.498  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:20.499  1139  1139 I AdapterProperties: getBondedDevices: length=0
+02-27 12:32:20.499  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:20.500  1139  1139 W MediaControlGattService: Feature SEEKING_SPEED(BIT 9) support: true
+02-27 12:32:20.501  1139  1139 W MediaControlGattService: Feature SEEKING_SPEED(BIT 9) support: true
+02-27 12:32:20.501  1139  1139 W MediaControlGattService: Feature SEEKING_SPEED(BIT 9) support: true
+02-27 12:32:20.505  1021  1021 W ConstraintSet: id unknown center_vertical_guideline
+02-27 12:32:20.505  1021  1021 W ConstraintSet: id unknown action_button_guideline
+02-27 12:32:20.505  1021  1021 W ConstraintSet: id unknown icon
+02-27 12:32:20.506  1021  1021 W ConstraintSet: id unknown media_seamless
+02-27 12:32:20.506  1021  1021 W ConstraintSet: id unknown media_action_barrier_start
+02-27 12:32:20.506  1021  1021 W ConstraintSet: id unknown media_action_barrier_end
+02-27 12:32:20.506  1021  1021 W ConstraintSet: id unknown media_action_barrier_top
+02-27 12:32:20.506  1021  1021 W ConstraintSet: id unknown remove_text
+02-27 12:32:20.506  1021  1021 W ConstraintSet: id unknown settings
+02-27 12:32:20.506  1021  1021 W ConstraintSet: id unknown dismiss
+02-27 12:32:20.506  1021  1021 W ConstraintSet: id unknown cancel
+02-27 12:32:20.508  1139  1139 I bluetooth: system/btif/avrcp/avrcp_service.cc:536 SendMediaUpdate: track_changed=false :  play_state=true :  queue=false
+02-27 12:32:20.515  1139  1139 W MediaPlayerWrapper: onPlaybackStateChanged(): com.zimbabeats tried to update with no new data
+02-27 12:32:20.519  1139  1139 W MediaPlayerWrapper: onPlaybackStateChanged(): com.zimbabeats tried to update with no new data
+02-27 12:32:20.523  1139  1139 W MediaPlayerWrapper: onPlaybackStateChanged(): com.zimbabeats tried to update with no new data
+02-27 12:32:20.523  5548  5899 D StreamResolver: Resolving stream for: RmYCOm4ehKs
+02-27 12:32:20.524  5548  5899 D StreamResolver: Using cached URL for: RmYCOm4ehKs
+02-27 12:32:20.525  1139  1139 W MediaPlayerWrapper: onPlaybackStateChanged(): com.zimbabeats tried to update with no new data
+02-27 12:32:20.701   545  1163 D NativePermissionController: checkPermission: missing 1 for 10222
+02-27 12:32:20.702   545  1163 D NativePermissionController: checkPermission: missing 3 for 10222
+02-27 12:32:20.702   545  1163 D NativePermissionController: checkPermission: missing 5 for 10222
+02-27 12:32:20.702   545  1163 W AudioFlinger: createTrack_l(): mismatch between requested flags (00000008) and output flags (00000002)
+02-27 12:32:20.703   545  1163 D AudioFlinger: Client defaulted notificationFrames to 8720 for frameCount 17440
+02-27 12:32:20.703   545  1163 I AF::PthrPatchRecord: creating track with enforcement level 0
+02-27 12:32:20.749  1190  1190 I NotificationListener: received notification removed event - com.zimbabeats#UserHandle{0},category=-1
+02-27 12:32:20.752  1904  2316 W AiAiEcho: LyftNotificationParser Ridesharing ETA not enabled
+02-27 12:32:20.754  1904  2316 I AiAiEcho: SmartspaceNotificationPredictor no parser can handle this notification or notification is invalid
+02-27 12:32:20.766   730   755 E AppOps  : attributionTag  not declared in manifest of com.zimbabeats
+02-27 12:32:20.767   730  1060 E AppOps  : attributionTag  not declared in manifest of com.zimbabeats
+02-27 12:32:20.771   545  1163 D NativePermissionController: checkPermission: missing 13 for 10222
+02-27 12:32:20.773   545   545 D NativePermissionController: checkPermission: missing 13 for 10222
+02-27 12:32:20.776   545   545 D NativePermissionController: checkPermission: missing 13 for 10222
+02-27 12:32:20.778   545   545 D NativePermissionController: checkPermission: missing 13 for 10222
+02-27 12:32:20.785   730   755 D MediaSessionService: onSessionPlaybackStateChanged: record=com.zimbabeats/androidx.media3.session.id./7 (userId=0) playbackState=PlaybackState {state=PLAYING(3), position=81, buffered position=3781, speed=1.0, updated=9099187, actions=7340031, custom actions=[], active item id=0, error=null}
+02-27 12:32:20.790   730  1928 D MediaSessionService: onSessionPlaybackStateChanged: record=com.zimbabeats/androidx.media3.session.id./7 (userId=0) playbackState=PlaybackState {state=PLAYING(3), position=81, buffered position=3781, speed=1.0, updated=9099191, actions=7340031, custom actions=[], active item id=0, error=null}
+02-27 12:32:20.798  5548  5548 D MusicPlaybackManager: Playback state: READY
+02-27 12:32:20.800  5548  5548 D MusicPlaybackManager: isPlaying changed: true
+02-27 12:32:20.804  5548  5553 I com.zimbabeats: Background concurrent copying GC freed 11MB AllocSpace bytes, 16(8624KB) LOS objects, 49% free, 15MB/30MB, paused 861us,2.427ms total 217.231ms
+02-27 12:32:20.810  1021  1298 D MediaDataManager: State updated outside of notification
+02-27 12:32:20.815  1139  1139 W MediaControlGattService: Feature PLAYBACK_SPEED(BIT 8) support: true
+02-27 12:32:20.815  1139  1139 W MediaControlGattService: Feature PLAYBACK_SPEED(BIT 8) support: true
+02-27 12:32:20.815  1139  1139 W MediaControlGattService: Feature PLAYBACK_SPEED(BIT 8) support: true
+02-27 12:32:20.815  1139  1139 W MediaControlGattService: Feature PLAYBACK_SPEED_NOTIFY support: true
+02-27 12:32:20.819  1021  1021 W ConstraintSet: id unknown center_vertical_guideline
+02-27 12:32:20.819  1021  1021 W ConstraintSet: id unknown action_button_guideline
+02-27 12:32:20.819  1021  1021 W ConstraintSet: id unknown icon
+02-27 12:32:20.819  1021  1021 W ConstraintSet: id unknown media_seamless
+02-27 12:32:20.819  1021  1021 W ConstraintSet: id unknown media_action_barrier_start
+02-27 12:32:20.819  1021  1021 W ConstraintSet: id unknown media_action_barrier_end
+02-27 12:32:20.819  1021  1021 W ConstraintSet: id unknown media_action_barrier_top
+02-27 12:32:20.820  1021  1021 W ConstraintSet: id unknown remove_text
+02-27 12:32:20.820  1021  1021 W ConstraintSet: id unknown settings
+02-27 12:32:20.821  1021  1021 W ConstraintSet: id unknown dismiss
+02-27 12:32:20.823  1139  1139 I AdapterProperties: getBondedDevices: length=0
+02-27 12:32:20.824  1139  1139 W MediaControlGattService: Feature TRACK_POSITION(BIT 7) support: true
+02-27 12:32:20.825  1139  1139 W MediaControlGattService: Feature TRACK_POSITION_NOTIFY support: true
+02-27 12:32:20.825  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:20.826  1139  1139 I AdapterProperties: getBondedDevices: length=0
+02-27 12:32:20.826  1139  1139 W MediaControlGattService: Feature PLAYER_NAME(BIT 1) support: true
+02-27 12:32:20.826  1139  1139 W MediaControlGattService: Feature PLAYER_NAME(BIT 1) support: true
+02-27 12:32:20.827  1139  1139 W MediaControlGattService: Feature MEDIA_CONTROL_POINT_OPCODES_SUPPORTED(BIT 19) support: true
+02-27 12:32:20.827  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:20.827  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:20.828  1139  1139 I AdapterProperties: getBondedDevices: length=0
+02-27 12:32:20.828  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:20.828  1021  1021 W ConstraintSet: id unknown cancel
+02-27 12:32:20.828  1139  1139 W MediaControlGattService: Feature SEEKING_SPEED(BIT 9) support: true
+02-27 12:32:20.828  1139  1139 W MediaControlGattService: Feature SEEKING_SPEED(BIT 9) support: true
+02-27 12:32:20.829  1139  1139 W MediaControlGattService: Feature SEEKING_SPEED(BIT 9) support: true
+02-27 12:32:20.835  5548  5548 D MusicPlayerScreen: Screen opened with trackId: RmYCOm4ehKs
+02-27 12:32:20.835  5548  5548 D MusicPlayerScreen: UI State - isLoading: false, error: null, track: Save Your Tears
+02-27 12:32:20.844  1139  1139 I bluetooth: system/btif/avrcp/avrcp_service.cc:536 SendMediaUpdate: track_changed=false :  play_state=true :  queue=false
+02-27 12:32:20.854  1139  1139 W MediaPlayerWrapper: onPlaybackStateChanged(): com.zimbabeats tried to update with no new data
+02-27 12:32:20.855  1139  1139 W MediaPlayerWrapper: onPlaybackStateChanged(): com.zimbabeats tried to update with no new data
+02-27 12:32:20.866  5548  5690 D AudioTrack: getTimestamp_l(30): device stall time corrected using current time 9099269995900
+02-27 12:32:21.042  1190  1190 I NotificationListener: received notification removed event - com.zimbabeats#UserHandle{0},category=-1
+02-27 12:32:21.045  1904  2316 W AiAiEcho: LyftNotificationParser Ridesharing ETA not enabled
+02-27 12:32:21.045  1904  2316 I AiAiEcho: SmartspaceNotificationPredictor no parser can handle this notification or notification is invalid
+02-27 12:32:21.151  1021  1121 W MediaDataLoader: Invalid album art uri https://lh3.googleusercontent.com/JDKz3Anlyo49xBhFcFx13QD_Tk4-kqdiYTo15gtkL93nE8biWyZ7o0BPyW6RnXVxcXaJ5DgU5nJ_0NjJ=w544-h544-l90-rj
+02-27 12:32:21.151  1021  1121 W MediaDataLoader: Invalid album art uri https://lh3.googleusercontent.com/JDKz3Anlyo49xBhFcFx13QD_Tk4-kqdiYTo15gtkL93nE8biWyZ7o0BPyW6RnXVxcXaJ5DgU5nJ_0NjJ=w544-h544-l90-rj
+02-27 12:32:21.151  1021  1121 W MediaDataLoader: Invalid album art uri https://lh3.googleusercontent.com/JDKz3Anlyo49xBhFcFx13QD_Tk4-kqdiYTo15gtkL93nE8biWyZ7o0BPyW6RnXVxcXaJ5DgU5nJ_0NjJ=w544-h544-l90-rj
+02-27 12:32:21.324  5548  5548 D MusicPlaybackManager: Playback state: BUFFERING
+02-27 12:32:21.325  5548  5548 D MusicPlaybackManager: isPlaying changed: false
+02-27 12:32:21.330   730  1060 E AppOps  : attributionTag  not declared in manifest of com.zimbabeats
+02-27 12:32:21.331   730  1060 E AppOps  : attributionTag  not declared in manifest of com.zimbabeats
+02-27 12:32:21.333   730  1928 D MediaSessionService: onSessionPlaybackStateChanged: record=com.zimbabeats/androidx.media3.session.id./7 (userId=0) playbackState=PlaybackState {state=BUFFERING(6), position=0, buffered position=0, speed=0.0, updated=9099736, actions=7340031, custom actions=[], active item id=0, error=null}
+02-27 12:32:21.334  5548  5690 D MediaCodec: keep callback message for reclaim
+02-27 12:32:21.335   730  1060 D MediaSessionService: onSessionPlaybackStateChanged: record=com.zimbabeats/androidx.media3.session.id./7 (userId=0) playbackState=PlaybackState {state=BUFFERING(6), position=0, buffered position=0, speed=0.0, updated=9099738, actions=7340031, custom actions=[], active item id=0, error=null}
+02-27 12:32:21.335  5548  5905 I CCodecConfig: query failed after returning 8 values (BAD_INDEX)
+02-27 12:32:21.337   730   755 D MediaSessionService: onSessionPlaybackStateChanged: record=com.zimbabeats/androidx.media3.session.id./7 (userId=0) playbackState=PlaybackState {state=BUFFERING(6), position=0, buffered position=0, speed=0.0, updated=9099740, actions=7340031, custom actions=[], active item id=0, error=null}
+02-27 12:32:21.340  5548  5905 W Codec2Client: query -- param skipped: index = 1342179345.
+02-27 12:32:21.340  5548  5905 W Codec2Client: query -- param skipped: index = 2415921170.
+02-27 12:32:21.343  5548  5548 D MusicPlayerScreen: Screen opened with trackId: RmYCOm4ehKs
+02-27 12:32:21.343  5548  5548 D MusicPlayerScreen: UI State - isLoading: false, error: null, track: Save Your Tears
+02-27 12:32:21.346  1021  1298 D MediaDataManager: State updated outside of notification
+02-27 12:32:21.347  1139  1139 I droid.bluetooth: AssetManager2(0x728bfbbee778) locale list changing from [] to [en-US]
+02-27 12:32:21.348  1139  1139 W MediaControlGattService: Feature PLAYBACK_SPEED(BIT 8) support: true
+02-27 12:32:21.348  1139  1139 W MediaControlGattService: Feature PLAYBACK_SPEED(BIT 8) support: true
+02-27 12:32:21.348  1139  1139 W MediaControlGattService: Feature PLAYBACK_SPEED(BIT 8) support: true
+02-27 12:32:21.348  1139  1139 W MediaControlGattService: Feature PLAYBACK_SPEED_NOTIFY support: true
+02-27 12:32:21.349  1139  1139 I AdapterProperties: getBondedDevices: length=0
+02-27 12:32:21.349  1139  1139 W MediaControlGattService: Feature TRACK_POSITION(BIT 7) support: true
+02-27 12:32:21.349  1139  1139 W MediaControlGattService: Feature TRACK_POSITION_NOTIFY support: true
+02-27 12:32:21.349  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:21.349  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:21.350  1139  1139 I AdapterProperties: getBondedDevices: length=0
+02-27 12:32:21.351  1139  1139 W MediaControlGattService: Feature PLAYER_NAME(BIT 1) support: true
+02-27 12:32:21.351  1139  1139 W MediaControlGattService: Feature PLAYER_NAME(BIT 1) support: true
+02-27 12:32:21.351  1139  1139 W MediaControlGattService: Feature MEDIA_CONTROL_POINT_OPCODES_SUPPORTED(BIT 19) support: true
+02-27 12:32:21.351  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:21.351  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:21.352  1139  1139 I AdapterProperties: getBondedDevices: length=0
+02-27 12:32:21.352  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:21.352  1139  1139 W MediaControlGattService: Feature SEEKING_SPEED(BIT 9) support: true
+02-27 12:32:21.352  1139  1139 W MediaControlGattService: Feature SEEKING_SPEED(BIT 9) support: true
+02-27 12:32:21.352  1139  1139 W MediaControlGattService: Feature SEEKING_SPEED(BIT 9) support: true
+02-27 12:32:21.353  1021  1021 W ConstraintSet: id unknown center_vertical_guideline
+02-27 12:32:21.353  1021  1021 W ConstraintSet: id unknown action_button_guideline
+02-27 12:32:21.353  1021  1021 W ConstraintSet: id unknown icon
+02-27 12:32:21.353  1021  1021 W ConstraintSet: id unknown media_seamless
+02-27 12:32:21.354  1021  1021 W ConstraintSet: id unknown media_action_barrier_start
+02-27 12:32:21.354  1021  1021 W ConstraintSet: id unknown media_action_barrier_end
+02-27 12:32:21.354  1021  1021 W ConstraintSet: id unknown media_action_barrier_top
+02-27 12:32:21.354  1021  1021 W ConstraintSet: id unknown remove_text
+02-27 12:32:21.354  1021  1021 W ConstraintSet: id unknown settings
+02-27 12:32:21.354  1021  1021 W ConstraintSet: id unknown dismiss
+02-27 12:32:21.354  1021  1021 W ConstraintSet: id unknown cancel
+02-27 12:32:21.364  1139  1139 I bluetooth: system/btif/avrcp/avrcp_service.cc:536 SendMediaUpdate: track_changed=false :  play_state=true :  queue=false
+02-27 12:32:21.366  1139  1139 W MediaPlayerWrapper: onPlaybackStateChanged(): com.zimbabeats tried to update with no new data
+02-27 12:32:21.366  1139  1139 W MediaPlayerWrapper: onPlaybackStateChanged(): com.zimbabeats tried to update with no new data
+02-27 12:32:21.367  1139  1139 W MediaPlayerWrapper: onPlaybackStateChanged(): com.zimbabeats tried to update with no new data
+02-27 12:32:21.368  1139  1139 W MediaPlayerWrapper: onPlaybackStateChanged(): com.zimbabeats tried to update with no new data
+02-27 12:32:21.447  1021  1120 W MediaDataLoader: Invalid album art uri https://lh3.googleusercontent.com/JDKz3Anlyo49xBhFcFx13QD_Tk4-kqdiYTo15gtkL93nE8biWyZ7o0BPyW6RnXVxcXaJ5DgU5nJ_0NjJ=w544-h544-l90-rj
+02-27 12:32:21.448  1021  1120 W MediaDataLoader: Invalid album art uri https://lh3.googleusercontent.com/JDKz3Anlyo49xBhFcFx13QD_Tk4-kqdiYTo15gtkL93nE8biWyZ7o0BPyW6RnXVxcXaJ5DgU5nJ_0NjJ=w544-h544-l90-rj
+02-27 12:32:21.448  1021  1120 W MediaDataLoader: Invalid album art uri https://lh3.googleusercontent.com/JDKz3Anlyo49xBhFcFx13QD_Tk4-kqdiYTo15gtkL93nE8biWyZ7o0BPyW6RnXVxcXaJ5DgU5nJ_0NjJ=w544-h544-l90-rj
+02-27 12:32:21.467  5548  5899 D StreamResolver: Resolving stream for: RmYCOm4ehKs
+02-27 12:32:21.467  5548  5899 D StreamResolver: Using cached URL for: RmYCOm4ehKs
+02-27 12:32:21.571   730   756 D MediaSessionService: onSessionPlaybackStateChanged: record=com.zimbabeats/androidx.media3.session.id./7 (userId=0) playbackState=PlaybackState {state=BUFFERING(6), position=0, buffered position=0, speed=0.0, updated=9099974, actions=7340031, custom actions=[], active item id=0, error=null}
+02-27 12:32:21.573  1139  1139 W MediaPlayerWrapper: onPlaybackStateChanged(): com.zimbabeats tried to update with no new data
+02-27 12:32:21.575  1139  1139 W MediaPlayerWrapper: onPlaybackStateChanged(): com.zimbabeats tried to update with no new data
+02-27 12:32:21.589  1190  1190 I NotificationListener: received notification removed event - com.zimbabeats#UserHandle{0},category=-1
+02-27 12:32:21.590  1904  2316 W AiAiEcho: LyftNotificationParser Ridesharing ETA not enabled
+02-27 12:32:21.590  1904  2316 I AiAiEcho: SmartspaceNotificationPredictor no parser can handle this notification or notification is invalid
+02-27 12:32:21.866   545  1163 D NativePermissionController: checkPermission: missing 1 for 10222
+02-27 12:32:21.866   545  1163 D NativePermissionController: checkPermission: missing 3 for 10222
+02-27 12:32:21.866   545  1163 D NativePermissionController: checkPermission: missing 5 for 10222
+02-27 12:32:21.866   545  1163 W AudioFlinger: createTrack_l(): mismatch between requested flags (00000008) and output flags (00000002)
+02-27 12:32:21.867   545  1163 D AudioFlinger: Client defaulted notificationFrames to 8720 for frameCount 17440
+02-27 12:32:21.867   545  1163 I AF::PthrPatchRecord: creating track with enforcement level 0
+02-27 12:32:21.945   730   756 E AppOps  : attributionTag  not declared in manifest of com.zimbabeats
+02-27 12:32:21.947   730   756 E AppOps  : attributionTag  not declared in manifest of com.zimbabeats
+02-27 12:32:21.949   545  1163 D NativePermissionController: checkPermission: missing 13 for 10222
+02-27 12:32:21.952   545  1163 D NativePermissionController: checkPermission: missing 13 for 10222
+02-27 12:32:21.954   545  1163 D NativePermissionController: checkPermission: missing 13 for 10222
+02-27 12:32:21.955   545  1163 D NativePermissionController: checkPermission: missing 13 for 10222
+02-27 12:32:21.955   730   755 D MediaSessionService: onSessionPlaybackStateChanged: record=com.zimbabeats/androidx.media3.session.id./7 (userId=0) playbackState=PlaybackState {state=PLAYING(3), position=81, buffered position=2781, speed=1.0, updated=9100359, actions=7340031, custom actions=[], active item id=0, error=null}
+02-27 12:32:21.958   730   755 D MediaSessionService: onSessionPlaybackStateChanged: record=com.zimbabeats/androidx.media3.session.id./7 (userId=0) playbackState=PlaybackState {state=PLAYING(3), position=81, buffered position=2781, speed=1.0, updated=9100361, actions=7340031, custom actions=[], active item id=0, error=null}
+02-27 12:32:21.965  5548  5548 D MusicPlaybackManager: Playback state: READY
+02-27 12:32:21.966  5548  5548 D MusicPlaybackManager: isPlaying changed: true
+02-27 12:32:21.970  1021  1298 D MediaDataManager: State updated outside of notification
+02-27 12:32:21.975  1139  1139 W MediaControlGattService: Feature PLAYBACK_SPEED(BIT 8) support: true
+02-27 12:32:21.975  1139  1139 W MediaControlGattService: Feature PLAYBACK_SPEED(BIT 8) support: true
+02-27 12:32:21.975  1139  1139 W MediaControlGattService: Feature PLAYBACK_SPEED(BIT 8) support: true
+02-27 12:32:21.975  1139  1139 W MediaControlGattService: Feature PLAYBACK_SPEED_NOTIFY support: true
+02-27 12:32:21.976  1139  1139 I AdapterProperties: getBondedDevices: length=0
+02-27 12:32:21.976  1139  1139 W MediaControlGattService: Feature TRACK_POSITION(BIT 7) support: true
+02-27 12:32:21.976  1139  1139 W MediaControlGattService: Feature TRACK_POSITION_NOTIFY support: true
+02-27 12:32:21.977  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:21.977  1139  1139 I AdapterProperties: getBondedDevices: length=0
+02-27 12:32:21.978  1139  1139 W MediaControlGattService: Feature PLAYER_NAME(BIT 1) support: true
+02-27 12:32:21.978  1139  1139 W MediaControlGattService: Feature PLAYER_NAME(BIT 1) support: true
+02-27 12:32:21.978  1139  1139 W MediaControlGattService: Feature MEDIA_CONTROL_POINT_OPCODES_SUPPORTED(BIT 19) support: true
+02-27 12:32:21.978  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:21.978  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:21.980  1139  1139 I AdapterProperties: getBondedDevices: length=0
+02-27 12:32:21.980  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:21.980  1139  1139 W MediaControlGattService: Feature SEEKING_SPEED(BIT 9) support: true
+02-27 12:32:21.980  1139  1139 W MediaControlGattService: Feature SEEKING_SPEED(BIT 9) support: true
+02-27 12:32:21.980  1139  1139 W MediaControlGattService: Feature SEEKING_SPEED(BIT 9) support: true
+02-27 12:32:21.981  1021  1021 W ConstraintSet: id unknown center_vertical_guideline
+02-27 12:32:21.981  1021  1021 W ConstraintSet: id unknown action_button_guideline
+02-27 12:32:21.981  1021  1021 W ConstraintSet: id unknown icon
+02-27 12:32:21.981  1021  1021 W ConstraintSet: id unknown media_seamless
+02-27 12:32:21.981  1021  1021 W ConstraintSet: id unknown media_action_barrier_start
+02-27 12:32:21.982  1021  1021 W ConstraintSet: id unknown media_action_barrier_end
+02-27 12:32:21.982  1021  1021 W ConstraintSet: id unknown media_action_barrier_top
+02-27 12:32:21.982  1021  1021 W ConstraintSet: id unknown remove_text
+02-27 12:32:21.982  1021  1021 W ConstraintSet: id unknown settings
+02-27 12:32:21.982  1021  1021 W ConstraintSet: id unknown dismiss
+02-27 12:32:21.982  1021  1021 W ConstraintSet: id unknown cancel
+02-27 12:32:21.993  5548  5548 D MusicPlayerScreen: Screen opened with trackId: RmYCOm4ehKs
+02-27 12:32:21.993  5548  5548 D MusicPlayerScreen: UI State - isLoading: false, error: null, track: Save Your Tears
+02-27 12:32:21.997  1021  1121 W MediaDataLoader: Invalid album art uri https://lh3.googleusercontent.com/JDKz3Anlyo49xBhFcFx13QD_Tk4-kqdiYTo15gtkL93nE8biWyZ7o0BPyW6RnXVxcXaJ5DgU5nJ_0NjJ=w544-h544-l90-rj
+02-27 12:32:21.997  1021  1121 W MediaDataLoader: Invalid album art uri https://lh3.googleusercontent.com/JDKz3Anlyo49xBhFcFx13QD_Tk4-kqdiYTo15gtkL93nE8biWyZ7o0BPyW6RnXVxcXaJ5DgU5nJ_0NjJ=w544-h544-l90-rj
+02-27 12:32:21.997  1139  1139 I bluetooth: system/btif/avrcp/avrcp_service.cc:536 SendMediaUpdate: track_changed=false :  play_state=true :  queue=false
+02-27 12:32:21.997  1021  1121 W MediaDataLoader: Invalid album art uri https://lh3.googleusercontent.com/JDKz3Anlyo49xBhFcFx13QD_Tk4-kqdiYTo15gtkL93nE8biWyZ7o0BPyW6RnXVxcXaJ5DgU5nJ_0NjJ=w544-h544-l90-rj
+02-27 12:32:22.008  1139  1139 W MediaPlayerWrapper: onPlaybackStateChanged(): com.zimbabeats tried to update with no new data
+02-27 12:32:22.012  1139  1139 W MediaPlayerWrapper: onPlaybackStateChanged(): com.zimbabeats tried to update with no new data
+02-27 12:32:22.224  1190  1190 I NotificationListener: received notification removed event - com.zimbabeats#UserHandle{0},category=-1
+02-27 12:32:22.225  1904  2316 W AiAiEcho: LyftNotificationParser Ridesharing ETA not enabled
+02-27 12:32:22.226  1904  2316 I AiAiEcho: SmartspaceNotificationPredictor no parser can handle this notification or notification is invalid
+02-27 12:32:22.626  1021  1118 W MediaDataLoader: Invalid album art uri https://lh3.googleusercontent.com/JDKz3Anlyo49xBhFcFx13QD_Tk4-kqdiYTo15gtkL93nE8biWyZ7o0BPyW6RnXVxcXaJ5DgU5nJ_0NjJ=w544-h544-l90-rj
+02-27 12:32:22.627  1021  1118 W MediaDataLoader: Invalid album art uri https://lh3.googleusercontent.com/JDKz3Anlyo49xBhFcFx13QD_Tk4-kqdiYTo15gtkL93nE8biWyZ7o0BPyW6RnXVxcXaJ5DgU5nJ_0NjJ=w544-h544-l90-rj
+02-27 12:32:22.627  1021  1118 W MediaDataLoader: Invalid album art uri https://lh3.googleusercontent.com/JDKz3Anlyo49xBhFcFx13QD_Tk4-kqdiYTo15gtkL93nE8biWyZ7o0BPyW6RnXVxcXaJ5DgU5nJ_0NjJ=w544-h544-l90-rj
+02-27 12:32:22.667  1021  1088 D ShellBackPreview: Finishing gesture with event action: 1
+02-27 12:32:22.667  1021  1088 D ShellBackPreview: onGestureFinished called while no gesture is started
+02-27 12:32:22.741  5548  5548 W WindowOnBackDispatcher: sendCancelIfRunning: isInProgress=false callback=androidx.navigationevent.OnBackInvokedInput$createOnBackAnimationCallback$1@69d899b
+02-27 12:32:22.741   730   755 D CoreBackPreview: Window{f7580f0 u0 com.zimbabeats/com.zimbabeats.MainActivity}: Setting back callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@5855fdb, mPriority=-1, mIsAnimationCallback=false, mOverrideBehavior=0}
+02-27 12:32:22.857  5548  5905 D BufferPoolAccessor2.0: bufferpool2 0x728b5bc086b8 : 5(28800 size) total buffers - 1(5760 size) used buffers - 1520/1525 (recycle/alloc) - 6/3040 (fetch/transfer)
+02-27 12:32:22.871   631  5906 D BufferPoolAccessor2.0: bufferpool2 0x700e0d59ee78 : 4(368640 size) total buffers - 1(92160 size) used buffers - 1514/1518 (recycle/alloc) - 4/1505 (fetch/transfer)
+02-27 12:32:23.886  5548  5548 D MusicPlayerViewModel: ViewModel being cleared - recording listen (playback continues in background)
+02-27 12:32:23.904  5548  5612 D MusicPlayerViewModel: Listen recorded for: RmYCOm4ehKs
+02-27 12:32:23.947  5548  5621 D CloudMusicFilter: === Checking music: 'Viva La Vida' by 'Coldplay - Topic' ===
+02-27 12:32:23.947  5548  5621 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:23.947  5548  5621 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:23.947  5548  5621 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:23.948  5548  5621 D CloudMusicFilter: === Checking music: 'Blinding Lights' by 'The Weeknd - Topic' ===
+02-27 12:32:23.948  5548  5621 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:23.948  5548  5621 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:23.948  5548  5621 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:23.948  5548  5621 D CloudMusicFilter: === Checking music: 'Eyes Wide Open' by 'Gotye' ===
+02-27 12:32:23.948  5548  5621 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:23.948  5548  5621 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:23.948  5548  5621 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:23.949  5548  5621 D CloudMusicFilter: === Checking music: 'Thunder' by 'Imagine Dragons' ===
+02-27 12:32:23.949  5548  5621 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:23.949  5548  5621 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:23.949  5548  5621 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:23.949  5548  5621 D CloudMusicFilter: === Checking music: 'Every Breath You Take' by 'The Police' ===
+02-27 12:32:23.949  5548  5621 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:23.949  5548  5621 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:23.949  5548  5621 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:23.949  5548  5612 D CloudMusicFilter: === Checking music: 'Blinding Lights' by 'The Weeknd - Topic' ===
+02-27 12:32:23.949  5548  5612 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:23.949  5548  5612 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:23.949  5548  5612 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:23.950  5548  5621 D CloudMusicFilter: === Checking music: 'Stressed Out' by 'twenty one pilots' ===
+02-27 12:32:23.950  5548  5621 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:23.950  5548  5612 D CloudMusicFilter: === Checking music: 'Viva La Vida' by 'Coldplay - Topic' ===
+02-27 12:32:23.952  5548  5612 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:23.952  5548  5612 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:23.953  5548  5612 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:23.953  5548  5612 D CloudMusicFilter: === Checking music: 'Eyes Wide Open' by 'Gotye' ===
+02-27 12:32:23.954  5548  5612 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:23.954  5548  5612 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:23.954  5548  5612 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:23.954  5548  5621 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:23.954  5548  5621 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:23.955  5548  5621 D CloudMusicFilter: === Checking music: 'Beautiful Things' by 'Benson Boone' ===
+02-27 12:32:23.955  5548  5621 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:23.955  5548  5621 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:23.955  5548  5621 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:23.955  5548  5612 D CloudMusicFilter: === Checking music: 'Thunder' by 'Imagine Dragons' ===
+02-27 12:32:23.955  5548  5612 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:23.955  5548  5612 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:23.955  5548  5612 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:23.955  5548  5621 D CloudMusicFilter: === Checking music: 'Riptide' by 'Vance Joy' ===
+02-27 12:32:23.955  5548  5621 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:23.955  5548  5621 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:23.956  5548  5621 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:23.956  5548  5612 D CloudMusicFilter: === Checking music: 'Every Breath You Take' by 'The Police' ===
+02-27 12:32:23.956  5548  5621 D CloudMusicFilter: === Checking music: 'Summertime Sadness' by 'Lana Del Rey' ===
+02-27 12:32:23.956  5548  5621 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:23.956  5548  5612 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:23.956  5548  5612 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:23.956  5548  5612 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:23.957  5548  5612 D CloudMusicFilter: === Checking music: 'Stressed Out' by 'twenty one pilots' ===
+02-27 12:32:23.957  5548  5612 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:23.957  5548  5612 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:23.957  5548  5612 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:23.957  5548  5612 D CloudMusicFilter: === Checking music: 'Beautiful Things' by 'Benson Boone' ===
+02-27 12:32:23.957  5548  5612 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:23.957  5548  5612 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:23.957  5548  5612 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:23.957  5548  5612 D CloudMusicFilter: === Checking music: 'Riptide' by 'Vance Joy' ===
+02-27 12:32:23.957  5548  5612 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:23.957  5548  5612 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:23.958  5548  5612 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:23.958  5548  5612 D CloudMusicFilter: === Checking music: 'Summertime Sadness' by 'Lana Del Rey' ===
+02-27 12:32:23.958  5548  5612 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:23.958  5548  5612 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:23.958  5548  5612 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:23.958  5548  5612 D CloudMusicFilter: === Checking music: 'Wonderwall' by 'Oasis' ===
+02-27 12:32:23.958  5548  5612 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:23.958  5548  5612 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:23.958  5548  5612 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:23.958  5548  5621 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:23.958  5548  5621 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:23.958  5548  5621 D CloudMusicFilter: === Checking music: 'Wonderwall' by 'Oasis' ===
+02-27 12:32:23.958  5548  5621 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:23.959  5548  5621 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:23.959  5548  5621 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:23.977  5548  5548 D MusicHomeViewModel: Loaded 10 recently played, 10 after filtering
+02-27 12:32:23.978  5548  5548 D MusicHomeViewModel: Loaded 10 most played, 10 after filtering
+02-27 12:32:23.978  5548  5621 D CloudMusicFilter: === Checking music: 'Save Your Tears' by 'The Weeknd - Topic' ===
+02-27 12:32:23.978  5548  5621 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:23.978  5548  5621 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:23.978  5548  5621 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:23.978  5548  5621 D CloudMusicFilter: === Checking music: 'Blinding Lights' by 'The Weeknd - Topic' ===
+02-27 12:32:23.978  5548  5621 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:23.978  5548  5621 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:23.978  5548  5621 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:23.979  5548  5621 D CloudMusicFilter: === Checking music: 'Viva La Vida' by 'Coldplay - Topic' ===
+02-27 12:32:23.979  5548  5621 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:23.979  5548  5621 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:23.979  5548  5621 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:23.979  5548  5621 D CloudMusicFilter: === Checking music: 'Eyes Wide Open' by 'Gotye' ===
+02-27 12:32:23.979  5548  5621 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:23.980  5548  5621 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:23.980  5548  5621 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:23.980  5548  5612 D CloudMusicFilter: === Checking music: 'Viva La Vida' by 'Coldplay - Topic' ===
+02-27 12:32:23.980  5548  5612 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:23.980  5548  5621 D CloudMusicFilter: === Checking music: 'Thunder' by 'Imagine Dragons' ===
+02-27 12:32:23.980  5548  5621 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:23.981  5548  5612 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:23.981  5548  5612 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:23.981  5548  5612 D CloudMusicFilter: === Checking music: 'Blinding Lights' by 'The Weeknd - Topic' ===
+02-27 12:32:23.981  5548  5612 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:23.982  5548  5612 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:23.982  5548  5612 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:23.982  5548  5612 D CloudMusicFilter: === Checking music: 'Save Your Tears' by 'The Weeknd - Topic' ===
+02-27 12:32:23.982  5548  5612 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:23.982  5548  5612 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:23.982  5548  5612 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:23.982  5548  5612 D CloudMusicFilter: === Checking music: 'Eyes Wide Open' by 'Gotye' ===
+02-27 12:32:23.982  5548  5612 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:23.982  5548  5612 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:23.983  5548  5612 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:23.983  5548  5612 D CloudMusicFilter: === Checking music: 'Thunder' by 'Imagine Dragons' ===
+02-27 12:32:23.983  5548  5612 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:23.983  5548  5612 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:23.983  5548  5612 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:23.983  5548  5612 D CloudMusicFilter: === Checking music: 'Every Breath You Take' by 'The Police' ===
+02-27 12:32:23.983  5548  5612 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:23.983  5548  5612 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:23.983  5548  5612 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:23.983  5548  5612 D CloudMusicFilter: === Checking music: 'Stressed Out' by 'twenty one pilots' ===
+02-27 12:32:23.984  5548  5621 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:23.985  5548  5621 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:23.985  5548  5621 D CloudMusicFilter: === Checking music: 'Every Breath You Take' by 'The Police' ===
+02-27 12:32:23.985  5548  5621 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:23.985  5548  5621 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:23.985  5548  5621 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:23.985  5548  5621 D CloudMusicFilter: === Checking music: 'Stressed Out' by 'twenty one pilots' ===
+02-27 12:32:23.985  5548  5621 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:23.985  5548  5621 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:23.986  5548  5621 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:23.986  5548  5621 D CloudMusicFilter: === Checking music: 'Beautiful Things' by 'Benson Boone' ===
+02-27 12:32:23.986  5548  5621 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:23.986  5548  5621 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:23.986  5548  5621 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:23.986  5548  5621 D CloudMusicFilter: === Checking music: 'Riptide' by 'Vance Joy' ===
+02-27 12:32:23.986  5548  5621 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:23.986  5548  5621 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:23.986  5548  5621 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:23.987  5548  5621 D CloudMusicFilter: === Checking music: 'Summertime Sadness' by 'Lana Del Rey' ===
+02-27 12:32:23.987  5548  5621 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:23.987  5548  5621 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:23.987  5548  5621 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:23.988  5548  5612 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:23.988  5548  5612 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:23.988  5548  5612 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:23.988  5548  5612 D CloudMusicFilter: === Checking music: 'Beautiful Things' by 'Benson Boone' ===
+02-27 12:32:23.988  5548  5612 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:23.988  5548  5612 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:23.988  5548  5612 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:23.989  5548  5612 D CloudMusicFilter: === Checking music: 'Riptide' by 'Vance Joy' ===
+02-27 12:32:23.989  5548  5612 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:23.989  5548  5612 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:23.989  5548  5612 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:23.989  5548  5612 D CloudMusicFilter: === Checking music: 'Summertime Sadness' by 'Lana Del Rey' ===
+02-27 12:32:23.989  5548  5612 D CloudMusicFilter: Settings: whitelistMode=false, age=FIVE_PLUS, defaultKidsEnabled=false, allowedArtists=0, allowedKeywords=0
+02-27 12:32:23.989  5548  5612 D CloudMusicFilter: Whitelist mode OFF - checking blocklists instead
+02-27 12:32:23.989  5548  5612 D CloudMusicFilter: ALLOWED: Passed blocklist checks
+02-27 12:32:24.014  5548  5548 D MusicHomeViewModel: Loaded 10 recently played, 10 after filtering
+02-27 12:32:24.015  5548  5548 D MusicHomeViewModel: Loaded 10 most played, 10 after filtering
+02-27 12:32:24.983   730   755 D MediaSessionService: onSessionPlaybackStateChanged: record=com.zimbabeats/androidx.media3.session.id./7 (userId=0) playbackState=PlaybackState {state=PLAYING(3), position=3042, buffered position=61421, speed=1.0, updated=9103387, actions=7340031, custom actions=[], active item id=0, error=null}
+02-27 12:32:25.003  1139  1139 I bluetooth: system/btif/avrcp/avrcp_service.cc:536 SendMediaUpdate: track_changed=false :  play_state=true :  queue=false
+02-27 12:32:25.013  1139  1139 I droid.bluetooth: AssetManager2(0x728bfbbee458) locale list changing from [] to [en-US]
+02-27 12:32:25.014  1139  1139 W MediaControlGattService: Feature PLAYBACK_SPEED(BIT 8) support: true
+02-27 12:32:25.014  1139  1139 W MediaControlGattService: Feature PLAYBACK_SPEED(BIT 8) support: true
+02-27 12:32:25.014  1139  1139 W MediaControlGattService: Feature PLAYBACK_SPEED(BIT 8) support: true
+02-27 12:32:25.015  1139  1139 W MediaControlGattService: Feature TRACK_POSITION(BIT 7) support: true
+02-27 12:32:25.015  1139  1139 W MediaControlGattService: Feature TRACK_POSITION_NOTIFY support: true
+02-27 12:32:25.015  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:25.015  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:25.016  1139  1139 I AdapterProperties: getBondedDevices: length=0
+02-27 12:32:25.016  1139  1139 W MediaControlGattService: Feature PLAYER_NAME(BIT 1) support: true
+02-27 12:32:25.016  1139  1139 W MediaControlGattService: Feature PLAYER_NAME(BIT 1) support: true
+02-27 12:32:25.016  1139  1139 W MediaControlGattService: Feature MEDIA_CONTROL_POINT_OPCODES_SUPPORTED(BIT 19) support: true
+02-27 12:32:25.016  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:25.016  1139  1139 W MediaControlGattService: Feature MEDIA_STATE(BIT 17) support: true
+02-27 12:32:25.016  1139  1139 W MediaControlGattService: Feature SEEKING_SPEED(BIT 9) support: true
+02-27 12:32:25.016  1139  1139 W MediaControlGattService: Feature SEEKING_SPEED(BIT 9) support: true
+02-27 12:32:25.016  1139  1139 W MediaControlGattService: Feature SEEKING_SPEED(BIT 9) support: true
+02-27 12:32:25.199  5548  5612 W HWUI    : Image decoding logging dropped!
+02-27 12:32:25.296  5548  5619 W HWUI    : Image decoding logging dropped!
+02-27 12:32:25.557   730  1938 D CoreBackPreview: Window{f7580f0 u0 com.zimbabeats/com.zimbabeats.MainActivity}: Setting back callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@b60ba78, mPriority=0, mIsAnimationCallback=true, mOverrideBehavior=0}
+02-27 12:32:25.603  5548  5612 W HWUI    : Image decoding logging dropped!
+02-27 12:32:25.620  5548  5548 D MusicPlayerScreen: Screen opened with trackId: oop_w1P9EL8
+02-27 12:32:25.620  5548  5548 D MusicPlayerScreen: UI State - isLoading: false, error: null, track: Save Your Tears
+02-27 12:32:25.800  5548  5548 D MusicPlayerScreen: LaunchedEffect triggered, loading track: oop_w1P9EL8
+02-27 12:32:25.801  5548  5548 D MusicPlayerViewModel: Loading track: oop_w1P9EL8
+02-27 12:32:25.814  5548  5548 D MusicPlayerScreen: Screen opened with trackId: oop_w1P9EL8
+02-27 12:32:25.814  5548  5548 D MusicPlayerScreen: UI State - isLoading: true, error: null, track: Save Your Tears
+02-27 12:32:25.844  5548  5612 D YouTubeMusicClient: === Getting player data for: oop_w1P9EL8 (authenticated: false) ===
+02-27 12:32:25.844  5548  5612 D YouTubeMusicClient: Trying NewPipe Extractor first (handles n-parameter decryption)...
+02-27 12:32:25.844  5548  5612 D NewPipeExtractor: Extracting audio stream for: oop_w1P9EL8
+02-27 12:32:25.918  5548  5619 W HWUI    : Image decoding logging dropped!
+02-27 12:32:26.386  1179  1361 D SatelliteController: iisInCarrierRoamingNbIotNtn: satellite is disabled
+02-27 12:32:26.392   730  1938 W IPCThreadState: Sending oneway calls to frozen process.

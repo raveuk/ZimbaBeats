@@ -151,11 +151,14 @@ class PlaybackQueue {
 
     /**
      * Skip to specific index
+     * @return true if the index was valid and updated
      */
-    fun skipToIndex(index: Int) {
+    fun skipToIndex(index: Int): Boolean {
         if (index in _queue.value.indices) {
             _currentIndex.value = index
+            return true
         }
+        return false
     }
 
     /**

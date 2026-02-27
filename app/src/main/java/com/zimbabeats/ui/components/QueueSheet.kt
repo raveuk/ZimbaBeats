@@ -17,23 +17,58 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.zimbabeats.media.controller.MediaControllerManager
+import com.zimbabeats.media.music.MusicPlaybackManager
 import com.zimbabeats.media.queue.QueueItem
 import org.koin.compose.koinInject
 
 /**
- * Bottom sheet showing the playback queue
+ * Bottom sheet showing the playback queue.
+ * Automatically detects whether music or video is playing and shows the appropriate queue.
  */
 @OptIn(ExperimentalMaterial3Api::class)
+@androidx.media3.common.util.UnstableApi
 @Composable
 fun QueueSheet(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
-    mediaController: MediaControllerManager = koinInject()
+    mediaController: MediaControllerManager = koinInject(),
+    musicPlaybackManager: MusicPlaybackManager = koinInject()
 ) {
-    val queue by mediaController.playbackQueue.queue.collectAsState()
-    val currentIndex by mediaController.playbackQueue.currentIndex.collectAsState()
+    // Music playback state
+    val musicState by musicPlaybackManager.playbackState.collectAsState()
+    val isMusicPlaying = musicState.currentTrack != null
+
+    // Video queue state (fallback when music is not playing)
+    val videoQueue by mediaController.playbackQueue.queue.collectAsState()
+    val videoCurrentIndex by mediaController.playbackQueue.currentIndex.collectAsState()
     val shuffleEnabled by mediaController.playbackQueue.shuffleEnabled.collectAsState()
     val repeatMode by mediaController.playbackQueue.repeatMode.collectAsState()
+
+    // Use music queue when music is playing, otherwise use video queue
+    val queue = if (isMusicPlaying) {
+        musicState.queue.map { track ->
+            QueueItem(
+                id = track.id,
+                video = com.zimbabeats.core.domain.model.Video(
+                    id = track.id,
+                    title = track.title,
+                    description = null,
+                    thumbnailUrl = track.thumbnailUrl ?: "",
+                    channelName = track.artistName,
+                    channelId = track.artistId ?: "",
+                    duration = track.duration,
+                    viewCount = 0,
+                    publishedAt = 0L,
+                    category = null
+                ),
+                originalIndex = 0
+            )
+        }
+    } else {
+        videoQueue
+    }
+
+    val currentIndex = if (isMusicPlaying) musicState.currentIndex else videoCurrentIndex
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -112,10 +147,19 @@ fun QueueSheet(
                         item = item,
                         isCurrentlyPlaying = index == currentIndex,
                         onClick = {
-                            mediaController.playbackQueue.skipToIndex(index)
+                            if (isMusicPlaying) {
+                                // Use MusicPlaybackManager's seekToQueueIndex which triggers actual playback
+                                musicPlaybackManager.seekToQueueIndex(index)
+                            } else {
+                                // Video queue - use MediaController
+                                mediaController.playbackQueue.skipToIndex(index)
+                            }
                         },
                         onRemove = {
-                            mediaController.removeFromQueue(index)
+                            if (!isMusicPlaying) {
+                                mediaController.removeFromQueue(index)
+                            }
+                            // Music queue removal not supported yet - tracks are auto-managed
                         }
                     )
                 }

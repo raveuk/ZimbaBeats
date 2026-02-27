@@ -78,6 +78,13 @@ class MediaControllerManager(private val context: Context) {
             override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
                 updatePlaybackState()
             }
+
+            override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                // Sync queue index when ExoPlayer changes tracks (via notification or auto-advance)
+                val newIndex = controller?.currentMediaItemIndex ?: 0
+                playbackQueue.skipToIndex(newIndex)
+                updatePlaybackState()
+            }
         })
     }
 
@@ -175,7 +182,18 @@ class MediaControllerManager(private val context: Context) {
 
     private fun setMediaItemsFromQueue() {
         val mediaItems = playbackQueue.toMediaItems()
-        controller?.setMediaItems(mediaItems)
+        val currentIndex = playbackQueue.currentIndex.value
+        val currentPosition = controller?.currentPosition ?: 0L
+        controller?.setMediaItems(mediaItems, currentIndex, currentPosition)
+    }
+
+    /**
+     * Skip to a specific index in the queue and trigger playback
+     */
+    fun skipToQueueIndex(index: Int) {
+        if (playbackQueue.skipToIndex(index)) {
+            controller?.seekTo(index, 0L)
+        }
     }
 
     fun getController(): MediaController? = controller

@@ -1,0 +1,9 @@
+name = "zimbabeats-api"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+
+# Free tier settings
+account_id = "" # Will be filled automatically on first deploy
+
+[vars]
+ENVIRONMENT = "production"

@@ -266,13 +266,23 @@ class MusicPlaybackManager(
                 // Update app state to match ExoPlayer's current item
                 val state = _playbackState.value
                 val newIndex = state.queue.indexOfFirst { it.id == mediaId }
-                if (newIndex >= 0 && newIndex != state.currentIndex) {
-                    Log.d(TAG, "Syncing app state: index $newIndex, track: ${state.queue[newIndex].title}")
-                    _playbackState.value = state.copy(
-                        currentIndex = newIndex,
-                        currentTrack = state.queue[newIndex]
-                    )
-                    loadedTrackId = mediaId
+
+                // Always update state when track changes - don't skip based on index matching
+                // because the currentTrack could be stale even if index matches
+                if (newIndex >= 0) {
+                    val newTrack = state.queue[newIndex]
+                    // Only update if the actual track changed (not just a recomposition)
+                    if (state.currentTrack?.id != mediaId) {
+                        Log.d(TAG, "Syncing app state: index $newIndex, track: ${newTrack.title}")
+                        _playbackState.value = state.copy(
+                            currentIndex = newIndex,
+                            currentTrack = newTrack
+                        )
+                        loadedTrackId = mediaId
+                    }
+                } else {
+                    // Track not in current queue - this can happen if queue was cleared/changed
+                    Log.w(TAG, "Track $mediaId not found in current queue of ${state.queue.size} items")
                 }
             }
         })
