@@ -368,10 +368,11 @@ class YouTubeMusicClient(private val httpClient: HttpClient) {
      *
      * Priority order:
      * 1. NewPipe Extractor (handles "n" parameter decryption locally - most reliable)
-     * 2. Authenticated Innertube (if logged in)
-     * 3. Piped API
-     * 4. Invidious API
-     * 5. Unauthenticated Innertube - last resort
+     * 2. iOS client (fast fallback - bypasses many restrictions)
+     * 3. Authenticated Innertube (if logged in)
+     * 4. Piped API
+     * 5. Invidious API
+     * 6. Other Innertube clients (Android, TV) - last resort
      */
     suspend fun getPlayerData(videoId: String): PlayerResult? = withContext(Dispatchers.IO) {
         Log.d(TAG, "=== Getting player data for: $videoId (authenticated: $isAuthenticated) ===")
@@ -383,7 +384,12 @@ class YouTubeMusicClient(private val httpClient: HttpClient) {
                 val result = extractor.extractAudioStream(videoId)
                 if (result != null) {
                     val (streamUrl, track) = extractor.toPlayerResult(result, videoId)
-                    Log.d(TAG, "SUCCESS: Got player data from NewPipe: ${track.title}")
+                    Log.d(TAG, "=== NewPipe SUCCESS ===")
+                    Log.d(TAG, "  Requested videoId: $videoId")
+                    Log.d(TAG, "  Returned track.id: ${track.id}")
+                    Log.d(TAG, "  Returned track.title: ${track.title}")
+                    Log.d(TAG, "  Returned track.artist: ${track.artistName}")
+                    Log.d(TAG, "  Stream URL prefix: ${streamUrl.take(80)}...")
                     return@withContext PlayerResult(streamUrl, track)
                 }
             } catch (e: Exception) {
@@ -391,7 +397,21 @@ class YouTubeMusicClient(private val httpClient: HttpClient) {
             }
         } ?: Log.d(TAG, "NewPipe extractor not available, skipping...")
 
-        // PRIORITY 2: If logged in, try authenticated Innertube
+        // PRIORITY 2: Try iOS client directly - fast and reliable for music tracks
+        // iOS client bypasses many restrictions that cause NewPipe to fail
+        // Using InnerTune's working versions: 19.29.1 with iOS 17.5.1
+        try {
+            Log.d(TAG, "Trying iOS client (fast fallback)...")
+            val iosResult = tryInnertubeClient(videoId, "IOS", "19.29.1", "17.5.1.21F90")
+            if (iosResult != null) {
+                Log.d(TAG, "SUCCESS: Got player data from iOS client: ${iosResult.track.title}")
+                return@withContext iosResult
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "iOS client failed: ${e.message}")
+        }
+
+        // PRIORITY 3: If logged in, try authenticated Innertube
         if (isAuthenticated) {
             try {
                 Log.d(TAG, "Trying AUTHENTICATED innertube...")
@@ -405,7 +425,7 @@ class YouTubeMusicClient(private val httpClient: HttpClient) {
             }
         }
 
-        // PRIORITY 3: Try Piped API - it handles "n" parameter decryption
+        // PRIORITY 4: Try Piped API - it handles "n" parameter decryption
         try {
             Log.d(TAG, "Trying Piped API...")
             val pipedResult = getPlayerDataFromPipedApi(videoId)
@@ -417,7 +437,7 @@ class YouTubeMusicClient(private val httpClient: HttpClient) {
             Log.w(TAG, "Piped API failed: ${e.message}")
         }
 
-        // PRIORITY 4: Fallback to Invidious API
+        // PRIORITY 5: Fallback to Invidious API
         try {
             Log.d(TAG, "Trying Invidious API as fallback...")
             val invidiousResult = getPlayerDataFromPiped(videoId)
@@ -429,9 +449,9 @@ class YouTubeMusicClient(private val httpClient: HttpClient) {
             Log.w(TAG, "Invidious API failed: ${e.message}")
         }
 
-        // PRIORITY 5: Last resort - unauthenticated YouTube innertube API
+        // PRIORITY 6: Last resort - other innertube clients (Android, TV)
         try {
-            Log.d(TAG, "Trying YouTube innertube as last resort...")
+            Log.d(TAG, "Trying other innertube clients as last resort...")
             val innertubeResult = getPlayerDataFromInnertube(videoId)
             if (innertubeResult != null) {
                 Log.d(TAG, "SUCCESS: Got player data from innertube: ${innertubeResult.track.title}")
@@ -732,53 +752,89 @@ class YouTubeMusicClient(private val httpClient: HttpClient) {
 
     /**
      * Get player data from YouTube innertube API (fallback)
-     * WEB_SAFARI tried FIRST - its HLS streams don't require "n" parameter decryption
-     * Other clients tried as fallback but may get 403 errors without n-param decryption
+     * Priority order based on SimpMusic's MediaServiceCore:
+     * 1. iOS client (19.29.1) - most reliable for music
+     * 2. ANDROID client (20.10.38) - SimpMusic's primary fallback
+     * 3. TV embed client
+     * 4. WEB_SAFARI for HLS streams
      */
     private suspend fun getPlayerDataFromInnertube(videoId: String): PlayerResult? {
-        // Try WEB_SAFARI FIRST - HLS streams don't require "n" parameter decryption!
-        // This is the key insight from yt-dlp: web_safari m3u8 formats bypass throttling
-        Log.d(TAG, "Trying WEB_SAFARI client first (HLS bypasses n-param): $videoId")
-        val safariResult = tryWebSafariClient(videoId)
-        if (safariResult != null) {
-            Log.d(TAG, "WEB_SAFARI client succeeded with HLS stream!")
-            return safariResult
-        }
-
-        // Try iOS client - sometimes works
-        Log.d(TAG, "Safari failed, trying iOS client")
-        val iosResult = tryInnertubeClient(videoId, "IOS", "21.03.2", "18.7.2.22H124")
+        // Try iOS client first - using SimpMusic's working versions
+        Log.d(TAG, "Trying iOS client (SimpMusic config): $videoId")
+        val iosResult = tryInnertubeClient(videoId, "IOS", "19.29.1", "17.5.1.21F90")
         if (iosResult != null) {
             Log.d(TAG, "iOS client succeeded!")
             return iosResult
         }
 
+        // Try ANDROID client - SimpMusic uses this as primary fallback (NOT ANDROID_MUSIC)
+        Log.d(TAG, "iOS failed, trying ANDROID client (20.10.38)")
+        val androidResult = tryAndroidClient(videoId)
+        if (androidResult != null) {
+            Log.d(TAG, "ANDROID client succeeded!")
+            return androidResult
+        }
+
         // Try TV embed client
-        Log.d(TAG, "iOS failed, trying TV embed client")
+        Log.d(TAG, "ANDROID failed, trying TV embed client")
         val tvResult = tryTvEmbedClient(videoId)
         if (tvResult != null) {
             Log.d(TAG, "TV client succeeded!")
             return tvResult
         }
 
-        // Try ANDROID_MUSIC client
-        Log.d(TAG, "TV failed, trying ANDROID_MUSIC client")
-        val androidMusicResult = tryAndroidMusicClient(videoId)
-        if (androidMusicResult != null) {
-            Log.d(TAG, "ANDROID_MUSIC client succeeded!")
-            return androidMusicResult
-        }
-
-        // Try Android client as last resort
-        Log.d(TAG, "ANDROID_MUSIC failed, trying ANDROID client")
-        val androidResult = tryInnertubeClient(videoId, "ANDROID", "21.03.36", null)
-        if (androidResult != null) {
-            Log.d(TAG, "ANDROID client succeeded!")
-            return androidResult
+        // Try WEB_SAFARI for HLS streams - doesn't require n-param decryption
+        Log.d(TAG, "TV failed, trying WEB_SAFARI client (HLS)")
+        val safariResult = tryWebSafariClient(videoId)
+        if (safariResult != null) {
+            Log.d(TAG, "WEB_SAFARI client succeeded with HLS stream!")
+            return safariResult
         }
 
         Log.e(TAG, "All innertube clients failed for: $videoId")
         return null
+    }
+
+    /**
+     * Try ANDROID client - SimpMusic's primary player client
+     * Version 20.10.38, Android 11, SDK 30
+     */
+    private suspend fun tryAndroidClient(videoId: String): PlayerResult? {
+        try {
+            Log.d(TAG, "Trying ANDROID client for: $videoId")
+
+            val requestBody = buildJsonObject {
+                putJsonObject("context") {
+                    putJsonObject("client") {
+                        put("clientName", "ANDROID")
+                        put("clientVersion", "20.10.38")
+                        put("androidSdkVersion", 30)
+                        put("hl", "en")
+                        put("gl", "US")
+                        put("osName", "Android")
+                        put("osVersion", "11")
+                        put("platform", "MOBILE")
+                    }
+                }
+                put("videoId", videoId)
+                put("contentCheckOk", true)
+                put("racyCheckOk", true)
+            }
+
+            val response: String = httpClient.post("https://www.youtube.com/youtubei/v1/player?key=AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8") {
+                contentType(ContentType.Application.Json)
+                header("User-Agent", "com.google.android.youtube/20.10.38 (Linux; U; Android 11) gzip")
+                header("Origin", "https://www.youtube.com")
+                header("X-YouTube-Client-Name", "3")
+                header("X-YouTube-Client-Version", "20.10.38")
+                setBody(requestBody.toString())
+            }.bodyAsText()
+
+            return parseInnertubeResponse(response, videoId, "ANDROID")
+        } catch (e: Exception) {
+            Log.w(TAG, "ANDROID client failed: ${e.message}")
+            return null
+        }
     }
 
     /**
@@ -875,6 +931,7 @@ class YouTubeMusicClient(private val httpClient: HttpClient) {
 
     /**
      * Try ANDROID_MUSIC client - specifically for YouTube Music on Android
+     * Using InnerTune's working version: 5.01
      */
     private suspend fun tryAndroidMusicClient(videoId: String): PlayerResult? {
         try {
@@ -884,12 +941,12 @@ class YouTubeMusicClient(private val httpClient: HttpClient) {
                 putJsonObject("context") {
                     putJsonObject("client") {
                         put("clientName", "ANDROID_MUSIC")
-                        put("clientVersion", "7.03.52")
-                        put("androidSdkVersion", 34)
+                        put("clientVersion", "5.01")
+                        put("androidSdkVersion", 30)
                         put("hl", "en")
                         put("gl", "US")
                         put("osName", "Android")
-                        put("osVersion", "14")
+                        put("osVersion", "11")
                         put("platform", "MOBILE")
                     }
                 }
@@ -898,12 +955,15 @@ class YouTubeMusicClient(private val httpClient: HttpClient) {
                 put("racyCheckOk", true)
             }
 
-            val response: String = httpClient.post("https://music.youtube.com/youtubei/v1/player?key=$INNERTUBE_KEY") {
+            // Use InnerTune's API key for ANDROID_MUSIC
+            val androidMusicApiKey = "AIzaSyAOghZGza2MQSZkY_zfZ370N-PUdXEo8AI"
+
+            val response: String = httpClient.post("https://music.youtube.com/youtubei/v1/player?key=$androidMusicApiKey") {
                 contentType(ContentType.Application.Json)
-                header("User-Agent", "com.google.android.apps.youtube.music/7.03.52 (Linux; U; Android 14) gzip")
+                header("User-Agent", "com.google.android.apps.youtube.music/5.01 (Linux; U; Android 11) gzip")
                 header("Origin", "https://music.youtube.com")
                 header("X-YouTube-Client-Name", "21")
-                header("X-YouTube-Client-Version", "7.03.52")
+                header("X-YouTube-Client-Version", "5.01")
                 setBody(requestBody.toString())
             }.bodyAsText()
 
@@ -930,7 +990,8 @@ class YouTubeMusicClient(private val httpClient: HttpClient) {
                         put("gl", "US")
                         if (osVersion != null) {
                             put("osVersion", osVersion)
-                            put("deviceModel", "iPhone16,2")
+                            // Use iPhone 14 Pro Max (iPhone15,3) which matches InnerTune
+                            put("deviceModel", "iPhone15,3")
                         }
                     }
                 }
@@ -939,10 +1000,11 @@ class YouTubeMusicClient(private val httpClient: HttpClient) {
                 put("racyCheckOk", true)
             }
 
+            // For iOS: match InnerTune's User-Agent format with iOS 17.5.1
             val userAgent = if (clientName == "IOS") {
-                "com.google.ios.youtube/$clientVersion (iPhone16,2; U; CPU iOS 18_7_2 like Mac OS X;)"
+                "com.google.ios.youtube/$clientVersion (iPhone15,3; U; CPU iOS 17_5_1 like Mac OS X;)"
             } else {
-                "com.google.android.youtube/$clientVersion (Linux; U; Android 14) gzip"
+                "com.google.android.youtube/$clientVersion (Linux; U; Android 11) gzip"
             }
 
             val response: String = httpClient.post("https://www.youtube.com/youtubei/v1/player?key=AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8") {

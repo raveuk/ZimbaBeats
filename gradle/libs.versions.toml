@@ -49,8 +49,9 @@ workManager = "2.10.0"
 datastore = "1.1.1"
 
 # NewPipe Extractor for stream extraction (pure Java, handles n parameter)
-# v0.25.1 has updated cipher for YouTube's latest changes (Feb 2026)
-newpipe = "v0.25.1"
+# v0.26.0 fixes YouTube page reload errors and nsig deobfuscation (Feb 2025)
+# Check for updates: https://github.com/TeamNewPipe/NewPipeExtractor/releases
+newpipe = "v0.26.0"
 
 # Testing
 junit = "4.13.2"

@@ -148,8 +148,8 @@ fun QueueSheet(
                         isCurrentlyPlaying = index == currentIndex,
                         onClick = {
                             if (isMusicPlaying) {
-                                // Use MusicPlaybackManager's seekToQueueIndex which triggers actual playback
-                                musicPlaybackManager.seekToQueueIndex(index)
+                                // Use MusicPlaybackManager's skipToQueueIndex which triggers actual playback
+                                musicPlaybackManager.skipToQueueIndex(index)
                             } else {
                                 // Video queue - use MediaController
                                 mediaController.playbackQueue.skipToIndex(index)

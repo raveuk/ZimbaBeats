@@ -252,8 +252,7 @@ class MusicPlaybackManager(
             }
 
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-                // Sync app state when ExoPlayer changes tracks (via notification or auto-advance)
-                val mediaId = mediaItem?.mediaId ?: return
+                // Log media item transitions for debugging
                 val reasonStr = when (reason) {
                     Player.MEDIA_ITEM_TRANSITION_REASON_AUTO -> "AUTO"
                     Player.MEDIA_ITEM_TRANSITION_REASON_SEEK -> "SEEK"
@@ -261,29 +260,7 @@ class MusicPlaybackManager(
                     Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT -> "REPEAT"
                     else -> "UNKNOWN"
                 }
-                Log.d(TAG, "Media item transition: $mediaId, reason: $reasonStr")
-
-                // Update app state to match ExoPlayer's current item
-                val state = _playbackState.value
-                val newIndex = state.queue.indexOfFirst { it.id == mediaId }
-
-                // Always update state when track changes - don't skip based on index matching
-                // because the currentTrack could be stale even if index matches
-                if (newIndex >= 0) {
-                    val newTrack = state.queue[newIndex]
-                    // Only update if the actual track changed (not just a recomposition)
-                    if (state.currentTrack?.id != mediaId) {
-                        Log.d(TAG, "Syncing app state: index $newIndex, track: ${newTrack.title}")
-                        _playbackState.value = state.copy(
-                            currentIndex = newIndex,
-                            currentTrack = newTrack
-                        )
-                        loadedTrackId = mediaId
-                    }
-                } else {
-                    // Track not in current queue - this can happen if queue was cleared/changed
-                    Log.w(TAG, "Track $mediaId not found in current queue of ${state.queue.size} items")
-                }
+                Log.d(TAG, "Media item transition, reason: $reasonStr")
             }
         })
     }
@@ -535,11 +512,12 @@ class MusicPlaybackManager(
 
     /**
      * Play media through the MediaController (PlaybackService)
+     * Creates a MediaItem with metadata for the notification.
      *
-     * FULL QUEUE APPROACH (like SimpMusic):
-     * Loads ALL queue items into ExoPlayer with just track IDs as URIs.
-     * The StreamResolvingDataSourceFactory resolves URLs on-demand when playback starts.
-     * This allows notification next/previous buttons to work correctly.
+     * SIMPLE SINGLE-TRACK APPROACH (proven to work):
+     * Plays ONE track at a time with pre-resolved stream URL.
+     * Queue navigation is handled by loadTrack() for each track.
+     * This avoids track ID mismatch issues with on-demand resolution.
      */
     private fun playViaMediaController(streamUrl: String, track: Track) {
         val controller = mediaController
@@ -551,62 +529,25 @@ class MusicPlaybackManager(
             return
         }
 
-        val state = _playbackState.value
-        val queue = state.queue
-        val currentIndex = state.currentIndex
+        Log.d(TAG, "Playing via MediaController: ${track.title}")
 
-        Log.d(TAG, "Playing via MediaController: ${track.title} (index $currentIndex of ${queue.size})")
+        val mediaItem = MediaItem.Builder()
+            .setUri(Uri.parse(streamUrl))
+            .setMediaMetadata(
+                MediaMetadata.Builder()
+                    .setTitle(track.title)
+                    .setArtist(track.artistName)
+                    .setAlbumTitle(track.albumName)
+                    .setArtworkUri(track.thumbnailUrl?.let { Uri.parse(it) })
+                    .build()
+            )
+            .build()
 
-        // Build MediaItems for ALL tracks in queue with track ID as URI
-        // The ResolvingDataSource will resolve the actual stream URL on-demand
-        val mediaItems = queue.map { queueTrack ->
-            MediaItem.Builder()
-                .setMediaId(queueTrack.id)
-                // Use track ID as URI - StreamResolvingDataSourceFactory will resolve it
-                .setUri(queueTrack.id)
-                // CRITICAL: setCustomCacheKey ensures dataSpec.key is set for our resolver
-                .setCustomCacheKey(queueTrack.id)
-                .setMediaMetadata(
-                    MediaMetadata.Builder()
-                        .setTitle(queueTrack.title)
-                        .setArtist(queueTrack.artistName)
-                        .setAlbumTitle(queueTrack.albumName)
-                        .setArtworkUri(queueTrack.thumbnailUrl?.let { Uri.parse(it) })
-                        .build()
-                )
-                .build()
-        }
-
-        if (mediaItems.isEmpty()) {
-            // Fallback: play single track with pre-resolved URL if queue is empty
-            Log.w(TAG, "Queue empty, falling back to single track playback")
-            val singleItem = MediaItem.Builder()
-                .setMediaId(track.id)
-                .setUri(streamUrl)
-                .setCustomCacheKey(track.id)
-                .setMediaMetadata(
-                    MediaMetadata.Builder()
-                        .setTitle(track.title)
-                        .setArtist(track.artistName)
-                        .setAlbumTitle(track.albumName)
-                        .setArtworkUri(track.thumbnailUrl?.let { Uri.parse(it) })
-                        .build()
-                )
-                .build()
-            controller.setMediaItem(singleItem)
-            controller.prepare()
-            controller.play()
-            Log.d(TAG, "Single track playback started for: ${track.title}")
-            return
-        }
-
-        // Set full queue and seek to current index
-        Log.d(TAG, "Setting ${mediaItems.size} items in ExoPlayer queue, starting at index $currentIndex")
-        controller.setMediaItems(mediaItems, currentIndex, 0L)
+        controller.setMediaItem(mediaItem)
         controller.prepare()
         controller.play()
 
-        Log.d(TAG, "Full queue loaded, playback started for: ${track.title}")
+        Log.d(TAG, "Playback started via service for: ${track.title}")
     }
 
     fun play() {
@@ -622,73 +563,50 @@ class MusicPlaybackManager(
     }
 
     fun skipToNext() {
-        val controller = mediaController
-        if (controller != null && controller.hasNextMediaItem()) {
-            Log.d(TAG, "Skipping to next via ExoPlayer")
-            controller.seekToNextMediaItem()
-            // State will be updated via onMediaItemTransition listener
+        val state = _playbackState.value
+        val nextIndex = state.currentIndex + 1
+        if (nextIndex < state.queue.size) {
+            Log.d(TAG, "Skipping to next: index $nextIndex of ${state.queue.size}")
+            _playbackState.value = state.copy(currentIndex = nextIndex)
+            loadedTrackId = null
+            loadTrack(state.queue[nextIndex].id)
         } else {
-            Log.d(TAG, "No next item in ExoPlayer queue")
+            Log.d(TAG, "No next track in queue")
         }
     }
 
     fun skipToPrevious() {
         val controller = mediaController
-        if (controller == null) return
-
-        // If more than 3 seconds played, restart current track
-        if (controller.currentPosition > 3000) {
+        if (controller != null && controller.currentPosition > 3000) {
             controller.seekTo(0)
             return
         }
 
-        // Otherwise go to previous
-        if (controller.hasPreviousMediaItem()) {
-            Log.d(TAG, "Skipping to previous via ExoPlayer")
-            controller.seekToPreviousMediaItem()
-            // State will be updated via onMediaItemTransition listener
+        val state = _playbackState.value
+        val prevIndex = state.currentIndex - 1
+        if (prevIndex >= 0) {
+            Log.d(TAG, "Skipping to previous: index $prevIndex")
+            _playbackState.value = state.copy(currentIndex = prevIndex)
+            loadedTrackId = null
+            loadTrack(state.queue[prevIndex].id)
         } else {
-            controller.seekTo(0)
+            controller?.seekTo(0)
         }
     }
 
     /**
-     * Check if queue is loaded in ExoPlayer and ready for seek operations.
+     * Skip to a specific index in the queue.
+     * Uses loadTrack() to properly resolve and play the track.
      */
-    fun isQueueLoaded(): Boolean {
-        val controller = mediaController ?: return false
-        return isServiceConnected && controller.mediaItemCount > 0
-    }
-
-    /**
-     * Seek to a specific index in the already-loaded ExoPlayer queue.
-     * Use this when clicking queue items instead of loadTrack() to avoid reloading the queue.
-     * Falls back to loadTrack() if controller not ready or queue not loaded.
-     */
-    fun seekToQueueIndex(index: Int) {
-        val controller = mediaController
-        val queue = _playbackState.value.queue
-
-        // Fallback if controller not ready or queue not loaded in ExoPlayer
-        if (controller == null || !isServiceConnected || controller.mediaItemCount == 0) {
-            Log.w(TAG, "Controller not ready (connected=$isServiceConnected, items=${controller?.mediaItemCount ?: 0}), falling back to loadTrack()")
-            if (index in queue.indices) {
-                loadTrack(queue[index].id)
-            }
-            return
-        }
-
-        val mediaItemCount = controller.mediaItemCount
-        if (index in 0 until mediaItemCount) {
-            Log.d(TAG, "Seeking to queue index: $index of $mediaItemCount")
-            controller.seekTo(index, 0L)
-            // State will be updated via onMediaItemTransition listener
+    fun skipToQueueIndex(index: Int) {
+        val state = _playbackState.value
+        if (index in state.queue.indices) {
+            Log.d(TAG, "Skipping to queue index: $index")
+            _playbackState.value = state.copy(currentIndex = index)
+            loadedTrackId = null
+            loadTrack(state.queue[index].id)
         } else {
-            Log.w(TAG, "Invalid queue index: $index, mediaItemCount: $mediaItemCount, falling back to loadTrack()")
-            // Fallback: index doesn't match ExoPlayer queue, use loadTrack
-            if (index in queue.indices) {
-                loadTrack(queue[index].id)
-            }
+            Log.w(TAG, "Invalid queue index: $index, queue size: ${state.queue.size}")
         }
     }
 

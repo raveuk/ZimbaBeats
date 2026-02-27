@@ -219,8 +219,8 @@ class MusicPlayerViewModel(
         if (index in queue.indices) {
             recordListen()
             _uiState.value = _uiState.value.copy(currentIndex = index)
-            // Use direct seek instead of loadTrack to avoid reloading the queue
-            musicPlaybackManager.seekToQueueIndex(index)
+            // Use skipToQueueIndex to load and play the track
+            musicPlaybackManager.skipToQueueIndex(index)
         }
     }
 

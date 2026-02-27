@@ -38,7 +38,10 @@ class StreamResolvingDataSourceFactory(
     private inner class Resolver : ResolvingDataSource.Resolver {
         override fun resolveDataSpec(dataSpec: DataSpec): DataSpec {
             val mediaId = dataSpec.key ?: dataSpec.uri.toString()
-            Log.d(TAG, "Resolving stream for: $mediaId")
+            Log.d(TAG, "=== RESOLVING STREAM ===")
+            Log.d(TAG, "  mediaId (key): ${dataSpec.key}")
+            Log.d(TAG, "  uri: ${dataSpec.uri}")
+            Log.d(TAG, "  resolved mediaId: $mediaId")
 
             // Check if already a full URL (http/https)
             if (mediaId.startsWith("http://") || mediaId.startsWith("https://")) {
@@ -49,6 +52,7 @@ class StreamResolvingDataSourceFactory(
             // Check cache first
             urlCache[mediaId]?.let { cachedUrl ->
                 Log.d(TAG, "Using cached URL for: $mediaId")
+                Log.d(TAG, "  cached URL: ${cachedUrl.take(100)}...")
                 return dataSpec.withUri(cachedUrl.toUri())
             }
 
@@ -60,6 +64,8 @@ class StreamResolvingDataSourceFactory(
             }
 
             // Resolve stream URL
+            Log.d(TAG, "Cache miss - resolving stream for: $mediaId")
+            Log.d(TAG, "Current cache state: ${urlCache.keys.joinToString(", ")}")
             val streamUrl = runBlocking(Dispatchers.IO) {
                 try {
                     resolver.resolveStreamUrl(mediaId)
@@ -71,6 +77,7 @@ class StreamResolvingDataSourceFactory(
 
             return if (streamUrl != null) {
                 Log.d(TAG, "Resolved stream URL for: $mediaId")
+                Log.d(TAG, "  new URL: ${streamUrl.take(100)}...")
                 urlCache[mediaId] = streamUrl
                 dataSpec.withUri(streamUrl.toUri())
             } else {

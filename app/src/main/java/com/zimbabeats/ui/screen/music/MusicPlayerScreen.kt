@@ -102,16 +102,22 @@ fun MusicPlayerScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Now Playing",
+                        text = if (showQueue) "Up Next" else "Now Playing",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Medium
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = {
+                        if (showQueue) {
+                            showQueue = false  // Go back to player view
+                        } else {
+                            onNavigateBack()   // Exit player screen
+                        }
+                    }) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = if (showQueue) "Back to player" else "Back"
                         )
                     }
                 },
