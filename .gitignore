@@ -29,5 +29,15 @@ google-services.json
 .claude/
 nul
 
+# Sensitive/Security files - never commit
+CLAUDE.md
+.firebaserc
+*templog*.txt
+*.env
+credentials.json
+secrets.json
+*.pem
+*.key
+
 # Build outputs
 **/build/
