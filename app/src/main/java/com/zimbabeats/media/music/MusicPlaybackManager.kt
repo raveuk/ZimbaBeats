@@ -643,13 +643,28 @@ class MusicPlaybackManager(
     }
 
     /**
+     * Check if queue is loaded in ExoPlayer and ready for seek operations.
+     */
+    fun isQueueLoaded(): Boolean {
+        val controller = mediaController ?: return false
+        return isServiceConnected && controller.mediaItemCount > 0
+    }
+
+    /**
      * Seek to a specific index in the already-loaded ExoPlayer queue.
      * Use this when clicking queue items instead of loadTrack() to avoid reloading the queue.
+     * Falls back to loadTrack() if controller not ready or queue not loaded.
      */
     fun seekToQueueIndex(index: Int) {
         val controller = mediaController
-        if (controller == null) {
-            Log.w(TAG, "Cannot seek to queue index: MediaController not connected")
+        val queue = _playbackState.value.queue
+
+        // Fallback if controller not ready or queue not loaded in ExoPlayer
+        if (controller == null || !isServiceConnected || controller.mediaItemCount == 0) {
+            Log.w(TAG, "Controller not ready (connected=$isServiceConnected, items=${controller?.mediaItemCount ?: 0}), falling back to loadTrack()")
+            if (index in queue.indices) {
+                loadTrack(queue[index].id)
+            }
             return
         }
 
@@ -659,7 +674,11 @@ class MusicPlaybackManager(
             controller.seekTo(index, 0L)
             // State will be updated via onMediaItemTransition listener
         } else {
-            Log.w(TAG, "Invalid queue index: $index, mediaItemCount: $mediaItemCount")
+            Log.w(TAG, "Invalid queue index: $index, mediaItemCount: $mediaItemCount, falling back to loadTrack()")
+            // Fallback: index doesn't match ExoPlayer queue, use loadTrack
+            if (index in queue.indices) {
+                loadTrack(queue[index].id)
+            }
         }
     }
 
