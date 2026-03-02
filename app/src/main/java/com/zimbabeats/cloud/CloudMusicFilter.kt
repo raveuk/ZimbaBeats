@@ -513,6 +513,7 @@ class CloudMusicFilter(
 
         try {
             val historyData = hashMapOf(
+                "contentType" to "music",
                 "trackId" to trackId,
                 "title" to title,
                 "artistName" to artistName,
@@ -520,16 +521,17 @@ class CloudMusicFilter(
                 "thumbnailUrl" to thumbnailUrl,
                 "durationSeconds" to durationSeconds,
                 "listenedSeconds" to listenedSeconds,
-                "listenedAt" to Date(),
+                "watchedAt" to Date(),  // Use consistent field name for parent app
                 "wasBlocked" to wasBlocked,
                 "blockReason" to blockReason,
                 "deviceId" to deviceId,
                 "childName" to childName
             )
 
+            // Write to watch_history (same collection as videos) for unified parent view
             firestore.collection(COLLECTION_FAMILIES)
                 .document(uid)
-                .collection(COLLECTION_MUSIC_HISTORY)
+                .collection("watch_history")
                 .add(historyData)
                 .await()
 

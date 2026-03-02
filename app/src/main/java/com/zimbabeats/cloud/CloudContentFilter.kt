@@ -610,6 +610,7 @@ class CloudContentFilter(
 
         try {
             val historyData = hashMapOf(
+                "contentType" to "video",
                 "videoId" to videoId,
                 "title" to title,
                 "channelId" to channelId,
