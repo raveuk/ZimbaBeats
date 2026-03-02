@@ -31,7 +31,7 @@ room = "2.8.1"
 koin = "4.1.1"
 
 # Ktor
-ktor = "3.3.0"
+ktor = "3.4.0"
 
 # Coil
 coil = "3.3.0"
