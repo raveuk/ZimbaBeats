@@ -50,8 +50,8 @@ dependencies {
     api(libs.androidx.media3.ui)
     api(libs.androidx.media3.session)
     api(libs.androidx.media3.common)
-    implementation("androidx.media3:media3-datasource:1.5.0")
-    implementation("androidx.media3:media3-exoplayer-hls:1.5.0")
+    implementation("androidx.media3:media3-datasource:1.9.2")
+    implementation("androidx.media3:media3-exoplayer-hls:1.9.2")
 
     // Coroutines
     implementation(libs.kotlinx.coroutines.core)
