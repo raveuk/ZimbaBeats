@@ -41,3 +41,8 @@ secrets.json
 
 # Build outputs
 **/build/
+
+# Node modules - never commit
+node_modules/
+**/node_modules/
+functions/node_modules/
