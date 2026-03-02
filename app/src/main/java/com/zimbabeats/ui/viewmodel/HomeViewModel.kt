@@ -856,9 +856,9 @@ class HomeViewModel(
         filteredVideos
     }
 
-    fun toggleFavorite(videoId: String) {
+    fun toggleFavorite(video: Video) {
         viewModelScope.launch {
-            when (val result = videoRepository.toggleFavorite(videoId)) {
+            when (val result = videoRepository.toggleFavorite(video)) {
                 is Resource.Error -> {
                     _uiState.value = _uiState.value.copy(error = result.message)
                 }

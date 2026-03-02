@@ -4,6 +4,7 @@ import android.app.PendingIntent
 import android.content.Intent
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
+import androidx.media3.common.ForwardingPlayer
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultHttpDataSource
@@ -13,19 +14,27 @@ import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import com.zimbabeats.media.R
-import com.zimbabeats.media.datasource.StreamResolvingDataSourceFactory
 import com.zimbabeats.media.notification.PlaybackNotificationManager
+import com.zimbabeats.media.datasource.QueueStateHolder
 import android.util.Log
 
 /**
- * Background playback service for MarelikayBeats
- * Handles media playback even when app is in background
+ * Background playback service for ZimbaBeats
+ * Handles media playback even when app is in background.
+ *
+ * NOTE: Using single-track playback approach where MusicPlaybackManager
+ * handles queue navigation. This service just plays whatever MediaItem
+ * is set by the controller.
+ *
+ * Fix High #4: Removed conflicting auto-advance logic - MusicPlaybackManager handles this.
+ * Fix Medium #9: Removed unused StreamResolvingDataSourceFactory.
  */
 @UnstableApi
 class PlaybackService : MediaSessionService() {
 
     private var mediaSession: MediaSession? = null
     private lateinit var player: ExoPlayer
+    private lateinit var forwardingPlayer: ForwardingPlayer
     private lateinit var notificationManager: PlaybackNotificationManager
 
     override fun onCreate() {
@@ -51,12 +60,11 @@ class PlaybackService : MediaSessionService() {
 
     private fun initializePlayer() {
         val audioAttributes = AudioAttributes.Builder()
-            .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
+            .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
             .setUsage(C.USAGE_MEDIA)
             .build()
 
-        // Create base HTTP data source factory with YouTube TV/embedded client headers
-        // TV client streams often bypass "n" parameter throttling
+        // Simple HTTP data source - streams are pre-resolved by MusicPlaybackManager
         val httpDataSourceFactory = DefaultHttpDataSource.Factory()
             .setUserAgent("Mozilla/5.0 (ChromiumStylePlatform) Cobalt/Version")
             .setDefaultRequestProperties(mapOf(
@@ -69,12 +77,7 @@ class PlaybackService : MediaSessionService() {
             .setReadTimeoutMs(30000)
             .setAllowCrossProtocolRedirects(true)
 
-        // Wrap with StreamResolvingDataSourceFactory for on-demand URL resolution
-        // This allows loading full queue with just track IDs, resolving streams when playback starts
-        val resolvingDataSourceFactory = StreamResolvingDataSourceFactory(httpDataSourceFactory)
-        Log.d("PlaybackService", "Created StreamResolvingDataSourceFactory for on-demand URL resolution")
-
-        val mediaSourceFactory = DefaultMediaSourceFactory(resolvingDataSourceFactory)
+        val mediaSourceFactory = DefaultMediaSourceFactory(httpDataSourceFactory)
 
         player = ExoPlayer.Builder(this)
             .setMediaSourceFactory(mediaSourceFactory)
@@ -85,24 +88,94 @@ class PlaybackService : MediaSessionService() {
             .setSeekForwardIncrementMs(10_000) // 10 seconds
             .build()
 
-        player.addListener(object : Player.Listener {
-            override fun onPlaybackStateChanged(playbackState: Int) {
-                when (playbackState) {
-                    Player.STATE_ENDED -> {
-                        // Auto-play next in queue
-                        if (player.hasNextMediaItem()) {
-                            player.seekToNextMediaItem()
+        // Create a ForwardingPlayer that reports next/previous availability from our queue
+        // This allows the notification to show next/prev buttons even with single-track mode
+        forwardingPlayer = object : ForwardingPlayer(player) {
+            override fun getAvailableCommands(): Player.Commands {
+                val commands = super.getAvailableCommands()
+                val navigator = QueueStateHolder.navigator
+
+                // Build new commands with next/prev based on our queue state
+                return Player.Commands.Builder()
+                    .addAll(commands)
+                    .apply {
+                        if (navigator?.hasNext() == true) {
+                            add(Player.COMMAND_SEEK_TO_NEXT)
+                            add(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
+                        }
+                        if (navigator?.hasPrevious() == true) {
+                            add(Player.COMMAND_SEEK_TO_PREVIOUS)
+                            add(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
                         }
                     }
+                    .build()
+            }
+
+            override fun isCommandAvailable(command: Int): Boolean {
+                val navigator = QueueStateHolder.navigator
+                return when (command) {
+                    Player.COMMAND_SEEK_TO_NEXT, Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM ->
+                        navigator?.hasNext() == true || super.isCommandAvailable(command)
+                    Player.COMMAND_SEEK_TO_PREVIOUS, Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM ->
+                        navigator?.hasPrevious() == true || super.isCommandAvailable(command)
+                    else -> super.isCommandAvailable(command)
                 }
             }
 
+            override fun hasNextMediaItem(): Boolean {
+                return QueueStateHolder.navigator?.hasNext() == true || super.hasNextMediaItem()
+            }
+
+            override fun hasPreviousMediaItem(): Boolean {
+                return QueueStateHolder.navigator?.hasPrevious() == true || super.hasPreviousMediaItem()
+            }
+
+            override fun seekToNext() {
+                val navigator = QueueStateHolder.navigator
+                if (navigator?.hasNext() == true) {
+                    Log.d("PlaybackService", "ForwardingPlayer: seekToNext via QueueNavigator")
+                    navigator.skipToNext()
+                } else {
+                    super.seekToNext()
+                }
+            }
+
+            override fun seekToPrevious() {
+                val navigator = QueueStateHolder.navigator
+                // If position > 3 seconds, seek to start instead of previous track
+                if (currentPosition > 3000) {
+                    seekTo(0)
+                    return
+                }
+                if (navigator?.hasPrevious() == true) {
+                    Log.d("PlaybackService", "ForwardingPlayer: seekToPrevious via QueueNavigator")
+                    navigator.skipToPrevious()
+                } else {
+                    super.seekToPrevious()
+                }
+            }
+
+            override fun seekToNextMediaItem() {
+                seekToNext()
+            }
+
+            override fun seekToPreviousMediaItem() {
+                seekToPrevious()
+            }
+        }
+
+        // Fix High #4: Removed onPlaybackStateChanged auto-advance logic
+        // MusicPlaybackManager.setupTrackCompletionListener() handles auto-advance
+        // to avoid conflicting queue management
+        player.addListener(object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 if (isPlaying) {
                     notificationManager.showNotification()
                 }
             }
         })
+
+        Log.d("PlaybackService", "Player initialized with ForwardingPlayer for queue navigation")
     }
 
     private fun initializeMediaSession() {
@@ -115,7 +188,8 @@ class PlaybackService : MediaSessionService() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
-        mediaSession = MediaSession.Builder(this, player)
+        // Use forwardingPlayer for the session so notification shows correct next/prev state
+        mediaSession = MediaSession.Builder(this, forwardingPlayer)
             .setSessionActivity(sessionActivityPendingIntent)
             .setCallback(MediaSessionCallback())
             .build()

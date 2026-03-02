@@ -493,7 +493,7 @@ class VideoPlayerViewModel(
     fun toggleFavorite() {
         viewModelScope.launch {
             val video = _uiState.value.video ?: return@launch
-            val result = videoRepository.toggleFavorite(video.id)
+            val result = videoRepository.toggleFavorite(video)
 
             if (result is Resource.Error) {
                 Log.e(TAG, "Failed to toggle favorite: ${result.message}")

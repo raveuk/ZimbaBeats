@@ -32,9 +32,9 @@ interface VideoRepository {
     // Favorites
     fun getFavoriteVideos(): Flow<List<Video>>
     fun isVideoFavorite(videoId: String): Flow<Boolean>
-    suspend fun addToFavorites(videoId: String): Resource<Unit>
+    suspend fun addToFavorites(video: Video): Resource<Unit>
     suspend fun removeFromFavorites(videoId: String): Resource<Unit>
-    suspend fun toggleFavorite(videoId: String): Resource<Unit>
+    suspend fun toggleFavorite(video: Video): Resource<Unit>
 
     // Watch history
     fun getWatchHistory(limit: Int = 50): Flow<List<Video>>

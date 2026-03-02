@@ -7,6 +7,7 @@ import com.zimbabeats.core.data.local.entity.WatchHistoryEntity
 import com.zimbabeats.core.data.mapper.toDomain
 import com.zimbabeats.core.data.mapper.toDomainModel
 import com.zimbabeats.core.data.mapper.toEntity
+import com.zimbabeats.core.data.mapper.toFavoriteEntity
 import com.zimbabeats.core.data.remote.youtube.YouTubeException
 import com.zimbabeats.core.data.remote.youtube.YouTubeService
 import com.zimbabeats.core.domain.model.Video
@@ -31,8 +32,8 @@ class VideoRepositoryImpl(
 
     override fun getAllVideos(): Flow<List<Video>> = combine(
         videoDao.getAllVideos(),
-        favoriteVideoDao.getAllFavoriteVideos().map { it.map { v -> v.id } },
-        downloadedVideoDao.getAllDownloadedVideos().map { it.map { v -> v.id } }
+        favoriteVideoDao.getAllFavoriteVideos().map { favorites -> favorites.map { it.videoId } },
+        downloadedVideoDao.getAllDownloadedVideos().map { downloads -> downloads.map { it.id } }
     ) { videos, favoriteIds, downloadedIds ->
         videos.map { entity ->
             entity.toDomain(
@@ -129,19 +130,15 @@ class VideoRepositoryImpl(
     }
 
     override fun getFavoriteVideos(): Flow<List<Video>> =
-        favoriteVideoDao.getAllFavoriteVideos().map { videos ->
-            videos.map { it.toDomain(isFavorite = true) }
+        favoriteVideoDao.getAllFavoriteVideos().map { favorites ->
+            favorites.map { it.toDomain() }
         }
 
     override fun isVideoFavorite(videoId: String): Flow<Boolean> =
         favoriteVideoDao.isFavorite(videoId)
 
-    override suspend fun addToFavorites(videoId: String): Resource<Unit> = try {
-        val favorite = FavoriteVideoEntity(
-            videoId = videoId,
-            addedAt = System.currentTimeMillis()
-        )
-        favoriteVideoDao.insertFavorite(favorite)
+    override suspend fun addToFavorites(video: Video): Resource<Unit> = try {
+        favoriteVideoDao.insertFavorite(video.toFavoriteEntity())
         Resource.success(Unit)
     } catch (e: Exception) {
         Resource.error("Failed to add to favorites: ${e.message}", e)
@@ -154,17 +151,12 @@ class VideoRepositoryImpl(
         Resource.error("Failed to remove from favorites: ${e.message}", e)
     }
 
-    override suspend fun toggleFavorite(videoId: String): Resource<Unit> = try {
-        val existing = favoriteVideoDao.getFavoriteVideo(videoId)
+    override suspend fun toggleFavorite(video: Video): Resource<Unit> = try {
+        val existing = favoriteVideoDao.getFavoriteVideo(video.id)
         if (existing != null) {
-            favoriteVideoDao.deleteFavorite(videoId)
+            favoriteVideoDao.deleteFavorite(video.id)
         } else {
-            favoriteVideoDao.insertFavorite(
-                FavoriteVideoEntity(
-                    videoId = videoId,
-                    addedAt = System.currentTimeMillis()
-                )
-            )
+            favoriteVideoDao.insertFavorite(video.toFavoriteEntity())
         }
         Resource.success(Unit)
     } catch (e: Exception) {

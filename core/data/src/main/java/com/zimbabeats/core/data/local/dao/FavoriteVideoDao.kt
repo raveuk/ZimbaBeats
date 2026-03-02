@@ -1,18 +1,17 @@
-﻿package com.zimbabeats.core.data.local.dao
+package com.zimbabeats.core.data.local.dao
 
 import androidx.room.*
 import com.zimbabeats.core.data.local.entity.FavoriteVideoEntity
-import com.zimbabeats.core.data.local.entity.VideoEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface FavoriteVideoDao {
-    @Query("""
-        SELECT v.* FROM videos v
-        INNER JOIN favorite_videos fv ON v.id = fv.videoId
-        ORDER BY fv.addedAt DESC
-    """)
-    fun getAllFavoriteVideos(): Flow<List<VideoEntity>>
+    /**
+     * Get all favorite videos ordered by most recently added.
+     * Returns FavoriteVideoEntity directly since it now contains all video data.
+     */
+    @Query("SELECT * FROM favorite_videos ORDER BY addedAt DESC")
+    fun getAllFavoriteVideos(): Flow<List<FavoriteVideoEntity>>
 
     @Query("SELECT * FROM favorite_videos WHERE videoId = :videoId")
     suspend fun getFavoriteVideo(videoId: String): FavoriteVideoEntity?

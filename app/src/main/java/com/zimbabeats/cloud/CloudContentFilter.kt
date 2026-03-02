@@ -153,6 +153,10 @@ class CloudContentFilter(
                         Log.d(TAG, "Content filter settings loaded from $pathInfo: ${settings.blockedKeywords.size} keywords, " +
                                 "${settings.blockedChannels.size} channels, ageEnabled=${settings.ageBasedFilteringEnabled}, " +
                                 "ageRating=${settings.ageRating}, ${settings.ageBlockedKeywords.size} age keywords")
+                        // Log the actual age keywords for debugging
+                        if (settings.ageBlockedKeywords.isNotEmpty()) {
+                            Log.d(TAG, "Age blocked keywords: ${settings.ageBlockedKeywords}")
+                        }
                     } catch (e: Exception) {
                         Log.e(TAG, "Error parsing filter settings", e)
                     }
@@ -446,6 +450,8 @@ class CloudContentFilter(
         }
 
         // Layer 3: Age-based filtering (synced from parent)
+        // For 16+ users, skip artist name blocking (only block truly inappropriate content keywords)
+        val isOlderUser = settings.ageRating in listOf("SIXTEEN_PLUS", "16+", "EIGHTEEN_PLUS", "18+", "ALL")
         if (settings.ageBasedFilteringEnabled) {
             // Age-based duration check for music
             if (settings.ageMaxDurationSeconds > 0 && durationSeconds > settings.ageMaxDurationSeconds) {
@@ -455,11 +461,33 @@ class CloudContentFilter(
             }
 
             // Age-based keyword check for music
-            for (keyword in settings.ageBlockedKeywords) {
-                if (textToCheck.contains(keyword.lowercase())) {
-                    Log.d(TAG, "Age-based music keyword block: found '$keyword' in content (age: ${settings.ageRating})")
-                    return BlockResult(true, BlockReason.AGE_RESTRICTED, "Contains age-inappropriate content")
+            // For 16+ users, only check truly inappropriate keywords (not artist names)
+            val keywordsToCheck = if (isOlderUser) {
+                // Filter out artist names - only keep content-type keywords for 16+
+                val artistNames = listOf(
+                    "taylor swift", "ariana grande", "beyonce", "rihanna", "drake", "kanye",
+                    "eminem", "cardi b", "megan thee stallion", "doja cat", "dua lipa",
+                    "billie eilish", "olivia rodrigo", "the weeknd", "bad bunny", "post malone",
+                    "kendrick lamar", "travis scott", "nicki minaj", "chris brown", "lil nas x",
+                    "miley cyrus", "pitbull", "jason derulo", "halsey"
+                )
+                settings.ageBlockedKeywords.filter { keyword ->
+                    keyword.lowercase() !in artistNames
                 }
+            } else {
+                settings.ageBlockedKeywords
+            }
+
+            for (keyword in keywordsToCheck) {
+                if (textToCheck.contains(keyword.lowercase())) {
+                    Log.d(TAG, "Age-based music keyword block: found '$keyword' in '$title' by '$artistName' (age: ${settings.ageRating})")
+                    Log.d(TAG, "  Full text checked: $textToCheck")
+                    return BlockResult(true, BlockReason.AGE_RESTRICTED, "Contains age-inappropriate content: $keyword")
+                }
+            }
+
+            if (isOlderUser) {
+                Log.d(TAG, "16+ user - skipped artist name keywords, only checking content keywords")
             }
         }
 

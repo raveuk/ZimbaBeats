@@ -1,5 +1,6 @@
 ﻿package com.zimbabeats.core.data.mapper
 
+import com.zimbabeats.core.data.local.entity.FavoriteVideoEntity
 import com.zimbabeats.core.data.local.entity.VideoEntity
 import com.zimbabeats.core.data.local.entity.VideoProgressEntity
 import com.zimbabeats.core.domain.model.AgeRating
@@ -82,3 +83,41 @@ fun String.toVideoCategory(): VideoCategory? = try {
 } catch (e: IllegalArgumentException) {
     null
 }
+
+// FavoriteVideoEntity mappers
+
+fun FavoriteVideoEntity.toDomain(): Video = Video(
+    id = videoId,
+    title = title,
+    description = description,
+    thumbnailUrl = thumbnailUrl,
+    channelName = channelName,
+    channelId = channelId,
+    duration = duration,
+    viewCount = viewCount,
+    publishedAt = publishedAt,
+    isKidFriendly = isKidFriendly,
+    ageRating = ageRating.toAgeRating(),
+    category = category?.toVideoCategory(),
+    addedAt = addedAt,
+    lastAccessedAt = addedAt,
+    isFavorite = true,  // Always true for favorite entities
+    isDownloaded = false,
+    progress = null
+)
+
+fun Video.toFavoriteEntity(): FavoriteVideoEntity = FavoriteVideoEntity(
+    videoId = id,
+    title = title,
+    description = description,
+    thumbnailUrl = thumbnailUrl,
+    channelName = channelName,
+    channelId = channelId,
+    duration = duration,
+    viewCount = viewCount,
+    publishedAt = publishedAt,
+    isKidFriendly = isKidFriendly,
+    ageRating = ageRating.toEntityString(),
+    category = category?.name,
+    addedAt = System.currentTimeMillis()
+)

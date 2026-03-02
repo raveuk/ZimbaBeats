@@ -32,7 +32,7 @@ import com.zimbabeats.core.data.local.entity.music.*
         FavoriteTrackEntity::class,
         MusicListeningHistoryEntity::class
     ],
-    version = 10,  // Fixed foreign key CASCADE to NO_ACTION for playlist items
+    version = 11,  // Denormalized favorite_videos table to store full video data
     exportSchema = false
 )
 abstract class ZimbaBeatsDatabase : RoomDatabase() {

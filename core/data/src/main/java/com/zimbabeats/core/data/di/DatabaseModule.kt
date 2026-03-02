@@ -5,6 +5,7 @@ import com.zimbabeats.core.data.local.database.ZimbaBeatsDatabase
 import com.zimbabeats.core.data.local.migrations.MIGRATION_7_8
 import com.zimbabeats.core.data.local.migrations.MIGRATION_8_9
 import com.zimbabeats.core.data.local.migrations.MIGRATION_9_10
+import com.zimbabeats.core.data.local.migrations.MIGRATION_10_11
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
@@ -16,7 +17,7 @@ val databaseModule = module {
             ZimbaBeatsDatabase::class.java,
             "marelikaybeats_database"
         )
-            .addMigrations(MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
+            .addMigrations(MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11)
             // REMOVED: fallbackToDestructiveMigration() - This was wiping user data on updates!
             // All migrations must be properly defined to preserve user data
             .build()

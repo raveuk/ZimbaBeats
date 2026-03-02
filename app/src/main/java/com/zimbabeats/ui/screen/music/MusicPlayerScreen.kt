@@ -50,6 +50,7 @@ fun MusicPlayerScreen(
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
     val playerState by viewModel.playerState.collectAsState()
+    val playbackState by viewModel.playbackState.collectAsState()
 
     // Keep screen on while music player is active
     DisposableEffect(Unit) {
@@ -137,10 +138,10 @@ fun MusicPlayerScreen(
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         if (showQueue) {
-            // Queue view
+            // Queue view - use playbackState for queue (single source of truth)
             QueueView(
-                queue = uiState.queue,
-                currentIndex = uiState.currentIndex,
+                queue = playbackState.queue,
+                currentIndex = playbackState.currentIndex,
                 onTrackClick = { index -> viewModel.skipToIndex(index) },
                 modifier = Modifier
                     .fillMaxSize()

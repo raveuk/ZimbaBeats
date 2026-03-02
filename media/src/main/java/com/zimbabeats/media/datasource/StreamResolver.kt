@@ -22,3 +22,22 @@ interface StreamResolver {
 object StreamResolverHolder {
     var resolver: StreamResolver? = null
 }
+
+/**
+ * Interface for queue navigation commands.
+ * Implemented by MusicPlaybackManager to receive notification button presses.
+ */
+interface QueueNavigator {
+    fun skipToNext()
+    fun skipToPrevious()
+    fun hasNext(): Boolean
+    fun hasPrevious(): Boolean
+}
+
+/**
+ * Singleton holder for queue state and navigation.
+ * Allows PlaybackService to know about the queue and handle next/previous.
+ */
+object QueueStateHolder {
+    var navigator: QueueNavigator? = null
+}

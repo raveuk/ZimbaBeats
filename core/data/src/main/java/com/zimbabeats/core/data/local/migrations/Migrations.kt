@@ -113,3 +113,67 @@ val MIGRATION_9_10 = object : Migration(9, 10) {
         database.execSQL("CREATE INDEX IF NOT EXISTS index_video_playlist_tracks_trackId ON video_playlist_tracks(trackId)")
     }
 }
+
+/**
+ * Migration from version 10 to 11: Denormalized favorite_videos table
+ *
+ * Previously favorite_videos only stored videoId with a foreign key to videos table.
+ * This caused favorites to be deleted when the video cache was cleared (on app startup).
+ *
+ * New structure stores full video metadata in favorite_videos, making favorites
+ * independent of the video cache.
+ */
+val MIGRATION_10_11 = object : Migration(10, 11) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        // Create new denormalized favorite_videos table
+        database.execSQL("""
+            CREATE TABLE IF NOT EXISTS favorite_videos_new (
+                videoId TEXT NOT NULL PRIMARY KEY,
+                title TEXT NOT NULL,
+                description TEXT,
+                thumbnailUrl TEXT NOT NULL,
+                channelName TEXT NOT NULL,
+                channelId TEXT NOT NULL,
+                duration INTEGER NOT NULL,
+                viewCount INTEGER NOT NULL,
+                publishedAt INTEGER NOT NULL,
+                isKidFriendly INTEGER NOT NULL DEFAULT 1,
+                ageRating TEXT NOT NULL DEFAULT 'ALL',
+                category TEXT,
+                addedAt INTEGER NOT NULL
+            )
+        """.trimIndent())
+
+        // Migrate existing favorites by joining with videos table
+        // Only favorites where the video still exists will be migrated
+        database.execSQL("""
+            INSERT OR IGNORE INTO favorite_videos_new (
+                videoId, title, description, thumbnailUrl, channelName, channelId,
+                duration, viewCount, publishedAt, isKidFriendly, ageRating, category, addedAt
+            )
+            SELECT
+                fv.videoId,
+                v.title,
+                v.description,
+                v.thumbnailUrl,
+                v.channelName,
+                v.channelId,
+                v.duration,
+                v.viewCount,
+                v.publishedAt,
+                v.isKidFriendly,
+                v.ageRating,
+                v.category,
+                fv.addedAt
+            FROM favorite_videos fv
+            INNER JOIN videos v ON fv.videoId = v.id
+        """.trimIndent())
+
+        // Drop old table and rename new one
+        database.execSQL("DROP TABLE IF EXISTS favorite_videos")
+        database.execSQL("ALTER TABLE favorite_videos_new RENAME TO favorite_videos")
+
+        // Create index on videoId
+        database.execSQL("CREATE INDEX IF NOT EXISTS index_favorite_videos_videoId ON favorite_videos(videoId)")
+    }
+}

@@ -40,9 +40,9 @@ class YouTubeMusicClient(private val httpClient: HttpClient) {
         // Firebase Cloud Function for stream extraction (handles n-parameter decryption)
         private const val FIREBASE_FUNCTION_URL = "https://us-central1-zimba-beats.cloudfunctions.net/getAudioStream"
 
-        // WEB_REMIX client for YouTube Music
+        // WEB_REMIX client for YouTube Music (updated to SimpMusic Feb 2026)
         private const val CLIENT_NAME = "WEB_REMIX"
-        private const val CLIENT_VERSION = "1.20260121.03.00"
+        private const val CLIENT_VERSION = "1.20250219.01.00"
 
         // Browse IDs for YouTube Music sections
         private const val BROWSE_ID_HOME = "FEmusic_home"
@@ -399,10 +399,10 @@ class YouTubeMusicClient(private val httpClient: HttpClient) {
 
         // PRIORITY 2: Try iOS client directly - fast and reliable for music tracks
         // iOS client bypasses many restrictions that cause NewPipe to fail
-        // Using InnerTune's working versions: 19.29.1 with iOS 17.5.1
+        // Updated to SimpMusic's working versions: 20.11.6 with iOS 16.7.7
         try {
             Log.d(TAG, "Trying iOS client (fast fallback)...")
-            val iosResult = tryInnertubeClient(videoId, "IOS", "19.29.1", "17.5.1.21F90")
+            val iosResult = tryInnertubeClient(videoId, "IOS", "20.11.6", "16.7.7.20H330")
             if (iosResult != null) {
                 Log.d(TAG, "SUCCESS: Got player data from iOS client: ${iosResult.track.title}")
                 return@withContext iosResult
@@ -753,22 +753,22 @@ class YouTubeMusicClient(private val httpClient: HttpClient) {
     /**
      * Get player data from YouTube innertube API (fallback)
      * Priority order based on SimpMusic's MediaServiceCore:
-     * 1. iOS client (19.29.1) - most reliable for music
-     * 2. ANDROID client (20.10.38) - SimpMusic's primary fallback
+     * 1. iOS client (20.11.6) - most reliable for music
+     * 2. ANDROID client (19.35.36) - SimpMusic's primary fallback
      * 3. TV embed client
      * 4. WEB_SAFARI for HLS streams
      */
     private suspend fun getPlayerDataFromInnertube(videoId: String): PlayerResult? {
-        // Try iOS client first - using SimpMusic's working versions
+        // Try iOS client first - using SimpMusic's working versions (updated Feb 2026)
         Log.d(TAG, "Trying iOS client (SimpMusic config): $videoId")
-        val iosResult = tryInnertubeClient(videoId, "IOS", "19.29.1", "17.5.1.21F90")
+        val iosResult = tryInnertubeClient(videoId, "IOS", "20.11.6", "16.7.7.20H330")
         if (iosResult != null) {
             Log.d(TAG, "iOS client succeeded!")
             return iosResult
         }
 
         // Try ANDROID client - SimpMusic uses this as primary fallback (NOT ANDROID_MUSIC)
-        Log.d(TAG, "iOS failed, trying ANDROID client (20.10.38)")
+        Log.d(TAG, "iOS failed, trying ANDROID client (19.35.36)")
         val androidResult = tryAndroidClient(videoId)
         if (androidResult != null) {
             Log.d(TAG, "ANDROID client succeeded!")
@@ -797,7 +797,7 @@ class YouTubeMusicClient(private val httpClient: HttpClient) {
 
     /**
      * Try ANDROID client - SimpMusic's primary player client
-     * Version 20.10.38, Android 11, SDK 30
+     * Updated to SimpMusic Feb 2026: Version 19.35.36, Android 13, SDK 33
      */
     private suspend fun tryAndroidClient(videoId: String): PlayerResult? {
         try {
@@ -807,12 +807,12 @@ class YouTubeMusicClient(private val httpClient: HttpClient) {
                 putJsonObject("context") {
                     putJsonObject("client") {
                         put("clientName", "ANDROID")
-                        put("clientVersion", "20.10.38")
-                        put("androidSdkVersion", 30)
+                        put("clientVersion", "19.35.36")
+                        put("androidSdkVersion", 33)
                         put("hl", "en")
                         put("gl", "US")
                         put("osName", "Android")
-                        put("osVersion", "11")
+                        put("osVersion", "13")
                         put("platform", "MOBILE")
                     }
                 }
@@ -823,10 +823,10 @@ class YouTubeMusicClient(private val httpClient: HttpClient) {
 
             val response: String = httpClient.post("https://www.youtube.com/youtubei/v1/player?key=AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8") {
                 contentType(ContentType.Application.Json)
-                header("User-Agent", "com.google.android.youtube/20.10.38 (Linux; U; Android 11) gzip")
+                header("User-Agent", "com.google.android.youtube/19.35.36 (Linux; U; Android 13) gzip")
                 header("Origin", "https://www.youtube.com")
                 header("X-YouTube-Client-Name", "3")
-                header("X-YouTube-Client-Version", "20.10.38")
+                header("X-YouTube-Client-Version", "19.35.36")
                 setBody(requestBody.toString())
             }.bodyAsText()
 
