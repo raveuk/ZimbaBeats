@@ -48,8 +48,9 @@ val viewModelModule = module {
     viewModel { PlaylistSharingViewModel(get(), get(), get(), get()) }
 
     // Video Player screen (uses CloudPairingClient + VideoContentFilter for dual-layer filtering)
+    // Now includes NewPipeStreamExtractor for fallback stream extraction
     viewModel { (videoId: String) ->
-        VideoPlayerViewModel(androidApplication(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get())
+        VideoPlayerViewModel(androidApplication(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get())
     }
 
     // Downloads screen

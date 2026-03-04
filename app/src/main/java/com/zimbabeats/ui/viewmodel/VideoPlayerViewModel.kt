@@ -25,6 +25,7 @@ import com.zimbabeats.core.domain.filter.VideoContentFilter
 import com.zimbabeats.core.domain.filter.AgeGroup
 import com.zimbabeats.core.domain.filter.FilterResult
 import com.zimbabeats.core.domain.model.AgeRating
+import com.zimbabeats.core.data.remote.youtube.NewPipeStreamExtractor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -88,7 +89,8 @@ class VideoPlayerViewModel(
     private val downloadRepository: DownloadRepository,
     private val cloudPairingClient: CloudPairingClient,
     private val appPreferences: AppPreferences,
-    private val videoContentFilter: VideoContentFilter
+    private val videoContentFilter: VideoContentFilter,
+    private val newPipeExtractor: NewPipeStreamExtractor
 ) : AndroidViewModel(application) {
 
     companion object {
@@ -276,11 +278,44 @@ class VideoPlayerViewModel(
                         // Fetch related videos from same channel
                         loadRelatedVideos(video.channelId, videoId)
                     } else {
-                        Log.e(TAG, "No playable stream found")
-                        _uiState.value = _uiState.value.copy(
-                            error = "No playable stream found. Please try another video.",
-                            isLoading = false
-                        )
+                        // No Innertube streams available - try NewPipe fallback
+                        Log.d(TAG, "No Innertube streams, trying NewPipe fallback...")
+                        try {
+                            val newPipeResult = newPipeExtractor.extractAudioStream(videoId)
+                            if (newPipeResult != null) {
+                                Log.d(TAG, "NewPipe extracted stream: ${newPipeResult.audioUrl.take(100)}...")
+                                _uiState.value = _uiState.value.copy(
+                                    streamUrl = newPipeResult.audioUrl,
+                                    availableQualities = listOf(
+                                        QualityOption(
+                                            quality = "Auto (NewPipe)",
+                                            url = newPipeResult.audioUrl,
+                                            format = "audio",
+                                            isVideoOnly = false
+                                        )
+                                    ),
+                                    currentQuality = "Auto (NewPipe)",
+                                    isLoading = false,
+                                    isPlayingOffline = false
+                                )
+                                player.playVideo(newPipeResult.audioUrl, video.title)
+                                startWatchSession(videoId)
+                                saveWatchHistoryNow()
+                                loadRelatedVideos(video.channelId, videoId)
+                            } else {
+                                Log.e(TAG, "No playable stream found (NewPipe also failed)")
+                                _uiState.value = _uiState.value.copy(
+                                    error = "No playable stream found. Please try another video.",
+                                    isLoading = false
+                                )
+                            }
+                        } catch (newPipeError: Exception) {
+                            Log.e(TAG, "NewPipe fallback failed", newPipeError)
+                            _uiState.value = _uiState.value.copy(
+                                error = "No playable stream found. Please try another video.",
+                                isLoading = false
+                            )
+                        }
                     }
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to load video", e)
