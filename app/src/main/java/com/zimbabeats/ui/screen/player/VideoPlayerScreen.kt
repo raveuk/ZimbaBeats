@@ -514,6 +514,30 @@ fun VideoPlayerScreen(
                                 .semantics { contentDescription = "Video actions" },
                             horizontalArrangement = Arrangement.SpaceEvenly
                         ) {
+                            // Previous video button
+                            IconButton(
+                                onClick = { viewModel.skipToPrevious() },
+                                enabled = uiState.hasPreviousVideo
+                            ) {
+                                Icon(
+                                    Icons.Default.SkipPrevious,
+                                    contentDescription = "Previous video",
+                                    tint = if (uiState.hasPreviousVideo) Color.White else Color.White.copy(alpha = 0.3f)
+                                )
+                            }
+
+                            // Next video button
+                            IconButton(
+                                onClick = { viewModel.skipToNext() },
+                                enabled = uiState.hasNextVideo
+                            ) {
+                                Icon(
+                                    Icons.Default.SkipNext,
+                                    contentDescription = "Next video",
+                                    tint = if (uiState.hasNextVideo) Color.White else Color.White.copy(alpha = 0.3f)
+                                )
+                            }
+
                             val favoriteDescription = if (uiState.isFavorite)
                                 ContentDescriptions.REMOVE_FROM_FAVORITES
                             else
@@ -667,9 +691,9 @@ fun VideoPlayerScreen(
                                         RelatedVideoItem(
                                             video = relatedVideo,
                                             onClick = {
-                                                // Navigate to the related video
+                                                // Navigate to the related video using queue
                                                 viewModel.saveProgress()
-                                                viewModel.loadVideo(relatedVideo.id)
+                                                viewModel.playRelatedVideo(relatedVideo)
                                             }
                                         )
                                     }

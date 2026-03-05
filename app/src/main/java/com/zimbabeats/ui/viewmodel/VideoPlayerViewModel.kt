@@ -26,6 +26,7 @@ import com.zimbabeats.core.domain.filter.AgeGroup
 import com.zimbabeats.core.domain.filter.FilterResult
 import com.zimbabeats.core.domain.model.AgeRating
 import com.zimbabeats.core.data.remote.youtube.NewPipeStreamExtractor
+import com.zimbabeats.media.controller.MediaControllerManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -75,7 +76,12 @@ data class VideoPlayerUiState(
     val relatedVideos: List<Video> = emptyList(),
     val isLoadingRelated: Boolean = false,
     // Offline playback indicator
-    val isPlayingOffline: Boolean = false
+    val isPlayingOffline: Boolean = false,
+    // Queue state for next/previous navigation
+    val hasNextVideo: Boolean = false,
+    val hasPreviousVideo: Boolean = false,
+    val queueSize: Int = 0,
+    val currentQueueIndex: Int = 0
 )
 
 class VideoPlayerViewModel(
@@ -90,6 +96,7 @@ class VideoPlayerViewModel(
     private val cloudPairingClient: CloudPairingClient,
     private val appPreferences: AppPreferences,
     private val videoContentFilter: VideoContentFilter,
+    private val mediaControllerManager: MediaControllerManager,
     private val newPipeExtractor: NewPipeStreamExtractor
 ) : AndroidViewModel(application) {
 
@@ -120,6 +127,33 @@ class VideoPlayerViewModel(
         viewModelScope.launch {
             cloudPairingClient.pairingStatus.collect { pairingStatus ->
                 updatePermissions(pairingStatus)
+            }
+        }
+
+        // Connect to MediaController for queue management
+        mediaControllerManager.connect()
+
+        // Observe queue state for next/previous button visibility
+        viewModelScope.launch {
+            mediaControllerManager.playbackQueue.queue.collect { queue ->
+                val currentIndex = mediaControllerManager.playbackQueue.currentIndex.value
+                _uiState.value = _uiState.value.copy(
+                    queueSize = queue.size,
+                    currentQueueIndex = currentIndex,
+                    hasNextVideo = currentIndex < queue.size - 1,
+                    hasPreviousVideo = currentIndex > 0
+                )
+            }
+        }
+
+        viewModelScope.launch {
+            mediaControllerManager.playbackQueue.currentIndex.collect { currentIndex ->
+                val queueSize = mediaControllerManager.playbackQueue.queue.value.size
+                _uiState.value = _uiState.value.copy(
+                    currentQueueIndex = currentIndex,
+                    hasNextVideo = currentIndex < queueSize - 1,
+                    hasPreviousVideo = currentIndex > 0
+                )
             }
         }
     }
@@ -278,27 +312,27 @@ class VideoPlayerViewModel(
                         // Fetch related videos from same channel
                         loadRelatedVideos(video.channelId, videoId)
                     } else {
-                        // No Innertube streams available - try NewPipe fallback
-                        Log.d(TAG, "No Innertube streams, trying NewPipe fallback...")
+                        // No Innertube streams available - try NewPipe fallback with VIDEO streams
+                        Log.d(TAG, "No Innertube streams, trying NewPipe VIDEO fallback...")
                         try {
-                            val newPipeResult = newPipeExtractor.extractAudioStream(videoId)
+                            val newPipeResult = newPipeExtractor.extractVideoStream(videoId)
                             if (newPipeResult != null) {
-                                Log.d(TAG, "NewPipe extracted stream: ${newPipeResult.audioUrl.take(100)}...")
+                                Log.d(TAG, "NewPipe extracted VIDEO stream: ${newPipeResult.quality} - ${newPipeResult.videoUrl.take(100)}...")
                                 _uiState.value = _uiState.value.copy(
-                                    streamUrl = newPipeResult.audioUrl,
+                                    streamUrl = newPipeResult.videoUrl,
                                     availableQualities = listOf(
                                         QualityOption(
-                                            quality = "Auto (NewPipe)",
-                                            url = newPipeResult.audioUrl,
-                                            format = "audio",
+                                            quality = "${newPipeResult.quality} (NewPipe)",
+                                            url = newPipeResult.videoUrl,
+                                            format = "video",
                                             isVideoOnly = false
                                         )
                                     ),
-                                    currentQuality = "Auto (NewPipe)",
+                                    currentQuality = "${newPipeResult.quality} (NewPipe)",
                                     isLoading = false,
                                     isPlayingOffline = false
                                 )
-                                player.playVideo(newPipeResult.audioUrl, video.title)
+                                player.playVideo(newPipeResult.videoUrl, video.title)
                                 startWatchSession(videoId)
                                 saveWatchHistoryNow()
                                 loadRelatedVideos(video.channelId, videoId)
@@ -452,7 +486,15 @@ class VideoPlayerViewModel(
                     isLoadingRelated = false
                 )
 
-                // STEP 5: Cache the filtered YouTube results for future use
+                // STEP 5: Populate playback queue with current video + related videos
+                val currentVideo = _uiState.value.video
+                if (currentVideo != null && finalVideos.isNotEmpty()) {
+                    val queueVideos = listOf(currentVideo) + finalVideos
+                    mediaControllerManager.playbackQueue.setQueue(queueVideos, 0)
+                    Log.d(TAG, "Queue populated with ${queueVideos.size} videos (current + ${finalVideos.size} related)")
+                }
+
+                // STEP 6: Cache the filtered YouTube results for future use
                 // Only cache videos that passed filtering to keep database clean
                 if (needsYouTubeFallback && filteredVideos.isNotEmpty()) {
                     videoRepository.saveVideos(filteredVideos)
@@ -495,6 +537,59 @@ class VideoPlayerViewModel(
         val currentPosition = player.getCurrentPosition()
         val newPosition = (currentPosition - millis).coerceAtLeast(0)
         player.seekTo(newPosition)
+    }
+
+    /**
+     * Skip to next video in queue
+     */
+    fun skipToNext() {
+        val queue = mediaControllerManager.playbackQueue.queue.value
+        val currentIndex = mediaControllerManager.playbackQueue.currentIndex.value
+
+        if (currentIndex < queue.size - 1) {
+            val nextItem = queue[currentIndex + 1]
+            Log.d(TAG, "Skipping to next video: ${nextItem.video.title}")
+            mediaControllerManager.playbackQueue.skipToNext()
+            // Load the next video
+            loadedVideoId = null // Reset to allow loading
+            loadVideo(nextItem.video.id)
+        }
+    }
+
+    /**
+     * Skip to previous video in queue
+     */
+    fun skipToPrevious() {
+        val queue = mediaControllerManager.playbackQueue.queue.value
+        val currentIndex = mediaControllerManager.playbackQueue.currentIndex.value
+
+        if (currentIndex > 0) {
+            val prevItem = queue[currentIndex - 1]
+            Log.d(TAG, "Skipping to previous video: ${prevItem.video.title}")
+            mediaControllerManager.playbackQueue.skipToPrevious()
+            // Load the previous video
+            loadedVideoId = null // Reset to allow loading
+            loadVideo(prevItem.video.id)
+        }
+    }
+
+    /**
+     * Play a specific video from the related videos list
+     */
+    fun playRelatedVideo(video: Video) {
+        val queue = mediaControllerManager.playbackQueue.queue.value
+        val videoIndex = queue.indexOfFirst { it.id == video.id }
+
+        if (videoIndex >= 0) {
+            Log.d(TAG, "Playing related video from queue at index $videoIndex: ${video.title}")
+            mediaControllerManager.playbackQueue.skipToIndex(videoIndex)
+        } else {
+            // Video not in queue, add it and play
+            Log.d(TAG, "Playing related video (not in queue): ${video.title}")
+        }
+
+        loadedVideoId = null // Reset to allow loading
+        loadVideo(video.id)
     }
 
     fun showQualitySelector() {

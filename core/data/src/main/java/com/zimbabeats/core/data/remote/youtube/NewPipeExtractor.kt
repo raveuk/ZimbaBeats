@@ -51,6 +51,19 @@ class NewPipeStreamExtractor {
     )
 
     /**
+     * Result containing video stream URL (video+audio combined or video with separate audio)
+     */
+    data class VideoExtractionResult(
+        val videoUrl: String,
+        val audioUrl: String?, // For video-only streams that need separate audio
+        val title: String,
+        val uploaderName: String,
+        val duration: Long, // in seconds
+        val thumbnailUrl: String,
+        val quality: String
+    )
+
+    /**
      * Initialize NewPipe Extractor (should be called once at app startup)
      */
     suspend fun initialize(): Boolean = withContext(Dispatchers.IO) {
@@ -192,6 +205,104 @@ class NewPipeStreamExtractor {
 
         } catch (e: Exception) {
             Log.e(TAG, "NewPipe extraction failed for $videoId: ${e.message}", e)
+            null
+        }
+    }
+
+    /**
+     * Extract VIDEO stream URL for a YouTube video ID.
+     * Prioritizes combined video+audio streams (mp4/webm), falls back to video-only + audio.
+     * Uses StreamInfo.getInfo() which handles decryption internally.
+     */
+    suspend fun extractVideoStream(videoId: String): VideoExtractionResult? = withContext(Dispatchers.IO) {
+        if (!isInitialized) {
+            Log.w(TAG, "NewPipe Extractor not initialized, attempting initialization...")
+            if (!initialize()) {
+                Log.e(TAG, "Failed to initialize NewPipe Extractor")
+                return@withContext null
+            }
+        }
+
+        try {
+            Log.d(TAG, "Extracting video stream for: $videoId")
+
+            val url = "https://www.youtube.com/watch?v=$videoId"
+            val service = NewPipe.getService(ServiceList.YouTube.serviceId) as YoutubeService
+            val streamInfo = StreamInfo.getInfo(service, url)
+
+            // PRIORITY 1: Get combined video+audio streams (preferred for ExoPlayer)
+            val videoStreams = streamInfo.videoStreams
+            Log.d(TAG, "Found ${videoStreams?.size ?: 0} video streams (combined)")
+
+            // Find best combined stream (highest resolution, prefer mp4)
+            val bestCombined = videoStreams
+                ?.filter { !it.content.isNullOrEmpty() }
+                ?.sortedWith(
+                    compareByDescending<org.schabi.newpipe.extractor.stream.VideoStream> {
+                        it.resolution?.replace(Regex("[^0-9]"), "")?.toIntOrNull() ?: 0
+                    }.thenByDescending {
+                        if (it.format?.name?.contains("MPEG", ignoreCase = true) == true) 1 else 0
+                    }
+                )
+                ?.firstOrNull()
+
+            if (bestCombined != null && !bestCombined.content.isNullOrEmpty()) {
+                val resolution = bestCombined.resolution ?: "unknown"
+                Log.d(TAG, "Using combined stream: $resolution - ${bestCombined.format?.name}")
+                Log.d(TAG, "Video URL: ${bestCombined.content.take(80)}...")
+
+                val thumbnailUrl = streamInfo.thumbnails.firstOrNull()?.url
+                    ?: "https://i.ytimg.com/vi/$videoId/mqdefault.jpg"
+
+                return@withContext VideoExtractionResult(
+                    videoUrl = bestCombined.content,
+                    audioUrl = null, // Combined stream, no separate audio needed
+                    title = streamInfo.name ?: "Unknown Title",
+                    uploaderName = streamInfo.uploaderName ?: "Unknown",
+                    duration = streamInfo.duration,
+                    thumbnailUrl = thumbnailUrl,
+                    quality = resolution
+                )
+            }
+
+            // PRIORITY 2: Video-only stream + separate audio stream
+            val videoOnlyStreams = streamInfo.videoOnlyStreams
+            val audioStreams = streamInfo.audioStreams
+
+            Log.d(TAG, "No combined streams, trying video-only (${videoOnlyStreams?.size ?: 0}) + audio (${audioStreams?.size ?: 0})")
+
+            val bestVideoOnly = videoOnlyStreams
+                ?.filter { !it.content.isNullOrEmpty() }
+                ?.sortedByDescending { it.resolution?.replace(Regex("[^0-9]"), "")?.toIntOrNull() ?: 0 }
+                ?.firstOrNull()
+
+            val bestAudio = audioStreams
+                ?.filter { !it.content.isNullOrEmpty() }
+                ?.maxByOrNull { it.averageBitrate }
+
+            if (bestVideoOnly != null && !bestVideoOnly.content.isNullOrEmpty()) {
+                val resolution = bestVideoOnly.resolution ?: "unknown"
+                Log.d(TAG, "Using video-only stream: $resolution with separate audio")
+
+                val thumbnailUrl = streamInfo.thumbnails.firstOrNull()?.url
+                    ?: "https://i.ytimg.com/vi/$videoId/mqdefault.jpg"
+
+                return@withContext VideoExtractionResult(
+                    videoUrl = bestVideoOnly.content,
+                    audioUrl = bestAudio?.content, // May need separate audio track
+                    title = streamInfo.name ?: "Unknown Title",
+                    uploaderName = streamInfo.uploaderName ?: "Unknown",
+                    duration = streamInfo.duration,
+                    thumbnailUrl = thumbnailUrl,
+                    quality = resolution
+                )
+            }
+
+            Log.e(TAG, "No video streams found for: $videoId")
+            null
+
+        } catch (e: Exception) {
+            Log.e(TAG, "NewPipe video extraction failed for $videoId: ${e.message}", e)
             null
         }
     }
