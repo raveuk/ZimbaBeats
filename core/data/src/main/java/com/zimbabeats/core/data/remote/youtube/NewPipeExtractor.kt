@@ -14,7 +14,9 @@ import org.schabi.newpipe.extractor.downloader.Response
 import org.schabi.newpipe.extractor.services.youtube.YoutubeJavaScriptPlayerManager
 import org.schabi.newpipe.extractor.services.youtube.YoutubeService
 import org.schabi.newpipe.extractor.stream.StreamInfo
+import okhttp3.ConnectionPool
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.Protocol
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.IOException
 import java.util.concurrent.TimeUnit
@@ -355,6 +357,7 @@ class NewPipeStreamExtractor {
     /**
      * OkHttp-based Downloader for NewPipe Extractor.
      * Based on SimpMusic's NewPipeDownloaderImpl.
+     * Optimized for mobile data with HTTP/1.1 and connection pooling.
      */
     private class OkHttpDownloader : Downloader() {
 
@@ -362,6 +365,10 @@ class NewPipeStreamExtractor {
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
+            // Force HTTP/1.1 to prevent stream reset errors on mobile networks
+            .protocols(listOf(Protocol.HTTP_1_1))
+            // Connection pooling for mobile efficiency (reuse connections)
+            .connectionPool(ConnectionPool(20, 5, TimeUnit.MINUTES))
             .build()
 
         override fun execute(request: Request): Response {
