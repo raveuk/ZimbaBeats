@@ -28,6 +28,8 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+        // Enable Java 8+ API desugaring for NewPipe Extractor compatibility on older devices
+        isCoreLibraryDesugaringEnabled = true
     }
     kotlin {
         compilerOptions {
@@ -37,6 +39,9 @@ android {
 }
 
 dependencies {
+    // Core Library Desugaring with NIO - enables Java 8+ APIs including Charset-based URLDecoder on older Android
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs_nio:2.1.4")
+
     // Module dependencies
     implementation(project(":core:domain"))
     implementation(project(":core:common"))

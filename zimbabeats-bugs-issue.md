@@ -138,10 +138,108 @@ install(HttpTimeout) {
 
 ---
 
+## Bug #4: Daily Reports Setting Does Not Work (Family App)
+**Reported:** 2026-03-07
+**Status:** Fixed (v1.0.56-family)
+**Fixed:** 2026-03-07
+**App:** ZimbaBeats Family (Parental Control)
+
+### Description
+The "Daily Reports" toggle in Settings is enabled but no daily reports are actually sent or generated. The toggle appears to work (can be turned on/off) but has no effect.
+
+### Root Cause Analysis
+The daily reports feature was **not implemented** - only the UI toggle existed:
+
+1. **UI Toggle Not Connected to Preferences**
+   - `SettingsScreen.kt:127-150` used local `remember { mutableStateOf(true) }`
+   - Not connected to `AppPreferences.dailyReportsEnabledFlow`
+   - Changes were lost when screen closed
+
+2. **No Backend Implementation**
+   - No `WorkManager` scheduled tasks
+   - No report generation logic
+   - No notification delivery
+
+### Fix Applied
+
+1. **Added WorkManager Dependency**
+   - Added `androidx.work:work-runtime-ktx:2.9.0` to `build.gradle.kts`
+
+2. **Connected UI to AppPreferences**
+   - `SettingsScreen.kt` now uses `appPreferences.dailyReportsEnabledFlow.collectAsState()`
+   - Toggle changes are persisted and trigger worker schedule/cancel
+
+3. **Created DailyReportWorker**
+   - New file: `worker/DailyReportWorker.kt`
+   - Uses `PeriodicWorkRequest` (24 hours)
+   - Queries Firebase `watch_history` for last 24 hours
+   - Shows notification with summary (videos, music, watch time, blocked)
+   - Scheduled for 8 AM daily
+
+4. **Application Integration**
+   - `ZimbaBeatsApplication.kt` creates notification channel on startup
+   - Schedules worker if daily reports enabled
+
+**Files Modified:**
+- `app/build.gradle.kts` - Added WorkManager dependency
+- `app/src/main/java/com/zimbabeats/family/ui/screen/SettingsScreen.kt` - Connected toggle
+- `app/src/main/java/com/zimbabeats/family/worker/DailyReportWorker.kt` - NEW
+- `app/src/main/java/com/zimbabeats/family/ZimbaBeatsApplication.kt` - Worker scheduling
+
+---
+
+## Bug #5: App Crashes on Older Android Devices When Playing Video
+**Reported:** 2026-03-08
+**Status:** Fixed (v1.0.56)
+**Fixed:** 2026-03-08
+
+### Description
+ZimbaBeats crashes immediately when trying to play a video on older Android devices (API < 33). Works fine on newer devices running Android 13+.
+
+### Root Cause Analysis
+NewPipe Extractor v0.26.0 uses `URLDecoder.decode(String, Charset)` in its `Utils.decodeUrlUtf8()` method. This API was added in **Java 10 / Android API 33**.
+
+**Stack trace:**
+```
+java.lang.NoSuchMethodError: No static method decode(Ljava/lang/String;Ljava/nio/charset/Charset;)Ljava/lang/String; in class Ljava/net/URLDecoder;
+    at org.schabi.newpipe.extractor.utils.Utils.decodeUrlUtf8
+    at org.schabi.newpipe.extractor.utils.Utils.getQueryValue
+    at org.schabi.newpipe.extractor.services.youtube.linkHandler.YoutubeStreamLinkHandlerFactory.getId
+    ...
+```
+
+The app's `minSdk = 24` (Android 7.0) but NewPipe Extractor requires API 33+ for this method.
+
+### Fix Applied
+Enabled **Java 8+ API desugaring with NIO support** to backport newer Java APIs to older Android versions:
+
+**1. app/build.gradle.kts**
+```kotlin
+compileOptions {
+    isCoreLibraryDesugaringEnabled = true
+}
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs_nio:2.1.4")
+}
+```
+
+**2. core/data/build.gradle.kts** (same changes)
+
+**Key insight:** The standard `desugar_jdk_libs` doesn't include NIO classes. Must use `desugar_jdk_libs_nio` which includes `URLDecoder.decode(String, Charset)` backport.
+
+**Files Modified:**
+- `app/build.gradle.kts` - Added NIO desugaring
+- `core/data/build.gradle.kts` - Added NIO desugaring
+
+---
+
 ## Version History
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v1.0.56 | 2026-03-08 | Fixed crash on older Android devices (Bug #5) |
+| v1.0.56-family | 2026-03-07 | Fixed daily reports (Bug #4) - Family app only |
 | v1.0.55 | 2026-03-06 | Fixed mobile data issues (Bug #3) |
 | v1.0.54 | 2026-03-05 | Fixed video not displaying (Bug #1), Restored video queue (Bug #2) |
 | v1.0.53 | 2026-03-05 | Added NewPipe fallback (introduced Bug #1) |
