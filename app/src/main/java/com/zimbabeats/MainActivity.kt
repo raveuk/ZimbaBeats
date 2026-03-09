@@ -1,7 +1,11 @@
 ﻿package com.zimbabeats
 
+import android.app.PictureInPictureParams
 import android.content.Intent
+import android.content.res.Configuration
+import android.os.Build
 import android.os.Bundle
+import android.util.Rational
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -53,6 +57,59 @@ class MainActivity : ComponentActivity() {
     private val parentalControlBridge: ParentalControlBridge by inject()
     private val cloudPairingClient: CloudPairingClient by inject()
     private val musicRepository: MusicRepository by inject()
+
+    // PiP state tracking
+    private var isVideoPlayerActive = false
+    private var isInPipMode = false
+
+    companion object {
+        // Static reference for PiP state access from composables
+        var pipStateCallback: ((Boolean) -> Unit)? = null
+    }
+
+    /**
+     * Set whether video player is currently active (for auto-enter PiP)
+     */
+    fun setVideoPlayerActive(active: Boolean) {
+        isVideoPlayerActive = active
+    }
+
+    /**
+     * Check if currently in PiP mode
+     */
+    fun isPipModeActive(): Boolean = isInPipMode
+
+    /**
+     * Enter Picture-in-Picture mode manually
+     */
+    fun enterPipMode() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && isVideoPlayerActive) {
+            val params = PictureInPictureParams.Builder()
+                .setAspectRatio(Rational(16, 9))
+                .build()
+            enterPictureInPictureMode(params)
+        }
+    }
+
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        // Auto-enter PiP when user presses home button during video playback
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && isVideoPlayerActive) {
+            val params = PictureInPictureParams.Builder()
+                .setAspectRatio(Rational(16, 9))
+                .build()
+            enterPictureInPictureMode(params)
+        }
+    }
+
+    override fun onPictureInPictureModeChanged(
+        isInPictureInPictureMode: Boolean,
+        newConfig: Configuration
+    ) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        isInPipMode = isInPictureInPictureMode
+        pipStateCallback?.invoke(isInPictureInPictureMode)
+    }
 
     @androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
     override fun onCreate(savedInstanceState: Bundle?) {

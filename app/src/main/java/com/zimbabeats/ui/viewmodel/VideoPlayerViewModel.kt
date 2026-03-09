@@ -27,6 +27,7 @@ import com.zimbabeats.core.domain.filter.FilterResult
 import com.zimbabeats.core.domain.model.AgeRating
 import com.zimbabeats.core.data.remote.youtube.NewPipeStreamExtractor
 import com.zimbabeats.media.controller.MediaControllerManager
+import com.zimbabeats.media.queue.RepeatMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -81,7 +82,9 @@ data class VideoPlayerUiState(
     val hasNextVideo: Boolean = false,
     val hasPreviousVideo: Boolean = false,
     val queueSize: Int = 0,
-    val currentQueueIndex: Int = 0
+    val currentQueueIndex: Int = 0,
+    // Repeat mode
+    val repeatMode: RepeatMode = RepeatMode.OFF
 )
 
 class VideoPlayerViewModel(
@@ -524,6 +527,28 @@ class VideoPlayerViewModel(
         } else {
             player.play()
         }
+    }
+
+    /**
+     * Set playback speed
+     */
+    fun setPlaybackSpeed(speed: Float) {
+        player.setPlaybackSpeed(speed)
+    }
+
+    /**
+     * Get current playback speed
+     */
+    fun getPlaybackSpeed(): Float = player.getPlaybackSpeed()
+
+    /**
+     * Cycle through repeat modes (OFF -> ALL -> ONE -> OFF)
+     */
+    fun cycleRepeatMode() {
+        mediaControllerManager.playbackQueue.cycleRepeatMode()
+        _uiState.value = _uiState.value.copy(
+            repeatMode = mediaControllerManager.playbackQueue.repeatMode.value
+        )
     }
 
     fun seekForward(millis: Long) {

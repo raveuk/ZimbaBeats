@@ -1,8 +1,11 @@
 ﻿package com.zimbabeats.ui.screen.player
 
 import android.app.Activity
+import android.content.Context
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
+import android.media.AudioManager
+import android.os.Build
 import android.view.View
 import android.view.WindowManager
 import androidx.compose.animation.AnimatedVisibility
@@ -10,6 +13,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
@@ -46,9 +50,11 @@ import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import coil3.compose.AsyncImage
+import com.zimbabeats.MainActivity
 import com.zimbabeats.core.domain.model.Playlist
 import com.zimbabeats.core.domain.model.Video
 import com.zimbabeats.data.AppPreferences
@@ -57,10 +63,12 @@ import com.zimbabeats.ui.accessibility.AccessibilityAnnouncement
 import com.zimbabeats.ui.accessibility.Announcements
 import com.zimbabeats.ui.accessibility.ContentDescriptions
 import com.zimbabeats.ui.viewmodel.VideoPlayerViewModel
+import com.zimbabeats.media.queue.RepeatMode
 import kotlinx.coroutines.delay
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
+import kotlin.math.roundToInt
 
 /**
  * Resize mode options for video player
@@ -103,6 +111,59 @@ fun VideoPlayerScreen(
 
     // PlayerView reference for resize mode changes
     var playerViewRef by remember { mutableStateOf<PlayerView?>(null) }
+
+    // PiP mode state
+    var isInPipMode by remember { mutableStateOf(false) }
+
+    // Playback speed state
+    var showSpeedSelector by remember { mutableStateOf(false) }
+    val availableSpeeds = listOf(0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 2.0f)
+
+    // Volume/Brightness gesture state
+    val audioManager = remember { context.getSystemService(Context.AUDIO_SERVICE) as AudioManager }
+    val maxVolume = remember { audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC) }
+    var currentVolume by remember { mutableStateOf(audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)) }
+    var currentBrightness by remember { mutableStateOf(0.5f) }
+    var showVolumeIndicator by remember { mutableStateOf(false) }
+    var showBrightnessIndicator by remember { mutableStateOf(false) }
+
+    // Initialize brightness from window
+    LaunchedEffect(Unit) {
+        val activity = context as? Activity
+        val windowBrightness = activity?.window?.attributes?.screenBrightness ?: -1f
+        currentBrightness = if (windowBrightness < 0) 0.5f else windowBrightness
+    }
+
+    // Hide indicators after delay
+    LaunchedEffect(showVolumeIndicator) {
+        if (showVolumeIndicator) {
+            delay(1500)
+            showVolumeIndicator = false
+        }
+    }
+
+    LaunchedEffect(showBrightnessIndicator) {
+        if (showBrightnessIndicator) {
+            delay(1500)
+            showBrightnessIndicator = false
+        }
+    }
+
+    // Notify MainActivity that video player is active (for auto PiP on home button)
+    DisposableEffect(Unit) {
+        val activity = context as? MainActivity
+        activity?.setVideoPlayerActive(true)
+
+        // Register for PiP state changes
+        MainActivity.pipStateCallback = { isPip ->
+            isInPipMode = isPip
+        }
+
+        onDispose {
+            activity?.setVideoPlayerActive(false)
+            MainActivity.pipStateCallback = null
+        }
+    }
 
     // Auto-hide controls after 3 seconds
     LaunchedEffect(showControls) {
@@ -223,9 +284,9 @@ fun VideoPlayerScreen(
                 modifier = Modifier.fillMaxSize()
             )
 
-            // Double-tap seek areas
+            // Gesture areas - Double-tap for seek, vertical swipe for brightness (left) / volume (right)
             Row(modifier = Modifier.fillMaxSize()) {
-                // Left side - backward seek
+                // Left side - backward seek + brightness control
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -238,11 +299,33 @@ fun VideoPlayerScreen(
                                     showSeekBackward = true
                                 }
                             )
+                        }
+                        .pointerInput(Unit) {
+                            detectVerticalDragGestures(
+                                onDragStart = {
+                                    showBrightnessIndicator = true
+                                },
+                                onDragEnd = { },
+                                onVerticalDrag = { _, dragAmount ->
+                                    // Calculate brightness change (swipe up = brighter)
+                                    val delta = -dragAmount / 500f
+                                    currentBrightness = (currentBrightness + delta).coerceIn(0.01f, 1f)
+
+                                    // Apply brightness to window
+                                    val activity = context as? Activity
+                                    activity?.window?.let { window ->
+                                        val params = window.attributes
+                                        params.screenBrightness = currentBrightness
+                                        window.attributes = params
+                                    }
+                                    showBrightnessIndicator = true
+                                }
+                            )
                         },
                     contentAlignment = Alignment.Center
                 ) {}
 
-                // Right side - forward seek
+                // Right side - forward seek + volume control
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -255,9 +338,65 @@ fun VideoPlayerScreen(
                                     showSeekForward = true
                                 }
                             )
+                        }
+                        .pointerInput(Unit) {
+                            detectVerticalDragGestures(
+                                onDragStart = {
+                                    showVolumeIndicator = true
+                                },
+                                onDragEnd = { },
+                                onVerticalDrag = { _, dragAmount ->
+                                    // Calculate volume change (swipe up = louder)
+                                    val delta = -dragAmount / 50f
+                                    val newVolume = (currentVolume + delta.roundToInt()).coerceIn(0, maxVolume)
+                                    if (newVolume != currentVolume) {
+                                        currentVolume = newVolume
+                                        audioManager.setStreamVolume(
+                                            AudioManager.STREAM_MUSIC,
+                                            currentVolume,
+                                            0
+                                        )
+                                    }
+                                    showVolumeIndicator = true
+                                }
+                            )
                         },
                     contentAlignment = Alignment.Center
                 ) {}
+            }
+
+            // Brightness indicator (left side)
+            AnimatedVisibility(
+                visible = showBrightnessIndicator,
+                enter = fadeIn(),
+                exit = fadeOut(),
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .padding(start = 30.dp)
+            ) {
+                GestureIndicator(
+                    icon = Icons.Default.BrightnessHigh,
+                    value = currentBrightness,
+                    maxValue = 1f,
+                    label = "${(currentBrightness * 100).roundToInt()}%"
+                )
+            }
+
+            // Volume indicator (right side)
+            AnimatedVisibility(
+                visible = showVolumeIndicator,
+                enter = fadeIn(),
+                exit = fadeOut(),
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .padding(end = 30.dp)
+            ) {
+                GestureIndicator(
+                    icon = if (currentVolume == 0) Icons.Default.VolumeOff else Icons.Default.VolumeUp,
+                    value = currentVolume.toFloat(),
+                    maxValue = maxVolume.toFloat(),
+                    label = "${((currentVolume.toFloat() / maxVolume) * 100).roundToInt()}%"
+                )
             }
 
             // Seek backward feedback
@@ -318,8 +457,8 @@ fun VideoPlayerScreen(
                 }
             }
 
-            // Controls overlay
-            if (showControls) {
+            // Controls overlay - hide when in PiP mode
+            if (showControls && !isInPipMode) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -346,6 +485,71 @@ fun VideoPlayerScreen(
                         }
 
                         Spacer(modifier = Modifier.weight(1f))
+
+                        // Repeat mode button
+                        IconButton(
+                            onClick = { viewModel.cycleRepeatMode() }
+                        ) {
+                            Icon(
+                                imageVector = when (uiState.repeatMode) {
+                                    RepeatMode.OFF -> Icons.Default.Repeat
+                                    RepeatMode.ALL -> Icons.Default.Repeat
+                                    RepeatMode.ONE -> Icons.Default.RepeatOne
+                                },
+                                contentDescription = "Repeat Mode: ${uiState.repeatMode.name}",
+                                tint = if (uiState.repeatMode != RepeatMode.OFF) accentColor else Color.White
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        // PiP button (Android O and above)
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            IconButton(
+                                onClick = {
+                                    (context as? MainActivity)?.enterPipMode()
+                                }
+                            ) {
+                                Icon(
+                                    Icons.Default.PictureInPicture,
+                                    contentDescription = "Picture in Picture",
+                                    tint = Color.White
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.width(8.dp))
+                        }
+
+                        // Speed control button
+                        Surface(
+                            onClick = { showSpeedSelector = true },
+                            color = Color.Black.copy(alpha = 0.6f),
+                            shape = RoundedCornerShape(4.dp)
+                        ) {
+                            Text(
+                                text = "${playerState.playbackSpeed}x",
+                                color = Color.White,
+                                style = MaterialTheme.typography.labelMedium,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        // Quality selector button (Settings gear)
+                        if (uiState.availableQualities.isNotEmpty()) {
+                            IconButton(
+                                onClick = { viewModel.showQualitySelector() }
+                            ) {
+                                Icon(
+                                    Icons.Default.Settings,
+                                    contentDescription = "Video Quality",
+                                    tint = Color.White
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.width(8.dp))
+                        }
 
                         // Resize mode button
                         Surface(
@@ -735,6 +939,32 @@ fun VideoPlayerScreen(
             onQualitySelected = { viewModel.selectDownloadQuality(it) },
             onConfirm = { viewModel.confirmDownload() },
             onDismiss = { viewModel.dismissDownloadConfirmation() }
+        )
+    }
+
+    // Playback speed selector dialog
+    if (showSpeedSelector) {
+        PlaybackSpeedDialog(
+            currentSpeed = playerState.playbackSpeed,
+            availableSpeeds = availableSpeeds,
+            accentColor = accentColor,
+            onSpeedSelected = { speed ->
+                viewModel.setPlaybackSpeed(speed)
+                showSpeedSelector = false
+            },
+            onDismiss = { showSpeedSelector = false }
+        )
+    }
+
+    // Quality selector dialog
+    if (uiState.showQualitySelector) {
+        QualitySelectionDialog(
+            availableQualities = uiState.availableQualities,
+            currentQuality = uiState.currentQuality,
+            onQualitySelected = { quality ->
+                viewModel.switchQuality(quality)
+            },
+            onDismiss = { viewModel.hideQualitySelector() }
         )
     }
 
@@ -1303,6 +1533,142 @@ private fun RelatedVideoItem(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
+            }
+        }
+    }
+}
+
+/**
+ * Visual indicator for volume/brightness gestures
+ */
+@Composable
+fun GestureIndicator(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    value: Float,
+    maxValue: Float,
+    label: String
+) {
+    Surface(
+        color = Color.Black.copy(alpha = 0.7f),
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.width(50.dp)
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(12.dp)
+        ) {
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(24.dp)
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Vertical progress bar
+            Box(
+                modifier = Modifier
+                    .height(100.dp)
+                    .width(6.dp)
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(Color.White.copy(alpha = 0.3f))
+            ) {
+                val progressHeight = (value / maxValue).coerceIn(0f, 1f)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .fillMaxHeight(progressHeight)
+                        .align(Alignment.BottomCenter)
+                        .background(Color.White)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = label,
+                color = Color.White,
+                style = MaterialTheme.typography.labelSmall
+            )
+        }
+    }
+}
+
+/**
+ * Playback speed selection dialog
+ */
+@Composable
+fun PlaybackSpeedDialog(
+    currentSpeed: Float,
+    availableSpeeds: List<Float>,
+    accentColor: Color = Color(0xFF1DB954),
+    onSpeedSelected: (Float) -> Unit,
+    onDismiss: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = Color(0xFF1E1E1E)
+            ),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Text(
+                    text = "Playback Speed",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = Color.White,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                availableSpeeds.forEach { speed ->
+                    val isSelected = speed == currentSpeed
+
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        color = if (isSelected) accentColor.copy(alpha = 0.2f) else Color.Transparent,
+                        shape = RoundedCornerShape(8.dp),
+                        onClick = { onSpeedSelected(speed) }
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = if (speed == 1.0f) "Normal" else "${speed}x",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = if (isSelected) accentColor else Color.White
+                            )
+
+                            if (isSelected) {
+                                Icon(
+                                    Icons.Default.Check,
+                                    contentDescription = "Selected",
+                                    tint = accentColor
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                TextButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.align(Alignment.End)
+                ) {
+                    Text("Cancel", color = Color.White)
+                }
             }
         }
     }

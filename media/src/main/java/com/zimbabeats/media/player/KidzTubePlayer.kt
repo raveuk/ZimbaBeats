@@ -227,6 +227,22 @@ class ZimbaBeatsPlayer(private val context: Context) {
     fun getDuration(): Long = exoPlayer.duration
 
     /**
+     * Set playback speed
+     * @param speed Speed multiplier (0.5f to 2.0f)
+     */
+    fun setPlaybackSpeed(speed: Float) {
+        val clampedSpeed = speed.coerceIn(0.25f, 2.0f)
+        Log.d(TAG, "Setting playback speed: $clampedSpeed")
+        exoPlayer.setPlaybackSpeed(clampedSpeed)
+        _playerState.value = _playerState.value.copy(playbackSpeed = clampedSpeed)
+    }
+
+    /**
+     * Get current playback speed
+     */
+    fun getPlaybackSpeed(): Float = exoPlayer.playbackParameters.speed
+
+    /**
      * Get the audio session ID for external audio effects (like system equalizer)
      */
     fun getAudioSessionId(): Int = exoPlayer.audioSessionId
@@ -300,5 +316,6 @@ data class PlayerState(
     val currentVideoTitle: String? = null,
     val currentVideoUrl: String? = null,
     val currentPosition: Long = 0,
-    val duration: Long = 0
+    val duration: Long = 0,
+    val playbackSpeed: Float = 1.0f
 )
