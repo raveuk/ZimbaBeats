@@ -81,13 +81,19 @@ class MainActivity : ComponentActivity() {
 
     /**
      * Enter Picture-in-Picture mode manually
+     * Called from video player UI - no need to check isVideoPlayerActive since
+     * the button is only visible when video player is active
      */
     fun enterPipMode() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && isVideoPlayerActive) {
-            val params = PictureInPictureParams.Builder()
-                .setAspectRatio(Rational(16, 9))
-                .build()
-            enterPictureInPictureMode(params)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            try {
+                val params = PictureInPictureParams.Builder()
+                    .setAspectRatio(Rational(16, 9))
+                    .build()
+                enterPictureInPictureMode(params)
+            } catch (e: Exception) {
+                android.util.Log.e("MainActivity", "Failed to enter PiP mode", e)
+            }
         }
     }
 

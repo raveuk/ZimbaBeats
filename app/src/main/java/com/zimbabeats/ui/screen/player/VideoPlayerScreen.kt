@@ -2,6 +2,7 @@
 
 import android.app.Activity
 import android.content.Context
+import android.content.ContextWrapper
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.media.AudioManager
@@ -69,6 +70,19 @@ import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
 import kotlin.math.roundToInt
+
+/**
+ * Helper function to find Activity from Context
+ * Handles ContextWrapper chains (common in Compose)
+ */
+private fun Context.findActivity(): Activity? {
+    var context = this
+    while (context is ContextWrapper) {
+        if (context is Activity) return context
+        context = context.baseContext
+    }
+    return null
+}
 
 /**
  * Resize mode options for video player
@@ -151,7 +165,8 @@ fun VideoPlayerScreen(
 
     // Notify MainActivity that video player is active (for auto PiP on home button)
     DisposableEffect(Unit) {
-        val activity = context as? MainActivity
+        // Use findActivity() to properly get MainActivity through ContextWrapper chain
+        val activity = context.findActivity() as? MainActivity
         activity?.setVideoPlayerActive(true)
 
         // Register for PiP state changes
@@ -507,7 +522,8 @@ fun VideoPlayerScreen(
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                             IconButton(
                                 onClick = {
-                                    (context as? MainActivity)?.enterPipMode()
+                                    // Use findActivity() to properly get MainActivity through ContextWrapper chain
+                                    (context.findActivity() as? MainActivity)?.enterPipMode()
                                 }
                             ) {
                                 Icon(
