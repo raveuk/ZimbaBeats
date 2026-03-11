@@ -6,6 +6,7 @@ import android.util.Log
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.hls.HlsMediaSource
 import androidx.media3.exoplayer.source.MediaSource
@@ -28,7 +29,20 @@ class ZimbaBeatsPlayer(private val context: Context) {
         private const val TAG = "ZimbaBeatsPlayer"
     }
 
+    // Custom LoadControl for better buffering on slow mobile networks
+    // Based on SimpMusic reference implementation
+    private val loadControl = DefaultLoadControl.Builder()
+        .setBufferDurationsMs(
+            30_000,   // Min buffer before playback starts (30 seconds)
+            60_000,   // Max buffer to maintain (60 seconds)
+            2_500,    // Buffer for playback to start (2.5 seconds)
+            5_000     // Buffer for rebuffering (5 seconds)
+        )
+        .setPrioritizeTimeOverSizeThresholds(true)
+        .build()
+
     private val exoPlayer: ExoPlayer = ExoPlayer.Builder(context)
+        .setLoadControl(loadControl)
         .setSeekBackIncrementMs(10_000) // 10 seconds
         .setSeekForwardIncrementMs(10_000) // 10 seconds
         .build()
@@ -116,15 +130,16 @@ class ZimbaBeatsPlayer(private val context: Context) {
         } else {
             // Create data source factory with Android YouTube Music headers for network streams
             // This matches the ANDROID_MUSIC client used to get the stream URLs
+            // Timeouts increased to 30s for slow mobile networks (based on SimpMusic)
             val networkDataSourceFactory = DefaultHttpDataSource.Factory()
                 .setUserAgent("com.google.android.apps.youtube.music/7.03.52 (Linux; U; Android 14) gzip")
                 .setDefaultRequestProperties(mapOf(
                     "Accept" to "*/*",
-                    "Accept-Encoding" to "identity;q=1, *;q=0",
+                    "Accept-Encoding" to "gzip, deflate",
                     "Accept-Language" to "en-US,en;q=0.9"
                 ))
-                .setConnectTimeoutMs(15000)
-                .setReadTimeoutMs(15000)
+                .setConnectTimeoutMs(30000)
+                .setReadTimeoutMs(30000)
                 .setAllowCrossProtocolRedirects(true)
 
             // Detect stream type and use appropriate media source
@@ -165,15 +180,16 @@ class ZimbaBeatsPlayer(private val context: Context) {
         Log.d(TAG, "Playing dual-stream: video=$videoUrl, audio=$audioUrl")
 
         // Create data source factory with Android YouTube Music headers
+        // Timeouts increased to 30s for slow mobile networks (based on SimpMusic)
         val dataSourceFactory = DefaultHttpDataSource.Factory()
             .setUserAgent("com.google.android.apps.youtube.music/7.03.52 (Linux; U; Android 14) gzip")
             .setDefaultRequestProperties(mapOf(
                 "Accept" to "*/*",
-                "Accept-Encoding" to "identity;q=1, *;q=0",
+                "Accept-Encoding" to "gzip, deflate",
                 "Accept-Language" to "en-US,en;q=0.9"
             ))
-            .setConnectTimeoutMs(15000)
-            .setReadTimeoutMs(15000)
+            .setConnectTimeoutMs(30000)
+            .setReadTimeoutMs(30000)
             .setAllowCrossProtocolRedirects(true)
 
         // Create video media source

@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.hls.HlsMediaSource
 import androidx.media3.exoplayer.source.MediaSource
@@ -35,13 +36,27 @@ object PlayerManager {
     fun initialize(context: Context) {
         if (exoPlayer == null) {
             applicationContext = context.applicationContext
+
+            // Custom LoadControl for better buffering on slow mobile networks
+            // Based on SimpMusic reference implementation
+            val loadControl = DefaultLoadControl.Builder()
+                .setBufferDurationsMs(
+                    30_000,   // Min buffer before playback starts (30 seconds)
+                    60_000,   // Max buffer to maintain (60 seconds)
+                    2_500,    // Buffer for playback to start (2.5 seconds)
+                    5_000     // Buffer for rebuffering (5 seconds)
+                )
+                .setPrioritizeTimeOverSizeThresholds(true)
+                .build()
+
             exoPlayer = ExoPlayer.Builder(context.applicationContext)
+                .setLoadControl(loadControl)
                 .setSeekBackIncrementMs(10_000)
                 .setSeekForwardIncrementMs(10_000)
                 .build()
 
             setupPlayerListener()
-            Log.d(TAG, "PlayerManager initialized")
+            Log.d(TAG, "PlayerManager initialized with mobile-optimized buffering")
         }
     }
 
@@ -97,16 +112,18 @@ object PlayerManager {
         _isPlayerVisible.value = true
 
         // Create data source factory
+        // Timeouts increased to 30s for slow mobile networks (based on SimpMusic)
         val dataSourceFactory = DefaultHttpDataSource.Factory()
             .setUserAgent("com.google.android.youtube/21.03.36 (Linux; U; Android 14) gzip")
             .setDefaultRequestProperties(mapOf(
                 "Accept-Language" to "en-US,en;q=0.9",
                 "Accept" to "*/*",
+                "Accept-Encoding" to "gzip, deflate",
                 "Origin" to "https://www.youtube.com",
                 "Referer" to "https://www.youtube.com/"
             ))
-            .setConnectTimeoutMs(15000)
-            .setReadTimeoutMs(15000)
+            .setConnectTimeoutMs(30000)
+            .setReadTimeoutMs(30000)
             .setAllowCrossProtocolRedirects(true)
 
         val mediaItem = MediaItem.Builder()

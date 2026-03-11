@@ -266,17 +266,26 @@ class NewPipeStreamExtractor {
             val videoStreams = streamInfo.videoStreams
             Log.d(TAG, "Found ${videoStreams?.size ?: 0} video streams (combined)")
 
-            // Find best combined stream (highest resolution, prefer mp4)
-            val bestCombined = videoStreams
-                ?.filter { !it.content.isNullOrEmpty() }
-                ?.sortedWith(
+            // Quality fallback chain for slow mobile networks (based on SimpMusic)
+            // Try: highest available → 480p → 360p → any available
+            val filteredStreams = videoStreams?.filter { !it.content.isNullOrEmpty() }
+
+            val bestCombined = filteredStreams?.let { streams ->
+                // First try to get the highest quality
+                val sortedByQuality = streams.sortedWith(
                     compareByDescending<org.schabi.newpipe.extractor.stream.VideoStream> {
                         it.resolution?.replace(Regex("[^0-9]"), "")?.toIntOrNull() ?: 0
                     }.thenByDescending {
                         if (it.format?.name?.contains("MPEG", ignoreCase = true) == true) 1 else 0
                     }
                 )
-                ?.firstOrNull()
+
+                // Quality fallback chain: try highest, then 480p, then 360p, then any
+                sortedByQuality.firstOrNull()
+                    ?: streams.find { it.resolution?.contains("480") == true }
+                    ?: streams.find { it.resolution?.contains("360") == true }
+                    ?: streams.firstOrNull()
+            }
 
             if (bestCombined != null && !bestCombined.content.isNullOrEmpty()) {
                 val resolution = bestCombined.resolution ?: "unknown"
@@ -304,10 +313,18 @@ class NewPipeStreamExtractor {
 
             Log.d(TAG, "No combined streams, trying video-only (${videoOnlyStreams?.size ?: 0}) + audio (${audioStreams?.size ?: 0})")
 
-            val bestVideoOnly = videoOnlyStreams
-                ?.filter { !it.content.isNullOrEmpty() }
-                ?.sortedByDescending { it.resolution?.replace(Regex("[^0-9]"), "")?.toIntOrNull() ?: 0 }
-                ?.firstOrNull()
+            // Quality fallback chain for video-only streams (slow mobile network support)
+            val filteredVideoOnly = videoOnlyStreams?.filter { !it.content.isNullOrEmpty() }
+            val bestVideoOnly = filteredVideoOnly?.let { streams ->
+                val sortedByQuality = streams.sortedByDescending {
+                    it.resolution?.replace(Regex("[^0-9]"), "")?.toIntOrNull() ?: 0
+                }
+                // Fallback chain: highest → 480p → 360p → any
+                sortedByQuality.firstOrNull()
+                    ?: streams.find { it.resolution?.contains("480") == true }
+                    ?: streams.find { it.resolution?.contains("360") == true }
+                    ?: streams.firstOrNull()
+            }
 
             val bestAudio = audioStreams
                 ?.filter { !it.content.isNullOrEmpty() }
