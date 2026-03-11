@@ -5,6 +5,7 @@ import com.zimbabeats.core.domain.model.music.Track
 import io.ktor.http.URLBuilder
 import io.ktor.http.parseQueryString
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.schabi.newpipe.extractor.NewPipe
 import org.schabi.newpipe.extractor.ServiceList
@@ -227,16 +228,60 @@ class NewPipeStreamExtractor {
      * Extract VIDEO stream URL for a YouTube video ID.
      * Prioritizes combined video+audio streams (mp4/webm), falls back to video-only + audio.
      * Uses StreamInfo.getInfo() which handles decryption internally.
+     * Includes retry mechanism with exponential backoff for slow mobile networks.
      */
     suspend fun extractVideoStream(videoId: String): VideoExtractionResult? = withContext(Dispatchers.IO) {
+        extractVideoStreamWithRetry(videoId, maxRetries = 3)
+    }
+
+    /**
+     * Internal extraction with retry logic for slow mobile networks
+     */
+    private suspend fun extractVideoStreamWithRetry(
+        videoId: String,
+        maxRetries: Int = 3
+    ): VideoExtractionResult? {
         if (!isInitialized) {
             Log.w(TAG, "NewPipe Extractor not initialized, attempting initialization...")
             if (!initialize()) {
                 Log.e(TAG, "Failed to initialize NewPipe Extractor")
-                return@withContext null
+                return null
             }
         }
 
+        var lastException: Exception? = null
+
+        repeat(maxRetries) { attempt ->
+            try {
+                Log.d(TAG, "Extracting video stream for: $videoId (attempt ${attempt + 1}/$maxRetries)")
+                val result = extractVideoStreamInternal(videoId)
+                if (result != null) {
+                    Log.d(TAG, "Successfully extracted stream on attempt ${attempt + 1}")
+                    return result
+                }
+                Log.w(TAG, "Null result on attempt ${attempt + 1}, retrying...")
+            } catch (e: Exception) {
+                lastException = e
+                Log.w(TAG, "Extraction failed on attempt ${attempt + 1}: ${e.message}")
+            }
+
+            // Exponential backoff: 1s, 2s, 4s
+            if (attempt < maxRetries - 1) {
+                val delayMs = 1000L * (1 shl attempt)
+                Log.d(TAG, "Waiting ${delayMs}ms before retry...")
+                delay(delayMs)
+            }
+        }
+
+        Log.e(TAG, "All $maxRetries attempts failed for video $videoId")
+        lastException?.let { Log.e(TAG, "Last error: ${it.message}", it) }
+        return null
+    }
+
+    /**
+     * Internal extraction logic (single attempt)
+     */
+    private fun extractVideoStreamInternal(videoId: String): VideoExtractionResult? {
         try {
             Log.d(TAG, "Extracting video stream for: $videoId")
 
@@ -295,7 +340,7 @@ class NewPipeStreamExtractor {
                 val thumbnailUrl = streamInfo.thumbnails.firstOrNull()?.url
                     ?: "https://i.ytimg.com/vi/$videoId/mqdefault.jpg"
 
-                return@withContext VideoExtractionResult(
+                return VideoExtractionResult(
                     videoUrl = bestCombined.content,
                     audioUrl = null, // Combined stream, no separate audio needed
                     title = streamInfo.name ?: "Unknown Title",
@@ -337,7 +382,7 @@ class NewPipeStreamExtractor {
                 val thumbnailUrl = streamInfo.thumbnails.firstOrNull()?.url
                     ?: "https://i.ytimg.com/vi/$videoId/mqdefault.jpg"
 
-                return@withContext VideoExtractionResult(
+                return VideoExtractionResult(
                     videoUrl = bestVideoOnly.content,
                     audioUrl = bestAudio?.content, // May need separate audio track
                     title = streamInfo.name ?: "Unknown Title",
@@ -350,11 +395,11 @@ class NewPipeStreamExtractor {
             }
 
             Log.e(TAG, "No video streams found for: $videoId")
-            null
+            return null
 
         } catch (e: Exception) {
             Log.e(TAG, "NewPipe video extraction failed for $videoId: ${e.message}", e)
-            null
+            return null
         }
     }
 

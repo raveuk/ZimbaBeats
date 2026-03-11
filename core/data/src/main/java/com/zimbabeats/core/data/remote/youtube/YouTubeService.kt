@@ -5,6 +5,7 @@ import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.jsoup.Jsoup
 import org.json.JSONObject
@@ -94,9 +95,53 @@ class YouTubeService(private val httpClient: HttpClient) {
 
     /**
      * Get stream URLs for a video using Innertube API
+     * Includes retry mechanism with exponential backoff for slow mobile networks
      */
     suspend fun getStreamUrls(videoId: String): List<StreamUrl> {
-        return innertubeClient.getStreamUrls(videoId)
+        return getStreamUrlsWithRetry(videoId, maxRetries = 3)
+    }
+
+    /**
+     * Get stream URLs with retry and exponential backoff
+     * Handles transient network failures on slow mobile connections
+     */
+    private suspend fun getStreamUrlsWithRetry(
+        videoId: String,
+        maxRetries: Int = 3
+    ): List<StreamUrl> {
+        var lastException: Exception? = null
+
+        repeat(maxRetries) { attempt ->
+            try {
+                Log.d(TAG, "Fetching stream URLs for $videoId (attempt ${attempt + 1}/$maxRetries)")
+                val result = innertubeClient.getStreamUrls(videoId)
+
+                if (result.isNotEmpty()) {
+                    Log.d(TAG, "Successfully got ${result.size} streams on attempt ${attempt + 1}")
+                    return result
+                }
+
+                // Empty result - treat as failure and retry
+                Log.w(TAG, "Got empty stream list on attempt ${attempt + 1}, retrying...")
+            } catch (e: Exception) {
+                lastException = e
+                Log.w(TAG, "Stream fetch failed on attempt ${attempt + 1}: ${e.message}")
+            }
+
+            // Exponential backoff: 1s, 2s, 4s
+            if (attempt < maxRetries - 1) {
+                val delayMs = 1000L * (1 shl attempt) // 2^attempt seconds
+                Log.d(TAG, "Waiting ${delayMs}ms before retry...")
+                delay(delayMs)
+            }
+        }
+
+        // All retries exhausted
+        Log.e(TAG, "All $maxRetries attempts failed for video $videoId")
+        if (lastException != null) {
+            throw lastException!!
+        }
+        return emptyList()
     }
 
     /**
