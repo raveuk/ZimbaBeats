@@ -46,3 +46,13 @@ secrets.json
 node_modules/
 **/node_modules/
 functions/node_modules/
+
+# Package lock files - regenerate on deploy to get latest security patches
+functions/package-lock.json
+backend/package-lock.json
+
+# Additional sensitive patterns
+*.tmp
+*.bak
+*.log
+templog*.txt
