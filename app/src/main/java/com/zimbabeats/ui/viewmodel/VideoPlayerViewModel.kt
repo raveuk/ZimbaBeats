@@ -27,6 +27,7 @@ import com.zimbabeats.core.domain.filter.FilterResult
 import com.zimbabeats.core.domain.model.AgeRating
 import com.zimbabeats.core.data.remote.youtube.NewPipeStreamExtractor
 import com.zimbabeats.media.controller.MediaControllerManager
+import com.zimbabeats.media.music.MusicPlaybackManager
 import com.zimbabeats.media.queue.RepeatMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -100,7 +101,8 @@ class VideoPlayerViewModel(
     private val appPreferences: AppPreferences,
     private val videoContentFilter: VideoContentFilter,
     private val mediaControllerManager: MediaControllerManager,
-    private val newPipeExtractor: NewPipeStreamExtractor
+    private val newPipeExtractor: NewPipeStreamExtractor,
+    private val musicPlaybackManager: MusicPlaybackManager
 ) : AndroidViewModel(application) {
 
     companion object {
@@ -181,6 +183,11 @@ class VideoPlayerViewModel(
             Log.d(TAG, "Video $videoId already loaded, skipping")
             return
         }
+
+        // Stop any music playback before starting video
+        // This prevents audio overlap when navigating from music to video
+        musicPlaybackManager.pause()
+        Log.d(TAG, "Paused music playback before loading video")
 
         // Reset state for new video
         loadedVideoId = videoId
