@@ -2,11 +2,13 @@
 
 import android.app.PictureInPictureParams
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
 import android.util.Rational
 import androidx.activity.ComponentActivity
+import androidx.media3.ui.PlayerView
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -62,9 +64,19 @@ class MainActivity : ComponentActivity() {
     private var isVideoPlayerActive = false
     private var isInPipMode = false
 
+    // Reference to current PlayerView for PiP mode (hide controls before entering PiP)
+    private var currentPlayerView: PlayerView? = null
+
     companion object {
         // Static reference for PiP state access from composables
         var pipStateCallback: ((Boolean) -> Unit)? = null
+    }
+
+    /**
+     * Set reference to PlayerView for PiP mode handling
+     */
+    fun setPlayerView(playerView: PlayerView?) {
+        currentPlayerView = playerView
     }
 
     /**
@@ -81,30 +93,48 @@ class MainActivity : ComponentActivity() {
 
     /**
      * Enter Picture-in-Picture mode manually
-     * Called from video player UI - no need to check isVideoPlayerActive since
-     * the button is only visible when video player is active
+     * Based on compose-video reference implementation
      */
+    @Suppress("DEPRECATION")
     fun enterPipMode() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        // Check PiP is supported on this device
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N &&
+            packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)
+        ) {
             try {
-                val params = PictureInPictureParams.Builder()
-                    .setAspectRatio(Rational(16, 9))
-                    .build()
-                enterPictureInPictureMode(params)
+                // Hide player controls before entering PiP (compose-video approach)
+                currentPlayerView?.useController = false
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    val params = PictureInPictureParams.Builder()
+                        .setAspectRatio(Rational(16, 9))
+                        .apply {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                setTitle("ZimbaBeats Video")
+                                setSeamlessResizeEnabled(true)
+                            }
+                        }
+                        .build()
+                    enterPictureInPictureMode(params)
+                } else {
+                    // For Android N-O, use deprecated method
+                    enterPictureInPictureMode()
+                }
             } catch (e: Exception) {
                 android.util.Log.e("MainActivity", "Failed to enter PiP mode", e)
+                // Restore controls if PiP failed
+                currentPlayerView?.useController = true
             }
+        } else {
+            android.util.Log.w("MainActivity", "PiP not supported on this device")
         }
     }
 
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
         // Auto-enter PiP when user presses home button during video playback
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && isVideoPlayerActive) {
-            val params = PictureInPictureParams.Builder()
-                .setAspectRatio(Rational(16, 9))
-                .build()
-            enterPictureInPictureMode(params)
+        if (isVideoPlayerActive) {
+            enterPipMode()
         }
     }
 
@@ -114,6 +144,12 @@ class MainActivity : ComponentActivity() {
     ) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
         isInPipMode = isInPictureInPictureMode
+
+        // Restore controls when exiting PiP (compose-video approach)
+        if (!isInPictureInPictureMode) {
+            currentPlayerView?.useController = true
+        }
+
         pipStateCallback?.invoke(isInPictureInPictureMode)
     }
 

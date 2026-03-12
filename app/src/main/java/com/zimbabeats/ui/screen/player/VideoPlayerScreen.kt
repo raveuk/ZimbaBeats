@@ -176,6 +176,7 @@ fun VideoPlayerScreen(
 
         onDispose {
             activity?.setVideoPlayerActive(false)
+            activity?.setPlayerView(null)
             MainActivity.pipStateCallback = null
         }
     }
@@ -291,10 +292,14 @@ fun VideoPlayerScreen(
                         player = viewModel.getPlayer()
                         useController = false // Custom controls
                         setResizeMode(currentResizeMode)
+                        // Pass PlayerView reference to MainActivity for PiP
+                        (ctx.findActivity() as? MainActivity)?.setPlayerView(this)
                     }
                 },
                 update = { view ->
                     view.resizeMode = currentResizeMode
+                    // Update PlayerView reference in case it changed
+                    (context.findActivity() as? MainActivity)?.setPlayerView(view)
                 },
                 modifier = Modifier.fillMaxSize()
             )
@@ -717,7 +722,13 @@ fun VideoPlayerScreen(
                                     useController = true
                                     controllerShowTimeoutMs = 3000
                                     setResizeMode(AspectRatioFrameLayout.RESIZE_MODE_FIT)
+                                    // Pass PlayerView reference to MainActivity for PiP
+                                    (ctx.findActivity() as? MainActivity)?.setPlayerView(this)
                                 }
+                            },
+                            update = { view ->
+                                // Update PlayerView reference in case it changed
+                                (context.findActivity() as? MainActivity)?.setPlayerView(view)
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
