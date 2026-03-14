@@ -58,7 +58,7 @@ junit = "4.13.2"
 junitVersion = "1.3.0"
 espressoCore = "3.7.0"
 mockk = "1.13.14"
-turbine = "1.2.0"
+turbine = "1.2.1"
 
 [libraries]
 # Core AndroidX
