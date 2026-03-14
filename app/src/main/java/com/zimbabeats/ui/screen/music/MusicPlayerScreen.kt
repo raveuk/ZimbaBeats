@@ -3,6 +3,7 @@
 import android.app.Activity
 import android.view.WindowManager
 import androidx.compose.animation.animateColorAsState
+import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -24,6 +25,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -290,40 +292,244 @@ private fun PlayerContent(
     // Use drag position while dragging, otherwise use actual position
     val displayPosition = if (isDragging) dragPosition else currentPosition.toFloat()
 
-    // Simple column layout - album art uses weight to fill remaining space
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp)
-            .semantics { contentDescription = "Now playing ${track.title} by ${track.artistName}" },
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        // Album art or Lyrics view - takes all remaining space using weight
-        Box(
+    // Detect orientation
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+
+    if (isLandscape) {
+        // Landscape layout - side by side
+        Row(
             modifier = Modifier
-                .weight(1f)  // Takes remaining space
-                .fillMaxWidth()
-                .aspectRatio(1f, matchHeightConstraintsFirst = true) // Square, but height-constrained
-                .clip(RoundedCornerShape(12.dp)),
-            contentAlignment = Alignment.Center
+                .fillMaxSize()
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .semantics { contentDescription = "Now playing ${track.title} by ${track.artistName}" },
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            if (showLyrics) {
-                LyricsView(
-                    lyrics = lyrics,
-                    isLoading = isLoadingLyrics,
-                    currentPosition = currentPosition
+            // Left side: Album art (smaller, fixed width)
+            Column(
+                modifier = Modifier
+                    .width(200.dp)
+                    .fillMaxHeight(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                // Album art
+                Box(
+                    modifier = Modifier
+                        .size(160.dp)
+                        .clip(RoundedCornerShape(12.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    AsyncImage(
+                        model = track.thumbnailUrl,
+                        contentDescription = "Album art for ${track.title}",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Track info - compact
+                Text(
+                    text = track.title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center
                 )
-            } else {
-                AsyncImage(
-                    model = track.thumbnailUrl,
-                    contentDescription = "Album art for ${track.title}",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
+                Text(
+                    text = track.artistName,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center
                 )
             }
-        }
 
-        Spacer(modifier = Modifier.height(4.dp))
+            // Right side: Lyrics or Controls
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Lyrics view (takes most of the space) or action buttons
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (showLyrics) {
+                        LyricsView(
+                            lyrics = lyrics,
+                            isLoading = isLoadingLyrics,
+                            currentPosition = currentPosition
+                        )
+                    } else {
+                        // Show a placeholder or secondary content when lyrics not shown
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                    shape = RoundedCornerShape(16.dp)
+                                ),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                Icons.Default.Lyrics,
+                                contentDescription = null,
+                                modifier = Modifier.size(48.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Tap to show lyrics",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Progress slider - compact
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Slider(
+                        value = displayPosition,
+                        onValueChange = { newValue ->
+                            isDragging = true
+                            dragPosition = newValue
+                        },
+                        onValueChangeFinished = {
+                            onSeek(dragPosition.toLong())
+                            isDragging = false
+                        },
+                        valueRange = 0f..playerState.duration.coerceAtLeast(1).toFloat(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(24.dp)
+                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = formatTime(displayPosition.toLong()),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = formatTime(playerState.duration),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                // Playback controls - compact row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = onToggleShuffle, modifier = Modifier.size(32.dp)) {
+                        Icon(
+                            Icons.Default.Shuffle,
+                            contentDescription = "Shuffle",
+                            modifier = Modifier.size(18.dp),
+                            tint = if (shuffleEnabled) MaterialTheme.colorScheme.primary
+                                   else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    IconButton(onClick = onSkipPrevious, modifier = Modifier.size(36.dp)) {
+                        Icon(Icons.Default.SkipPrevious, contentDescription = "Previous", modifier = Modifier.size(24.dp))
+                    }
+                    FilledIconButton(onClick = onPlayPause, modifier = Modifier.size(48.dp), shape = CircleShape) {
+                        Icon(
+                            imageVector = if (playerState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                            contentDescription = if (playerState.isPlaying) "Pause" else "Play",
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+                    IconButton(onClick = onSkipNext, modifier = Modifier.size(36.dp)) {
+                        Icon(Icons.Default.SkipNext, contentDescription = "Next", modifier = Modifier.size(24.dp))
+                    }
+                    IconButton(onClick = onToggleRepeat, modifier = Modifier.size(32.dp)) {
+                        Icon(
+                            imageVector = when (repeatMode) {
+                                RepeatMode.ONE -> Icons.Default.RepeatOne
+                                else -> Icons.Default.Repeat
+                            },
+                            contentDescription = "Repeat",
+                            modifier = Modifier.size(18.dp),
+                            tint = if (repeatMode != RepeatMode.OFF) MaterialTheme.colorScheme.primary
+                                   else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    IconButton(onClick = onToggleLyrics, modifier = Modifier.size(32.dp)) {
+                        Icon(
+                            imageVector = Icons.Default.Lyrics,
+                            contentDescription = if (showLyrics) "Hide lyrics" else "Show lyrics",
+                            modifier = Modifier.size(18.dp),
+                            tint = if (showLyrics) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    IconButton(onClick = onToggleFavorite, modifier = Modifier.size(32.dp)) {
+                        Icon(
+                            imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Default.FavoriteBorder,
+                            contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
+                            modifier = Modifier.size(18.dp),
+                            tint = if (isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+    } else {
+        // Portrait layout - vertical stack (original layout)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp)
+                .semantics { contentDescription = "Now playing ${track.title} by ${track.artistName}" },
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Album art or Lyrics view - takes all remaining space using weight
+            Box(
+                modifier = Modifier
+                    .weight(1f)  // Takes remaining space
+                    .fillMaxWidth()
+                    .aspectRatio(1f, matchHeightConstraintsFirst = true) // Square, but height-constrained
+                    .clip(RoundedCornerShape(12.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                if (showLyrics) {
+                    LyricsView(
+                        lyrics = lyrics,
+                        isLoading = isLoadingLyrics,
+                        currentPosition = currentPosition
+                    )
+                } else {
+                    AsyncImage(
+                        model = track.thumbnailUrl,
+                        contentDescription = "Album art for ${track.title}",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
 
         // Track info - compact
         Row(
@@ -524,6 +730,7 @@ private fun PlayerContent(
 
         // Bottom safe area
         Spacer(modifier = Modifier.height(8.dp))
+        }
     }
 }
 
