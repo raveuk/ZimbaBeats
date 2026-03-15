@@ -45,9 +45,6 @@ class ZimbaBeatsApplication : Application(), SingletonImageLoader.Factory {
     private val _updateState = MutableStateFlow<UpdateResult?>(null)
     val updateState: StateFlow<UpdateResult?> = _updateState.asStateFlow()
 
-    // 24 hours in milliseconds
-    private val updateCheckCooldown = 24 * 60 * 60 * 1000L
-
     override fun onCreate() {
         super.onCreate()
 
@@ -99,7 +96,7 @@ class ZimbaBeatsApplication : Application(), SingletonImageLoader.Factory {
 
     /**
      * Check for app updates on startup.
-     * Respects user preference and 24-hour cooldown.
+     * Respects user preference. Always checks on launch (no cooldown).
      */
     private fun checkForAppUpdate() {
         CoroutineScope(Dispatchers.IO).launch {
@@ -118,24 +115,10 @@ class ZimbaBeatsApplication : Application(), SingletonImageLoader.Factory {
                     return@launch
                 }
 
-                // Check cooldown (24 hours)
-                val lastCheck = appPreferences.getLastUpdateCheck()
-                val now = System.currentTimeMillis()
-                val timeSinceLastCheck = now - lastCheck
-                android.util.Log.d("ZimbaBeats", "Last update check: $lastCheck, time since: ${timeSinceLastCheck / 1000}s, cooldown: ${updateCheckCooldown / 1000}s")
-
-                if (timeSinceLastCheck < updateCheckCooldown) {
-                    android.util.Log.d("ZimbaBeats", "Skipping update check - cooldown not expired (${(updateCheckCooldown - timeSinceLastCheck) / 3600000}h remaining)")
-                    return@launch
-                }
-
-                // Perform update check
+                // Perform update check (always check on launch)
                 android.util.Log.d("ZimbaBeats", "Checking for app updates...")
                 val updateChecker = UpdateChecker(this@ZimbaBeatsApplication)
                 val result = updateChecker.checkForUpdate()
-
-                // Update last check timestamp
-                appPreferences.setLastUpdateCheck(now)
 
                 // Store result globally
                 _updateState.value = result

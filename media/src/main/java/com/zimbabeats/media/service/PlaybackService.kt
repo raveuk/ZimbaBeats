@@ -1,41 +1,55 @@
-﻿package com.zimbabeats.media.service
+package com.zimbabeats.media.service
 
 import android.app.PendingIntent
 import android.content.Intent
+import android.util.Log
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.ForwardingPlayer
+import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.DefaultMediaNotificationProvider
+import androidx.media3.session.LibraryResult
+import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
-import androidx.media3.session.MediaSessionService
+import com.google.common.collect.ImmutableList
+import com.google.common.util.concurrent.Futures
+import com.google.common.util.concurrent.ListenableFuture
 import com.zimbabeats.media.R
-import com.zimbabeats.media.notification.PlaybackNotificationManager
+import com.zimbabeats.media.auto.AutoContentProvider
 import com.zimbabeats.media.datasource.QueueStateHolder
-import android.util.Log
+import com.zimbabeats.media.notification.PlaybackNotificationManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.guava.future
+import org.koin.android.ext.android.inject
 
 /**
- * Background playback service for ZimbaBeats
- * Handles media playback even when app is in background.
+ * Background playback service for ZimbaBeats with Android Auto support.
+ * Handles media playback and content browsing for car infotainment systems.
  *
  * NOTE: Using single-track playback approach where MusicPlaybackManager
  * handles queue navigation. This service just plays whatever MediaItem
  * is set by the controller.
- *
- * Fix High #4: Removed conflicting auto-advance logic - MusicPlaybackManager handles this.
- * Fix Medium #9: Removed unused StreamResolvingDataSourceFactory.
  */
 @UnstableApi
-class PlaybackService : MediaSessionService() {
+class PlaybackService : MediaLibraryService() {
 
-    private var mediaSession: MediaSession? = null
+    companion object {
+        private const val TAG = "PlaybackService"
+    }
+
+    private var mediaSession: MediaLibrarySession? = null
     private lateinit var player: ExoPlayer
     private lateinit var forwardingPlayer: ForwardingPlayer
     private lateinit var notificationManager: PlaybackNotificationManager
+    private val autoContentProvider: AutoContentProvider by inject()
+    private val serviceScope = CoroutineScope(Dispatchers.IO)
 
     override fun onCreate() {
         super.onCreate()
@@ -133,7 +147,7 @@ class PlaybackService : MediaSessionService() {
             override fun seekToNext() {
                 val navigator = QueueStateHolder.navigator
                 if (navigator?.hasNext() == true) {
-                    Log.d("PlaybackService", "ForwardingPlayer: seekToNext via QueueNavigator")
+                    Log.d(TAG, "ForwardingPlayer: seekToNext via QueueNavigator")
                     navigator.skipToNext()
                 } else {
                     super.seekToNext()
@@ -148,7 +162,7 @@ class PlaybackService : MediaSessionService() {
                     return
                 }
                 if (navigator?.hasPrevious() == true) {
-                    Log.d("PlaybackService", "ForwardingPlayer: seekToPrevious via QueueNavigator")
+                    Log.d(TAG, "ForwardingPlayer: seekToPrevious via QueueNavigator")
                     navigator.skipToPrevious()
                 } else {
                     super.seekToPrevious()
@@ -164,9 +178,6 @@ class PlaybackService : MediaSessionService() {
             }
         }
 
-        // Fix High #4: Removed onPlaybackStateChanged auto-advance logic
-        // MusicPlaybackManager.setupTrackCompletionListener() handles auto-advance
-        // to avoid conflicting queue management
         player.addListener(object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 if (isPlaying) {
@@ -175,7 +186,7 @@ class PlaybackService : MediaSessionService() {
             }
         })
 
-        Log.d("PlaybackService", "Player initialized with ForwardingPlayer for queue navigation")
+        Log.d(TAG, "Player initialized with ForwardingPlayer for queue navigation")
     }
 
     private fun initializeMediaSession() {
@@ -188,14 +199,13 @@ class PlaybackService : MediaSessionService() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
-        // Use forwardingPlayer for the session so notification shows correct next/prev state
-        mediaSession = MediaSession.Builder(this, forwardingPlayer)
+        // Use MediaLibrarySession for Android Auto content browsing
+        mediaSession = MediaLibrarySession.Builder(this, forwardingPlayer, LibrarySessionCallback())
             .setSessionActivity(sessionActivityPendingIntent)
-            .setCallback(MediaSessionCallback())
             .build()
     }
 
-    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? {
+    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? {
         return mediaSession
     }
 
@@ -217,10 +227,81 @@ class PlaybackService : MediaSessionService() {
     }
 
     /**
-     * Custom callback for media session commands
+     * Callback for handling Android Auto media browsing requests.
      */
-    private inner class MediaSessionCallback : MediaSession.Callback {
-        // Handle custom commands if needed
-        // For now, default Media3 behavior is sufficient
+    private inner class LibrarySessionCallback : MediaLibrarySession.Callback {
+
+        override fun onGetLibraryRoot(
+            session: MediaLibrarySession,
+            browser: MediaSession.ControllerInfo,
+            params: LibraryParams?
+        ): ListenableFuture<LibraryResult<MediaItem>> {
+            Log.d(TAG, "onGetLibraryRoot called by ${browser.packageName}")
+
+            val rootItem = MediaItem.Builder()
+                .setMediaId(AutoContentProvider.ROOT_ID)
+                .setMediaMetadata(
+                    MediaMetadata.Builder()
+                        .setIsBrowsable(true)
+                        .setIsPlayable(false)
+                        .setTitle("ZimbaBeats")
+                        .setMediaType(MediaMetadata.MEDIA_TYPE_FOLDER_MIXED)
+                        .build()
+                )
+                .build()
+
+            return Futures.immediateFuture(LibraryResult.ofItem(rootItem, params))
+        }
+
+        override fun onGetChildren(
+            session: MediaLibrarySession,
+            browser: MediaSession.ControllerInfo,
+            parentId: String,
+            page: Int,
+            pageSize: Int,
+            params: LibraryParams?
+        ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> {
+            Log.d(TAG, "onGetChildren called for parentId: $parentId")
+
+            return serviceScope.future {
+                try {
+                    val items = when (parentId) {
+                        AutoContentProvider.ROOT_ID -> autoContentProvider.getRootChildren()
+                        AutoContentProvider.FAVORITES_ID -> autoContentProvider.getFavorites()
+                        AutoContentProvider.RECENT_ID -> autoContentProvider.getRecent()
+                        AutoContentProvider.PLAYLISTS_ID -> autoContentProvider.getPlaylists()
+                        else -> {
+                            // Check if it's a playlist ID (PLAYLIST_123)
+                            if (parentId.startsWith(AutoContentProvider.PLAYLIST_PREFIX)) {
+                                val playlistId = parentId
+                                    .removePrefix(AutoContentProvider.PLAYLIST_PREFIX)
+                                    .toLongOrNull()
+                                if (playlistId != null) {
+                                    autoContentProvider.getPlaylistTracks(playlistId)
+                                } else {
+                                    emptyList()
+                                }
+                            } else {
+                                emptyList()
+                            }
+                        }
+                    }
+                    LibraryResult.ofItemList(ImmutableList.copyOf(items), params)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error getting children for $parentId", e)
+                    LibraryResult.ofItemList(ImmutableList.of(), params)
+                }
+            }
+        }
+
+        override fun onGetItem(
+            session: MediaLibrarySession,
+            browser: MediaSession.ControllerInfo,
+            mediaId: String
+        ): ListenableFuture<LibraryResult<MediaItem>> {
+            Log.d(TAG, "onGetItem called for mediaId: $mediaId")
+            // Return empty for now - playback is handled by app's MusicPlaybackManager
+            return Futures.immediateFuture(LibraryResult.ofError(LibraryResult.RESULT_ERROR_NOT_SUPPORTED))
+        }
     }
 }

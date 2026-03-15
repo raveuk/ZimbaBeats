@@ -56,6 +56,7 @@ dependencies {
     // Coroutines
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-guava:1.8.0")
 
     // Koin
     implementation(libs.koin.android)

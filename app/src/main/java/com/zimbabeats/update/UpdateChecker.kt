@@ -59,9 +59,9 @@ class UpdateChecker(private val context: Context) {
                 val responseBody = connection.inputStream.bufferedReader().use { it.readText() }
                 val releases = json.decodeFromString<List<GitHubRelease>>(responseBody)
 
-                // Find latest release for main app (exclude -family tags)
+                // Find latest release for main app (only -zimbabeats tags)
                 val release = releases
-                    .filter { !it.tagName.contains("-family", ignoreCase = true) }
+                    .filter { it.tagName.contains("-zimbabeats", ignoreCase = true) }
                     .maxByOrNull { parseVersionForSort(it.tagName) }
 
                 if (release == null) {
@@ -69,7 +69,9 @@ class UpdateChecker(private val context: Context) {
                     return@withContext UpdateResult.NoUpdate
                 }
 
-                val latestVersion = release.tagName.removePrefix("v").removePrefix("V")
+                val latestVersion = release.tagName
+                    .removePrefix("v").removePrefix("V")
+                    .removeSuffix("-zimbabeats").removeSuffix("-ZimbaBeats")
                 val currentVersion = getCurrentVersion()
 
                 Log.d(TAG, "Current: $currentVersion, Latest: $latestVersion (tag: ${release.tagName})")
@@ -115,6 +117,7 @@ class UpdateChecker(private val context: Context) {
      */
     private fun parseVersionForSort(tag: String): Int {
         val version = tag.removePrefix("v").removePrefix("V")
+            .removeSuffix("-zimbabeats").removeSuffix("-ZimbaBeats")
         val parts = version.split(".").mapNotNull { it.toIntOrNull() }
         return parts.getOrElse(0) { 0 } * 10000 +
                parts.getOrElse(1) { 0 } * 100 +
