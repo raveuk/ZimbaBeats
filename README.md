@@ -264,15 +264,7 @@ When a parent removes a child device from their family account:
 | Architecture Pattern | MVVM (Model-View-ViewModel) |
 
 ---
-## Star History
-
-<a href="https://www.star-history.com/?repos=raveuk%2FZimbaBeats&type=date&logscale=&legend=top-left">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/image?repos=raveuk/ZimbaBeats&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/image?repos=raveuk/ZimbaBeats&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/image?repos=raveuk/ZimbaBeats&type=date&legend=top-left" />
- </picture>
-</a>
+<iframe style="width:100%;height:auto;min-width:600px;min-height:400px;" src="https://www.star-history.com/?repos=raveuk%2FZimbaBeats&type=date&logscale=&legend=top-left" frameBorder="0"></iframe>
 ---
 
 ## Support
