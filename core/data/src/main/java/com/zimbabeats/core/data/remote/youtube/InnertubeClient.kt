@@ -19,6 +19,9 @@ class InnertubeClient(private val httpClient: HttpClient) {
         private const val TAG = "InnertubeClient"
         private const val INNERTUBE_PLAYER_URL = "https://www.youtube.com/youtubei/v1/player"
         private const val INNERTUBE_SEARCH_URL = "https://www.youtube.com/youtubei/v1/search"
+        // Search pagination caps: stop after this many results or pages, whichever comes first.
+        private const val MAX_SEARCH_RESULTS = 200
+        private const val MAX_SEARCH_PAGES = 10
         private const val SUGGEST_URL = "https://suggestqueries-clients6.youtube.com/complete/search"
         private const val INNERTUBE_KEY = "" // Set via local.properties
 
@@ -408,6 +411,67 @@ class InnertubeClient(private val httpClient: HttpClient) {
     }
 
     /**
+     * Parse a search `videoRenderer` JSON node into a [YouTubeVideo], or null if it has no id.
+     * Shared by the initial search page and continuation pages.
+     */
+    private fun parseSearchVideoRenderer(video: JsonObject): YouTubeVideo? {
+        val videoId = video["videoId"]?.jsonPrimitive?.contentOrNull ?: return null
+
+        val title = video["title"]?.jsonObject
+            ?.get("runs")?.jsonArray
+            ?.firstOrNull()?.jsonObject
+            ?.get("text")?.jsonPrimitive?.contentOrNull ?: "Unknown"
+
+        val ownerTextRuns = video["ownerText"]?.jsonObject
+            ?.get("runs")?.jsonArray
+            ?.firstOrNull()?.jsonObject
+
+        val channelName = ownerTextRuns?.get("text")?.jsonPrimitive?.contentOrNull ?: "Unknown"
+
+        val channelId = ownerTextRuns
+            ?.get("navigationEndpoint")?.jsonObject
+            ?.get("browseEndpoint")?.jsonObject
+            ?.get("browseId")?.jsonPrimitive?.contentOrNull ?: ""
+
+        val thumbnail = video["thumbnail"]?.jsonObject
+            ?.get("thumbnails")?.jsonArray
+            ?.lastOrNull()?.jsonObject
+            ?.get("url")?.jsonPrimitive?.contentOrNull ?: ""
+
+        val viewCountText = video["viewCountText"]?.jsonObject
+            ?.get("simpleText")?.jsonPrimitive?.contentOrNull ?: "0"
+
+        val publishedTimeText = video["publishedTimeText"]?.jsonObject
+            ?.get("simpleText")?.jsonPrimitive?.contentOrNull
+
+        return YouTubeVideo(
+            id = videoId,
+            title = title,
+            description = null,
+            thumbnailUrl = thumbnail,
+            channelName = channelName,
+            channelId = channelId,
+            duration = 0,
+            viewCount = parseViewCount(viewCountText),
+            publishedAt = parsePublishedTime(publishedTimeText),
+            url = "https://www.youtube.com/watch?v=$videoId",
+            category = null,
+            ageLimit = 0
+        )
+    }
+
+    /**
+     * Find the "load more" continuation token in a search results / continuation-items array.
+     */
+    private fun extractSearchContinuationToken(items: kotlinx.serialization.json.JsonArray?): String? =
+        items?.firstNotNullOfOrNull {
+            it.jsonObject["continuationItemRenderer"]?.jsonObject
+                ?.get("continuationEndpoint")?.jsonObject
+                ?.get("continuationCommand")?.jsonObject
+                ?.get("token")?.jsonPrimitive?.contentOrNull
+        }
+
+    /**
      * Convert YouTube's relative "published" text (e.g. "3 days ago", "Streamed 2 weeks ago",
      * "1 year ago") into an approximate epoch-millis upload time so results can be sorted
      * newest-first. YouTube only provides this coarse relative value in search results, so the
@@ -600,60 +664,58 @@ class InnertubeClient(private val httpClient: HttpClient) {
                     }
 
                     // Parse video results
-                    val videoRenderer = item.jsonObject["videoRenderer"]?.jsonObject
-                    videoRenderer?.let { video ->
-                        val videoId = video["videoId"]?.jsonPrimitive?.contentOrNull ?: return@let
-
-                        val title = video["title"]?.jsonObject
-                            ?.get("runs")?.jsonArray
-                            ?.firstOrNull()?.jsonObject
-                            ?.get("text")?.jsonPrimitive?.contentOrNull ?: "Unknown"
-
-                        val ownerTextRuns2 = video["ownerText"]?.jsonObject
-                            ?.get("runs")?.jsonArray
-                            ?.firstOrNull()?.jsonObject
-
-                        val channelName = ownerTextRuns2
-                            ?.get("text")?.jsonPrimitive?.contentOrNull ?: "Unknown"
-
-                        // Extract channelId from navigationEndpoint.browseEndpoint.browseId
-                        val channelId = ownerTextRuns2
-                            ?.get("navigationEndpoint")?.jsonObject
-                            ?.get("browseEndpoint")?.jsonObject
-                            ?.get("browseId")?.jsonPrimitive?.contentOrNull ?: ""
-
-                        val thumbnail = video["thumbnail"]?.jsonObject
-                            ?.get("thumbnails")?.jsonArray
-                            ?.lastOrNull()?.jsonObject
-                            ?.get("url")?.jsonPrimitive?.contentOrNull ?: ""
-
-                        val viewCountText = video["viewCountText"]?.jsonObject
-                            ?.get("simpleText")?.jsonPrimitive?.contentOrNull ?: "0"
-
-                        val publishedTimeText = video["publishedTimeText"]?.jsonObject
-                            ?.get("simpleText")?.jsonPrimitive?.contentOrNull
-
-                        videos.add(
-                            YouTubeVideo(
-                                id = videoId,
-                                title = title,
-                                description = null,
-                                thumbnailUrl = thumbnail,
-                                channelName = channelName,
-                                channelId = channelId,
-                                duration = 0,
-                                viewCount = parseViewCount(viewCountText),
-                                publishedAt = parsePublishedTime(publishedTimeText),
-                                url = "https://www.youtube.com/watch?v=$videoId",
-                                category = null,
-                                ageLimit = 0
-                            )
-                        )
+                    item.jsonObject["videoRenderer"]?.jsonObject?.let { video ->
+                        parseSearchVideoRenderer(video)?.let { videos.add(it) }
                     }
                 }
             }
 
-            Log.d(TAG, "Found ${videos.size} videos, correction: $correctedQuery")
+            // Paginate: follow continuation tokens to load more results (YouTube returns ~20
+            // per page). Capped at 10 pages / 200 results to avoid runaway requests. The caller
+            // sorts the accumulated list newest-first.
+            var continuationToken = extractSearchContinuationToken(contents)
+            var pageCount = 1
+            while (continuationToken != null && videos.size < MAX_SEARCH_RESULTS && pageCount < MAX_SEARCH_PAGES) {
+                pageCount++
+                Log.d(TAG, "Fetching search continuation page $pageCount...")
+                val continuationBody = buildJsonObject {
+                    putJsonObject("context") {
+                        putJsonObject("client") {
+                            put("clientName", SEARCH_CLIENT_NAME)
+                            put("clientVersion", SEARCH_CLIENT_VERSION)
+                            put("hl", "en")
+                            put("gl", "US")
+                        }
+                    }
+                    put("continuation", continuationToken)
+                }
+
+                val continuationResponse: String = httpClient.post(searchUrl) {
+                    contentType(ContentType.Application.Json)
+                    setBody(continuationBody.toString())
+                }.bodyAsText()
+
+                val continuationItems = json.parseToJsonElement(continuationResponse).jsonObject
+                    .get("onResponseReceivedCommands")?.jsonArray
+                    ?.firstNotNullOfOrNull {
+                        it.jsonObject["appendContinuationItemsAction"]?.jsonObject
+                            ?.get("continuationItems")?.jsonArray
+                    } ?: break
+
+                continuationItems.forEach { ci ->
+                    ci.jsonObject["itemSectionRenderer"]?.jsonObject
+                        ?.get("contents")?.jsonArray
+                        ?.forEach { item ->
+                            item.jsonObject["videoRenderer"]?.jsonObject?.let { video ->
+                                parseSearchVideoRenderer(video)?.let { videos.add(it) }
+                            }
+                        }
+                }
+
+                continuationToken = extractSearchContinuationToken(continuationItems)
+            }
+
+            Log.d(TAG, "Found ${videos.size} videos across $pageCount page(s), correction: $correctedQuery")
             SearchResultWithCorrection(videos, correctedQuery, query)
 
         } catch (e: Exception) {

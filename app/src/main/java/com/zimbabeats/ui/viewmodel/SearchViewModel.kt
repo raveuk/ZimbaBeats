@@ -339,9 +339,10 @@ class SearchViewModel(
             // Update suggestion
             searchRepository.updateSuggestion(query)
 
-            // Search YouTube - filtering is done after results are returned
-            // Using maxResults = 100 for better coverage, especially for channel/creator searches
-            when (val result = searchRepository.searchVideos(query, maxResults = 100)) {
+            // Search YouTube - filtering is done after results are returned.
+            // 200 matches the InnerTube pagination cap so all fetched pages are kept; results
+            // are then sorted newest-first below.
+            when (val result = searchRepository.searchVideos(query, maxResults = 200)) {
                 is Resource.Success -> {
                     val searchResult = result.data
                     // First apply safety filtering via Bridge, then sort by latest (newest first)
