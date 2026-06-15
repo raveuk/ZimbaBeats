@@ -373,7 +373,7 @@ class InnertubeClient(private val httpClient: HttpClient) {
                                 channelId = channelId,
                                 duration = 0,
                                 viewCount = parseViewCount(viewCountText),
-                                publishedAt = System.currentTimeMillis(),
+                                publishedAt = parsePublishedTime(publishedTimeText),
                                 url = "https://www.youtube.com/watch?v=$videoId",
                                 category = null,
                                 ageLimit = 0
@@ -405,6 +405,31 @@ class InnertubeClient(private val httpClient: HttpClient) {
         } catch (e: Exception) {
             0
         }
+    }
+
+    /**
+     * Convert YouTube's relative "published" text (e.g. "3 days ago", "Streamed 2 weeks ago",
+     * "1 year ago") into an approximate epoch-millis upload time so results can be sorted
+     * newest-first. YouTube only provides this coarse relative value in search results, so the
+     * timestamp is an approximation. Falls back to "now" when the text is missing/unparseable.
+     */
+    private fun parsePublishedTime(publishedTimeText: String?): Long {
+        val now = System.currentTimeMillis()
+        if (publishedTimeText.isNullOrBlank()) return now
+        val match = Regex("(\\d+)\\s*(second|minute|hour|day|week|month|year)")
+            .find(publishedTimeText.lowercase()) ?: return now
+        val amount = match.groupValues[1].toLongOrNull() ?: return now
+        val unitMs = when (match.groupValues[2]) {
+            "second" -> 1_000L
+            "minute" -> 60_000L
+            "hour" -> 3_600_000L
+            "day" -> 86_400_000L
+            "week" -> 604_800_000L
+            "month" -> 2_592_000_000L      // ~30 days
+            "year" -> 31_536_000_000L      // ~365 days
+            else -> return now
+        }
+        return now - amount * unitMs
     }
 
     private fun extractFormatFromMime(mimeType: String): String {
@@ -605,6 +630,9 @@ class InnertubeClient(private val httpClient: HttpClient) {
                         val viewCountText = video["viewCountText"]?.jsonObject
                             ?.get("simpleText")?.jsonPrimitive?.contentOrNull ?: "0"
 
+                        val publishedTimeText = video["publishedTimeText"]?.jsonObject
+                            ?.get("simpleText")?.jsonPrimitive?.contentOrNull
+
                         videos.add(
                             YouTubeVideo(
                                 id = videoId,
@@ -615,7 +643,7 @@ class InnertubeClient(private val httpClient: HttpClient) {
                                 channelId = channelId,
                                 duration = 0,
                                 viewCount = parseViewCount(viewCountText),
-                                publishedAt = System.currentTimeMillis(),
+                                publishedAt = parsePublishedTime(publishedTimeText),
                                 url = "https://www.youtube.com/watch?v=$videoId",
                                 category = null,
                                 ageLimit = 0
@@ -724,6 +752,9 @@ class InnertubeClient(private val httpClient: HttpClient) {
                     ?.get("simpleText")?.jsonPrimitive?.contentOrNull
                 ?: "0"
 
+            val publishedTimeText = video["publishedTimeText"]?.jsonObject
+                ?.get("simpleText")?.jsonPrimitive?.contentOrNull
+
             YouTubeVideo(
                 id = videoId,
                 title = title,
@@ -733,7 +764,7 @@ class InnertubeClient(private val httpClient: HttpClient) {
                 channelId = channelId,
                 duration = 0,
                 viewCount = parseViewCount(viewCountText),
-                publishedAt = System.currentTimeMillis(),
+                publishedAt = parsePublishedTime(publishedTimeText),
                 url = "https://www.youtube.com/watch?v=$videoId",
                 category = null,
                 ageLimit = 0

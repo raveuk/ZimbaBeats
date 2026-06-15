@@ -43,6 +43,7 @@ class SearchViewModel(
 
     private var searchJob: Job? = null
     private var suggestionJob: Job? = null
+    private var localSearchJob: Job? = null
 
     init {
         observeBridgeState()
@@ -204,6 +205,7 @@ class SearchViewModel(
         // Cancel previous jobs
         searchJob?.cancel()
         suggestionJob?.cancel()
+        localSearchJob?.cancel()
 
         if (query.isNotBlank()) {
             // Debounce local search
@@ -275,9 +277,20 @@ class SearchViewModel(
     }
 
     private fun searchLocally(query: String) {
-        viewModelScope.launch {
+        // Track this collector so it can be cancelled. searchVideosLocally is a Room Flow that
+        // re-emits whenever the videos table changes - including when performSearch() writes its
+        // API results to the DB. Without cancellation, leaked collectors re-fire after an API
+        // search and overwrite the real results with stale local data (the "search needs many
+        // clicks" bug).
+        localSearchJob?.cancel()
+        localSearchJob = viewModelScope.launch {
             // Don't show loading for local search - it should be instant
             searchRepository.searchVideosLocally(query).collect { results ->
+                // Ignore stale emissions: only update while still browsing this exact query and
+                // before an API search has started/completed. Otherwise we'd clobber API results.
+                val state = _uiState.value
+                if (state.isSearching || state.hasSearched || state.query != query) return@collect
+
                 // Only show local results as suggestions, don't set hasSearched
                 // hasSearched should only be true after explicit YouTube API search
                 val filtered = filterVideosByCloud(results)
@@ -295,9 +308,11 @@ class SearchViewModel(
         val query = _uiState.value.query
         if (query.isBlank()) return
 
-        // Cancel any pending jobs
+        // Cancel any pending jobs, including the local-search collector so it can't overwrite
+        // the API results once they arrive.
         searchJob?.cancel()
         suggestionJob?.cancel()
+        localSearchJob?.cancel()
 
         // Check if search is allowed based on parental controls from companion app
         if (!isSearchAllowed(query)) {
@@ -358,6 +373,9 @@ class SearchViewModel(
     }
 
     fun clearSearch() {
+        searchJob?.cancel()
+        suggestionJob?.cancel()
+        localSearchJob?.cancel()
         _uiState.value = SearchUiState()
         loadRecentSearches()
         loadSuggestions()
