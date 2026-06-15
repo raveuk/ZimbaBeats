@@ -62,6 +62,12 @@ class AppPreferences(private val context: Context) {
         private val KEY_AUTO_UPDATE_CHECK = booleanPreferencesKey("auto_update_check")
         private val KEY_LAST_UPDATE_CHECK = longPreferencesKey("last_update_check")
 
+        // Remote Config update banner — tracks which target version the user has
+        // already dismissed, so we don't keep nagging them on every launch. Stored as
+        // Long because Remote Config exposes version codes as Long. We re-show the
+        // banner whenever RC's latest_version_code becomes larger than this.
+        private val KEY_DISMISSED_REMOTE_UPDATE_VERSION = longPreferencesKey("dismissed_remote_update_version")
+
         // YouTube Authentication Keys
         private val KEY_YOUTUBE_COOKIE = stringPreferencesKey("youtube_cookie")
         private val KEY_YOUTUBE_LOGGED_IN = booleanPreferencesKey("youtube_logged_in")
@@ -206,6 +212,22 @@ class AppPreferences(private val context: Context) {
             preferences[KEY_LAST_UPDATE_CHECK] ?: 0L
         }
         .stateIn(scope, SharingStarted.Eagerly, 0L)
+
+    // Highest target version the user has dismissed in the Remote Config update banner.
+    // 0 = never dismissed.
+    val dismissedRemoteUpdateVersionFlow: StateFlow<Long> = context.dataStore.data
+        .map { preferences ->
+            preferences[KEY_DISMISSED_REMOTE_UPDATE_VERSION] ?: 0L
+        }
+        .stateIn(scope, SharingStarted.Eagerly, 0L)
+
+    fun setDismissedRemoteUpdateVersion(versionCode: Long) {
+        scope.launch {
+            context.dataStore.edit { preferences ->
+                preferences[KEY_DISMISSED_REMOTE_UPDATE_VERSION] = versionCode
+            }
+        }
+    }
 
     // YouTube Cookie Flow
     val youtubeCookieFlow: StateFlow<String> = context.dataStore.data

@@ -318,13 +318,27 @@ data class YouTubeVideo(
 )
 
 /**
- * Stream URL with quality info
+ * Stream URL with quality info.
+ *
+ * `format` is the container ("mp4", "webm", "m4a", "opus", "hls").
+ * `videoCodec` / `audioCodec` are the codec family parsed from the InnerTube
+ *   mimeType's codecs= attribute (e.g. "avc1", "vp9", "av01", "mp4a", "opus").
+ *   Either may be null when not provided by the server.
+ * `height` is set for video streams (e.g. 720, 1080); 0 for audio-only.
+ * `bitrate` is the server-reported bitrate in bps; 0 if missing.
+ * `contentLength` is YouTube's reported byte size; -1 if missing (caller must
+ *   probe via HEAD in that case).
  */
 data class StreamUrl(
     val url: String,
     val quality: String,
     val format: String,
-    val isVideoOnly: Boolean
+    val isVideoOnly: Boolean,
+    val videoCodec: String? = null,
+    val audioCodec: String? = null,
+    val height: Int = 0,
+    val bitrate: Int = 0,
+    val contentLength: Long = -1L
 )
 
 /**

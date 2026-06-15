@@ -436,7 +436,15 @@ fun MiniPlayer(
                                         if (videoPlaybackState.isPlaying) {
                                             mediaController.pause()
                                         } else {
-                                            mediaController.play()
+                                            // The video's ExoPlayer is owned by
+                                            // VideoPlayerViewModel and gets released when
+                                            // the player screen leaves the composition,
+                                            // so mediaController.play() (which targets
+                                            // PlaybackService's session) is a no-op here.
+                                            // Expand back into the full player instead —
+                                            // a fresh VM rebuilds the player and resumes
+                                            // from the saved progress.
+                                            onExpand(queueItem.video.id)
                                         }
                                     },
                                     modifier = Modifier.scale(playPauseScale),

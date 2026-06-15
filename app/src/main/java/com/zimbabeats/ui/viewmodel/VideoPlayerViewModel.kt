@@ -235,6 +235,7 @@ class VideoPlayerViewModel(
                     )
 
                     player.playVideo(localFileUri, video.title)
+                    restoreSavedProgress(videoId)
                     startWatchSession(videoId)
                     saveWatchHistoryNow()
                     loadRelatedVideos(video.channelId, videoId)
@@ -314,6 +315,7 @@ class VideoPlayerViewModel(
                         )
 
                         player.playVideo(bestStream.url, video.title)
+                        restoreSavedProgress(videoId)
                         startWatchSession(videoId)
 
                         // Save to watch history immediately
@@ -343,6 +345,7 @@ class VideoPlayerViewModel(
                                     isPlayingOffline = false
                                 )
                                 player.playVideo(newPipeResult.videoUrl, video.title)
+                                restoreSavedProgress(videoId)
                                 startWatchSession(videoId)
                                 saveWatchHistoryNow()
                                 loadRelatedVideos(video.channelId, videoId)
@@ -385,6 +388,7 @@ class VideoPlayerViewModel(
                             downloadState = DownloadButtonState.COMPLETED
                         )
                         player.playVideo(localFileUri, video.title)
+                        restoreSavedProgress(videoId)
                         startWatchSession(videoId)
                         saveWatchHistoryNow()
                         loadRelatedVideos(video.channelId, videoId)
@@ -751,6 +755,30 @@ class VideoPlayerViewModel(
     }
 
     /**
+     * Restore playback position from the last saved progress, if any.
+     *
+     * ExoPlayer accepts a seekTo() call before the source is fully prepared and applies
+     * it once the player reaches the ready state, so we can fire-and-forget right after
+     * playVideo().
+     *
+     * Skipped when:
+     *  - The saved position is within the first 5 seconds (treat as "start over").
+     *  - The saved position is past 95% of the saved duration (treat as "finished").
+     */
+    private suspend fun restoreSavedProgress(videoId: String) {
+        val progress = videoRepository.getVideoProgress(videoId).first() ?: return
+        val pos = progress.currentPosition
+        val dur = progress.duration
+        if (pos < 5_000L) return
+        if (dur > 0 && pos > (dur * 0.95).toLong()) {
+            Log.d(TAG, "Saved progress for $videoId is near end (${pos}/${dur}); starting from beginning")
+            return
+        }
+        Log.d(TAG, "Resuming $videoId at ${pos}ms (saved ${dur}ms total)")
+        player.seekTo(pos)
+    }
+
+    /**
      * Request download - fetches available qualities and shows confirmation dialog
      */
     fun requestDownload() {
@@ -835,13 +863,22 @@ class VideoPlayerViewModel(
                 else -> VideoQuality.SD_360P
             }
 
+            // Cache the video metadata into the local `videos` table so the Downloads
+            // screen can show the title and thumbnail later. The Downloads screen joins
+            // queue items against `videos`; without this row the entry would render as
+            // "Unknown" with a blank thumbnail (looks like the download disappeared).
+            // Only the related-videos flow inserts here today, so the currently-watched
+            // video itself is otherwise absent.
+            videoRepository.saveVideo(video)
+
             val queueResult = downloadRepository.queueDownload(video.id, videoQuality)
             when (queueResult) {
                 is Resource.Success -> {
-                    Log.d(TAG, "Download queued successfully for: ${video.id} at ${selectedQuality.quality}")
-                    // Use the specific stream URL with network preference
+                    Log.d(TAG, "Download queued successfully for: ${video.id} at ${selectedQuality.quality} (${selectedQuality.processingNote ?: "passthrough"})")
                     val requireWifiOnly = !appPreferences.isMobileDataDownloadAllowed()
-                    downloadManager.downloadVideoWithUrl(video.id, selectedQuality.url, selectedQuality.quality, requireWifiOnly)
+                    // Route through the option-aware starter so the worker knows whether to
+                    // transmux, transcode, or just stream a single URL straight to disk.
+                    downloadManager.downloadVideoWithOption(video.id, selectedQuality, requireWifiOnly)
                 }
                 is Resource.Error -> {
                     Log.e(TAG, "Failed to queue download: ${queueResult.message}")

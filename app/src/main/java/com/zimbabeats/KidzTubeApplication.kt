@@ -83,6 +83,13 @@ class ZimbaBeatsApplication : Application(), SingletonImageLoader.Factory {
             // Initialize NewPipe Extractor for stream extraction (handles n-parameter decryption)
             initializeNewPipeExtractor()
 
+            // Initialize yt-dlp (Python-based extractor) as a third-tier resolver.
+            // Extracts ~12 MB of Python + yt-dlp.zip from APK to filesDir on first run.
+            initializeYtDlp()
+
+            // Schedule the periodic yt-dlp self-update job (Piece 4).
+            scheduleYtDlpUpdate()
+
             // Clean up any cached dummy videos from old development builds
             cleanupDummyVideos()
 
@@ -153,7 +160,7 @@ class ZimbaBeatsApplication : Application(), SingletonImageLoader.Factory {
     private fun initializeRemoteConfig() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val remoteConfigManager = RemoteConfigManager()
+                val remoteConfigManager: RemoteConfigManager = get()
                 remoteConfigManager.fetchAndActivate()
                 android.util.Log.d("ZimbaBeats", "Remote Config fetched successfully")
             } catch (e: Exception) {
@@ -196,6 +203,51 @@ class ZimbaBeatsApplication : Application(), SingletonImageLoader.Factory {
                 }
             } catch (e: Exception) {
                 android.util.Log.e("ZimbaBeats", "Failed to initialize NewPipe extractor", e)
+            }
+        }
+    }
+
+    /**
+     * Schedule the periodic yt-dlp self-update job (Piece 4 of the download rewrite).
+     * Reads the interval from Remote Config. Uses ExistingPeriodicWorkPolicy.UPDATE so
+     * an interval change in RC propagates on next app launch.
+     *
+     * Doing this off the main thread because [RemoteConfigManager.getYtDlpUpdateSettings]
+     * touches the Firebase SDK which can sometimes block briefly on first init.
+     */
+    private fun scheduleYtDlpUpdate() {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val remoteConfigManager: RemoteConfigManager = get()
+                com.zimbabeats.worker.YtDlpUpdateWorker.schedule(this@ZimbaBeatsApplication, remoteConfigManager)
+            } catch (e: Throwable) {
+                android.util.Log.w("ZimbaBeats", "Could not schedule yt-dlp update worker: ${e.message}", e)
+            }
+        }
+    }
+
+    /**
+     * Initialize the bundled yt-dlp Python runtime. First-run cost is ~5-10s while the
+     * library extracts Python + yt-dlp from the APK to filesDir. Done off the main thread.
+     * The download path tolerates this not having finished — if yt-dlp isn't ready yet,
+     * the resolver simply returns empty and the InnerTube / NewPipe tiers handle the call.
+     */
+    private fun initializeYtDlp() {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                android.util.Log.d("ZimbaBeats", "Initializing yt-dlp Python runtime...")
+                val started = System.currentTimeMillis()
+                com.yausername.youtubedl_android.YoutubeDL.getInstance().init(this@ZimbaBeatsApplication)
+                val elapsed = System.currentTimeMillis() - started
+                android.util.Log.d("ZimbaBeats", "yt-dlp initialized in ${elapsed}ms")
+            } catch (e: Throwable) {
+                // YoutubeDL.init throws YoutubeDLException (and subtypes) on failure. We
+                // catch broadly: a failed init must not prevent app startup or break the
+                // primary/secondary resolvers.
+                android.util.Log.w("ZimbaBeats", "yt-dlp initialization failed (will skip third-tier fallback)", e)
+                e.cause?.let { cause ->
+                    android.util.Log.w("ZimbaBeats", "  caused by: ${cause::class.java.simpleName}: ${cause.message}", cause)
+                }
             }
         }
     }

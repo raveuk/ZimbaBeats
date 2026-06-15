@@ -50,6 +50,9 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation("androidx.annotation:annotation:1.9.1")
 
+    // WebView (used for BotGuard/PoToken generation to fix YouTube stream 403s)
+    implementation("androidx.webkit:webkit:1.12.1")
+
     // Room
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
@@ -85,6 +88,12 @@ dependencies {
         exclude(group = "com.google.protobuf", module = "protobuf-javalite")
         exclude(group = "com.google.protobuf", module = "protobuf-java")
     }
+
+    // youtubedl-android (yt-dlp bundled with Python runtime) — third-tier fallback
+    // when both InnerTube and NewPipe fail. Adds ~12 MB per ABI (Python interpreter).
+    // Source: https://github.com/yausername/youtubedl-android
+    // `api` so the app module can call YoutubeDL.getInstance().init(context) at startup.
+    api("io.github.junkfood02.youtubedl-android:library:0.18.1")
 
     // Testing
     testImplementation(libs.junit)

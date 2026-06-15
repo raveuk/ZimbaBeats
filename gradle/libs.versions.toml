@@ -49,9 +49,9 @@ workManager = "2.10.0"
 datastore = "1.1.1"
 
 # NewPipe Extractor for stream extraction (pure Java, handles n parameter)
-# v0.26.0 fixes YouTube page reload errors and nsig deobfuscation (Feb 2025)
-# Check for updates: https://github.com/TeamNewPipe/NewPipeExtractor/releases
-newpipe = "v0.26.0"
+# Using raveuk/NewPipeExtractor dev branch (fork of TeamNewPipe) with latest YouTube fixes.
+# Check dev branch: https://github.com/raveuk/NewPipeExtractor/tree/dev
+newpipe = "a79e606285"
 
 # Testing
 junit = "4.13.2"
@@ -133,7 +133,7 @@ mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
 turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
 
 # NewPipe Extractor (Java YouTube extraction library)
-newpipe-extractor = { group = "com.github.TeamNewPipe", name = "NewPipeExtractor", version.ref = "newpipe" }
+newpipe-extractor = { group = "com.github.raveuk", name = "NewPipeExtractor", version.ref = "newpipe" }
 
 # Firebase
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
@@ -156,4 +156,5 @@ kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", versi
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }
+firebase-crashlytics = { id = "com.google.firebase.crashlytics", version = "3.0.2" }
 

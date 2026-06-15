@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.google.services)
+    alias(libs.plugins.firebase.crashlytics)
 }
 
 // Load keystore properties
@@ -35,8 +36,8 @@ android {
         applicationId = "com.zimbabeats"
         minSdk = 24
         targetSdk = 36
-        versionCode = 63
-        versionName = "1.0.63"
+        versionCode = 75
+        versionName = "1.0.75"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -86,6 +87,17 @@ android {
         abortOnError = false
     }
 
+    // youtubedl-android ships its yt-dlp Python runtime as `libpython.zip.so` inside
+    // its native libs folder. yt-dlp reads that file from `nativeLibraryDir` at runtime,
+    // which only works when the libs are physically extracted on install. Modern AGP
+    // defaults to keeping native libs inside the APK; force legacy packaging here so
+    // the libs land on disk and yt-dlp can find them.
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
+
     // ABI splits - generate separate APKs for each architecture
     splits {
         abi {
@@ -121,6 +133,14 @@ dependencies {
     implementation(project(":core:common"))
     implementation(project(":media"))
     implementation(project(":service"))
+
+    // Media3 muxer + transformer — used by DownloadWorker to mux video-only + audio-only
+    // streams into a single .mp4. Transformer additionally transcodes VP9/AV1 → H.264
+    // when the source codec is not MP4-compatible. media3-effect is a Transformer
+    // runtime dependency.
+    implementation("androidx.media3:media3-muxer:1.5.0")
+    implementation("androidx.media3:media3-transformer:1.5.0")
+    implementation("androidx.media3:media3-effect:1.5.0")
 
     // Core Android
     implementation(libs.androidx.core.ktx)
@@ -164,6 +184,8 @@ dependencies {
     implementation(libs.firebase.firestore.ktx)
     implementation(libs.firebase.messaging.ktx)
     implementation(libs.firebase.config.ktx)
+    implementation("com.google.firebase:firebase-analytics-ktx")
+    implementation("com.google.firebase:firebase-crashlytics-ktx")
     implementation(libs.play.services.auth)
 
     // Google Sign-In with Credential Manager

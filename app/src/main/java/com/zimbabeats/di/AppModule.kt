@@ -5,6 +5,7 @@ import com.zimbabeats.admin.DeviceAdminManager
 import com.zimbabeats.bridge.ParentalControlBridge
 import com.zimbabeats.cloud.CloudPairingClient
 import com.zimbabeats.cloud.PlaylistSharingClient
+import com.zimbabeats.cloud.RemoteConfigManager
 import com.zimbabeats.data.AppPreferences
 import com.zimbabeats.media.music.MusicPlaybackManager
 import org.koin.android.ext.koin.androidApplication
@@ -13,6 +14,10 @@ import org.koin.dsl.module
 
 val appModule = module {
     single { AppPreferences(androidContext()) }
+
+    // Firebase Remote Config singleton — owned by app module so YtDlpUpdater and any
+    // other consumer share the same in-memory snapshot of RC values.
+    single { RemoteConfigManager() }
 
     // Cloud Pairing Client - Firebase-based cross-device pairing
     // Connects child device to parent's ZimbaBeats Family app

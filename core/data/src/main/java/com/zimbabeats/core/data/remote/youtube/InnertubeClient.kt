@@ -132,16 +132,29 @@ class InnertubeClient(private val httpClient: HttpClient) {
                         val mimeType = formatObj["mimeType"]?.jsonPrimitive?.contentOrNull ?: ""
                         val audioChannels = formatObj["audioChannels"]?.jsonPrimitive?.intOrNull
                         val hasAudio = audioChannels != null && audioChannels > 0
+                        val height = formatObj["height"]?.jsonPrimitive?.intOrNull ?: 0
+                        val bitrate = formatObj["bitrate"]?.jsonPrimitive?.intOrNull ?: 0
+                        val contentLength = formatObj["contentLength"]?.jsonPrimitive?.contentOrNull?.toLongOrNull() ?: -1L
+                        val codec = extractCodecFromMime(mimeType)
+                        // Combined streams carry both tracks; codec string typically includes both,
+                        // but InnerTube only emits one codecs= attribute. Assume video codec for
+                        // anything that isn't a pure audio mimeType.
+                        val isAudioOnlyMime = mimeType.startsWith("audio/")
 
                         streamUrls.add(
                             StreamUrl(
                                 url = url,
                                 quality = quality,
                                 format = extractFormatFromMime(mimeType),
-                                isVideoOnly = !hasAudio
+                                isVideoOnly = !hasAudio,
+                                videoCodec = if (isAudioOnlyMime) null else codec,
+                                audioCodec = if (isAudioOnlyMime) codec else null,
+                                height = height,
+                                bitrate = bitrate,
+                                contentLength = contentLength
                             )
                         )
-                        Log.d(TAG, "Added video+audio format: $quality, hasAudio: $hasAudio")
+                        Log.d(TAG, "Added video+audio format: $quality, hasAudio: $hasAudio, codec: $codec, size: $contentLength")
                     }
                 }
 
@@ -168,16 +181,24 @@ class InnertubeClient(private val httpClient: HttpClient) {
                             val quality = formatObj["qualityLabel"]?.jsonPrimitive?.contentOrNull ?: "${height}p"
                             val mimeType = formatObj["mimeType"]?.jsonPrimitive?.contentOrNull ?: ""
                             val fps = formatObj["fps"]?.jsonPrimitive?.intOrNull ?: 30
+                            val bitrate = formatObj["bitrate"]?.jsonPrimitive?.intOrNull ?: 0
+                            val contentLength = formatObj["contentLength"]?.jsonPrimitive?.contentOrNull?.toLongOrNull() ?: -1L
+                            val codec = extractCodecFromMime(mimeType)
 
                             streamUrls.add(
                                 StreamUrl(
                                     url = url,
                                     quality = "$quality (video-only)",
                                     format = extractFormatFromMime(mimeType),
-                                    isVideoOnly = true
+                                    isVideoOnly = true,
+                                    videoCodec = codec,
+                                    audioCodec = null,
+                                    height = height,
+                                    bitrate = bitrate,
+                                    contentLength = contentLength
                                 )
                             )
-                            Log.d(TAG, "Added video-only stream: $quality @ ${fps}fps")
+                            Log.d(TAG, "Added video-only stream: $quality @ ${fps}fps, codec: $codec, size: $contentLength")
                         }
                     }
 
@@ -199,16 +220,23 @@ class InnertubeClient(private val httpClient: HttpClient) {
                             val bitrate = formatObj["bitrate"]?.jsonPrimitive?.intOrNull ?: 0
                             val mimeType = formatObj["mimeType"]?.jsonPrimitive?.contentOrNull ?: ""
                             val audioQuality = formatObj["audioQuality"]?.jsonPrimitive?.contentOrNull ?: "unknown"
+                            val contentLength = formatObj["contentLength"]?.jsonPrimitive?.contentOrNull?.toLongOrNull() ?: -1L
+                            val codec = extractCodecFromMime(mimeType)
 
                             streamUrls.add(
                                 StreamUrl(
                                     url = url,
                                     quality = "${bitrate / 1000}kbps ($audioQuality)",
                                     format = extractFormatFromMime(mimeType),
-                                    isVideoOnly = false
+                                    isVideoOnly = false,
+                                    videoCodec = null,
+                                    audioCodec = codec,
+                                    height = 0,
+                                    bitrate = bitrate,
+                                    contentLength = contentLength
                                 )
                             )
-                            Log.d(TAG, "Added audio stream: ${bitrate / 1000}kbps, quality: $audioQuality")
+                            Log.d(TAG, "Added audio stream: ${bitrate / 1000}kbps, quality: $audioQuality, codec: $codec, size: $contentLength")
                         }
                     }
 
@@ -387,6 +415,20 @@ class InnertubeClient(private val httpClient: HttpClient) {
             mimeType.contains("opus") -> "opus"
             else -> "unknown"
         }
+    }
+
+    /**
+     * Pull the codec family out of an InnerTube mimeType.
+     * Example inputs:
+     *   video/mp4; codecs="avc1.640028"     -> "avc1"
+     *   video/webm; codecs="vp9"            -> "vp9"
+     *   audio/mp4; codecs="mp4a.40.2"       -> "mp4a"
+     *   audio/webm; codecs="opus"           -> "opus"
+     * Returns null if no codecs= attribute is present.
+     */
+    private fun extractCodecFromMime(mimeType: String): String? {
+        val match = Regex("""codecs="?([^".,]+)""").find(mimeType) ?: return null
+        return match.groupValues[1].substringBefore('.').lowercase()
     }
 
     /**

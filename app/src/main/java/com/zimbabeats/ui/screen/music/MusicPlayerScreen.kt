@@ -100,42 +100,87 @@ fun MusicPlayerScreen(
         MaterialTheme.colorScheme.background
     )
 
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val useCompactTopBar = isLandscape && uiState.showLyrics && !showQueue
+
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = if (showQueue) "Up Next" else "Now Playing",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Medium
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = {
-                        if (showQueue) {
-                            showQueue = false  // Go back to player view
-                        } else {
-                            onNavigateBack()   // Exit player screen
-                        }
-                    }) {
+            if (useCompactTopBar) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(36.dp)
+                        .padding(horizontal = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(
+                        onClick = onNavigateBack,
+                        modifier = Modifier.size(32.dp)
+                    ) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = if (showQueue) "Back to player" else "Back"
+                            contentDescription = "Back",
+                            modifier = Modifier.size(20.dp)
                         )
                     }
-                },
-                actions = {
-                    IconButton(onClick = { showQueue = !showQueue }) {
+                    Text(
+                        text = track?.title ?: "Now Playing",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(horizontal = 4.dp)
+                    )
+                    IconButton(
+                        onClick = { showQueue = true },
+                        modifier = Modifier.size(32.dp)
+                    ) {
                         Icon(
                             Icons.AutoMirrored.Filled.QueueMusic,
-                            contentDescription = "Queue"
+                            contentDescription = "Queue",
+                            modifier = Modifier.size(20.dp)
                         )
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent
+                }
+            } else {
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = if (showQueue) "Up Next" else "Now Playing",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Medium
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = {
+                            if (showQueue) {
+                                showQueue = false  // Go back to player view
+                            } else {
+                                onNavigateBack()   // Exit player screen
+                            }
+                        }) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = if (showQueue) "Back to player" else "Back"
+                            )
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = { showQueue = !showQueue }) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.QueueMusic,
+                                contentDescription = "Queue"
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent
+                    )
                 )
-            )
+            }
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
@@ -296,7 +341,77 @@ private fun PlayerContent(
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
-    if (isLandscape) {
+    if (isLandscape && showLyrics) {
+        // Landscape + lyrics open — give the lyrics the full screen.
+        // Album art is hidden; only a compact slider + essential transport controls
+        // remain underneath so the user can pause/skip/exit without leaving the view.
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp)
+                .semantics { contentDescription = "Lyrics for ${track.title} by ${track.artistName}" }
+        ) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                LyricsView(
+                    lyrics = lyrics,
+                    isLoading = isLoadingLyrics,
+                    currentPosition = currentPosition
+                )
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Slider(
+                value = displayPosition,
+                onValueChange = { newValue ->
+                    isDragging = true
+                    dragPosition = newValue
+                },
+                onValueChangeFinished = {
+                    onSeek(dragPosition.toLong())
+                    isDragging = false
+                },
+                valueRange = 0f..playerState.duration.coerceAtLeast(1).toFloat(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(20.dp)
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onSkipPrevious, modifier = Modifier.size(36.dp)) {
+                    Icon(Icons.Default.SkipPrevious, contentDescription = "Previous", modifier = Modifier.size(24.dp))
+                }
+                FilledIconButton(onClick = onPlayPause, modifier = Modifier.size(44.dp), shape = CircleShape) {
+                    Icon(
+                        imageVector = if (playerState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        contentDescription = if (playerState.isPlaying) "Pause" else "Play",
+                        modifier = Modifier.size(26.dp)
+                    )
+                }
+                IconButton(onClick = onSkipNext, modifier = Modifier.size(36.dp)) {
+                    Icon(Icons.Default.SkipNext, contentDescription = "Next", modifier = Modifier.size(24.dp))
+                }
+                IconButton(onClick = onToggleLyrics, modifier = Modifier.size(36.dp)) {
+                    Icon(
+                        imageVector = Icons.Default.Lyrics,
+                        contentDescription = "Hide lyrics",
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+        }
+    } else if (isLandscape) {
         // Landscape layout - side by side
         Row(
             modifier = Modifier

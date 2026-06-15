@@ -2,6 +2,7 @@ package com.zimbabeats.media.service
 
 import android.app.PendingIntent
 import android.content.Intent
+import android.net.Uri
 import android.util.Log
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
@@ -11,6 +12,7 @@ import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.datasource.ResolvingDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.DefaultMediaNotificationProvider
@@ -20,6 +22,8 @@ import androidx.media3.session.MediaSession
 import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
+import com.zimbabeats.core.domain.repository.MusicRepository
+import com.zimbabeats.core.domain.util.Resource
 import com.zimbabeats.media.R
 import com.zimbabeats.media.auto.AutoContentProvider
 import com.zimbabeats.media.datasource.QueueStateHolder
@@ -27,6 +31,7 @@ import com.zimbabeats.media.notification.PlaybackNotificationManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.guava.future
+import kotlinx.coroutines.runBlocking
 import org.koin.android.ext.android.inject
 
 /**
@@ -49,6 +54,7 @@ class PlaybackService : MediaLibraryService() {
     private lateinit var forwardingPlayer: ForwardingPlayer
     private lateinit var notificationManager: PlaybackNotificationManager
     private val autoContentProvider: AutoContentProvider by inject()
+    private val musicRepository: MusicRepository by inject()
     private val serviceScope = CoroutineScope(Dispatchers.IO)
 
     override fun onCreate() {
@@ -79,6 +85,7 @@ class PlaybackService : MediaLibraryService() {
             .build()
 
         // Simple HTTP data source - streams are pre-resolved by MusicPlaybackManager
+        // for the in-app playback path.
         val httpDataSourceFactory = DefaultHttpDataSource.Factory()
             .setUserAgent("Mozilla/5.0 (ChromiumStylePlatform) Cobalt/Version")
             .setDefaultRequestProperties(mapOf(
@@ -91,7 +98,34 @@ class PlaybackService : MediaLibraryService() {
             .setReadTimeoutMs(30000)
             .setAllowCrossProtocolRedirects(true)
 
-        val mediaSourceFactory = DefaultMediaSourceFactory(httpDataSourceFactory)
+        // Resolve zimba://track/$videoId URIs (from Android Auto selections) to the
+        // real HTTPS stream on demand. HTTP(S) URIs coming from the in-app path pass
+        // through unchanged.
+        val resolvingDataSourceFactory = ResolvingDataSource.Factory(httpDataSourceFactory) { dataSpec ->
+            if (dataSpec.uri.scheme == AutoContentProvider.AUTO_URI_SCHEME) {
+                val videoId = dataSpec.uri.lastPathSegment
+                if (videoId.isNullOrEmpty()) {
+                    Log.w(TAG, "Auto URI missing videoId: ${dataSpec.uri}")
+                    dataSpec
+                } else {
+                    val resolved = runBlocking {
+                        val result = musicRepository.getPlayerData(videoId)
+                        (result as? Resource.Success)?.data?.streamUrl
+                    }
+                    if (resolved.isNullOrEmpty()) {
+                        Log.w(TAG, "Failed to resolve stream for videoId=$videoId")
+                        dataSpec
+                    } else {
+                        Log.d(TAG, "Resolved zimba:// for videoId=$videoId")
+                        dataSpec.buildUpon().setUri(Uri.parse(resolved)).build()
+                    }
+                }
+            } else {
+                dataSpec
+            }
+        }
+
+        val mediaSourceFactory = DefaultMediaSourceFactory(resolvingDataSourceFactory)
 
         player = ExoPlayer.Builder(this)
             .setMediaSourceFactory(mediaSourceFactory)
@@ -300,8 +334,114 @@ class PlaybackService : MediaLibraryService() {
             mediaId: String
         ): ListenableFuture<LibraryResult<MediaItem>> {
             Log.d(TAG, "onGetItem called for mediaId: $mediaId")
-            // Return empty for now - playback is handled by app's MusicPlaybackManager
+            // A concrete item isn't required for browse + select to work on Auto
+            // (onGetChildren already returned full items). Return NOT_SUPPORTED so
+            // Auto falls back to the cached browse entry rather than retrying.
             return Futures.immediateFuture(LibraryResult.ofError(LibraryResult.RESULT_ERROR_NOT_SUPPORTED))
         }
+
+        /**
+         * Called when a controller (Android Auto or the in-app MediaController)
+         * sets the queue to a specific set of media items. For Auto-originated
+         * selections we expand the single tapped track into the full sibling
+         * list from its parent browse node so next/prev work in the car.
+         *
+         * In-app callers do not attach [AutoContentProvider.EXTRA_PARENT_ID],
+         * so they fall through to the default behaviour unchanged.
+         */
+        override fun onSetMediaItems(
+            mediaSession: MediaSession,
+            controller: MediaSession.ControllerInfo,
+            mediaItems: MutableList<MediaItem>,
+            startIndex: Int,
+            startPositionMs: Long
+        ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
+            val picked = mediaItems.getOrNull(startIndex.coerceAtLeast(0))
+                ?: mediaItems.firstOrNull()
+            val parentId = picked?.mediaMetadata?.extras?.getString(
+                AutoContentProvider.EXTRA_PARENT_ID
+            )
+
+            if (parentId == null) {
+                // In-app or other non-Auto controller — preserve default behaviour
+                // by passing items through untouched.
+                return Futures.immediateFuture(
+                    MediaSession.MediaItemsWithStartPosition(
+                        ImmutableList.copyOf(mediaItems),
+                        startIndex,
+                        startPositionMs
+                    )
+                )
+            }
+
+            return serviceScope.future {
+                try {
+                    val siblings = autoContentProvider.getChildrenForParent(parentId)
+                    if (siblings.isEmpty()) {
+                        Log.d(TAG, "No siblings for parent=$parentId, playing single item")
+                        MediaSession.MediaItemsWithStartPosition(
+                            ImmutableList.copyOf(rebuildAutoItems(mediaItems)),
+                            startIndex,
+                            startPositionMs
+                        )
+                    } else {
+                        val pickedIndex = siblings.indexOfFirst { it.mediaId == picked.mediaId }
+                            .coerceAtLeast(0)
+                        Log.d(
+                            TAG,
+                            "Auto sibling queue: parent=$parentId size=${siblings.size} startIndex=$pickedIndex"
+                        )
+                        MediaSession.MediaItemsWithStartPosition(
+                            ImmutableList.copyOf(siblings),
+                            pickedIndex,
+                            0L
+                        )
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error building sibling queue for parent=$parentId", e)
+                    MediaSession.MediaItemsWithStartPosition(
+                        ImmutableList.copyOf(rebuildAutoItems(mediaItems)),
+                        startIndex,
+                        startPositionMs
+                    )
+                }
+            }
+        }
+
+        /**
+         * Called when items are added (rather than set) to the queue. Only
+         * Auto-origin items (those carrying [AutoContentProvider.EXTRA_PARENT_ID])
+         * get a synthesized zimba:// URI if theirs was stripped across IPC —
+         * in-app items are passed through unchanged.
+         */
+        override fun onAddMediaItems(
+            mediaSession: MediaSession,
+            controller: MediaSession.ControllerInfo,
+            mediaItems: MutableList<MediaItem>
+        ): ListenableFuture<MutableList<MediaItem>> {
+            return Futures.immediateFuture(rebuildAutoItems(mediaItems).toMutableList())
+        }
+
+        /**
+         * For items that originated from an Auto browse node
+         * ([AutoContentProvider.EXTRA_PARENT_ID] present), ensure they carry a
+         * zimba://track/$mediaId URI so the ResolvingDataSource can fetch the
+         * real stream. Items without that extra are left untouched so the
+         * in-app playback path is unaffected.
+         */
+        private fun rebuildAutoItems(items: List<MediaItem>): List<MediaItem> =
+            items.map { item ->
+                val isAutoItem = item.mediaMetadata.extras?.getString(
+                    AutoContentProvider.EXTRA_PARENT_ID
+                ) != null
+                when {
+                    !isAutoItem -> item
+                    item.localConfiguration?.uri != null -> item
+                    item.mediaId.isBlank() -> item
+                    else -> item.buildUpon()
+                        .setUri(Uri.parse("${AutoContentProvider.AUTO_URI_SCHEME}://track/${item.mediaId}"))
+                        .build()
+                }
+            }
     }
 }

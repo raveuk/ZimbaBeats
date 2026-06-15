@@ -26,14 +26,19 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import android.content.ActivityNotFoundException
+import android.net.Uri
 import com.zimbabeats.bridge.ParentalControlBridge
 import com.zimbabeats.cloud.CloudPairingClient
+import com.zimbabeats.cloud.RemoteConfigManager
+import com.zimbabeats.cloud.UpdatePromptDecision
 import com.zimbabeats.core.domain.repository.MusicRepository
 import com.zimbabeats.data.AppPreferences
 import com.zimbabeats.data.ThemeMode
@@ -41,6 +46,8 @@ import com.zimbabeats.ui.screen.BlockReason
 import com.zimbabeats.ui.components.BottomNavItem
 import com.zimbabeats.ui.components.MiniPlayer
 import com.zimbabeats.ui.components.MinimalBottomNavBar
+import com.zimbabeats.ui.components.RemoteUpdateBanner
+import com.zimbabeats.ui.components.RemoteUpdateRequiredDialog
 import com.zimbabeats.ui.navigation.ZimbaBeatsNavHost
 import com.zimbabeats.ui.navigation.Screen
 import com.zimbabeats.ui.screen.BlockScreen
@@ -59,10 +66,32 @@ class MainActivity : ComponentActivity() {
     private val parentalControlBridge: ParentalControlBridge by inject()
     private val cloudPairingClient: CloudPairingClient by inject()
     private val musicRepository: MusicRepository by inject()
+    private val remoteConfigManager: RemoteConfigManager by inject()
+
+    /**
+     * Open the update URL in a browser. Falls back silently if no browser is installed.
+     */
+    private fun openUpdateUrl(url: String) {
+        try {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            startActivity(intent)
+        } catch (e: ActivityNotFoundException) {
+            android.util.Log.w("MainActivity", "No browser to open update URL: $url", e)
+        }
+    }
 
     // PiP state tracking
     private var isVideoPlayerActive = false
     private var isInPipMode = false
+
+    // Most recently observed video pixel size — used to set a matching aspect ratio on
+    // the PiP window so the video fills the frame instead of being letterboxed inside a
+    // hard-coded 16:9 box. Updated by the VideoPlayerScreen via updatePipAspectRatio().
+    // Defaults to 16:9 until the player reports a real size.
+    private var videoAspectWidth: Int = 16
+    private var videoAspectHeight: Int = 9
 
     // Reference to current PlayerView for PiP mode (hide controls before entering PiP)
     private var currentPlayerView: PlayerView? = null
@@ -84,6 +113,59 @@ class MainActivity : ComponentActivity() {
      */
     fun setVideoPlayerActive(active: Boolean) {
         isVideoPlayerActive = active
+        applyPipParams(autoEnter = active)
+    }
+
+    /**
+     * Called by VideoPlayerScreen when ExoPlayer reports a new video size. Re-applies
+     * PiP params so the floating window matches the video's true aspect ratio — without
+     * this, vertical or unusual aspect-ratio videos get letterboxed inside the default
+     * 16:9 PiP box.
+     */
+    fun updatePipAspectRatio(width: Int, height: Int) {
+        if (width <= 0 || height <= 0) return
+        if (width == videoAspectWidth && height == videoAspectHeight) return
+        videoAspectWidth = width
+        videoAspectHeight = height
+        applyPipParams(autoEnter = isVideoPlayerActive)
+    }
+
+    /**
+     * Build and apply the current PiP params. Tell Android 12+ to auto-enter PiP when
+     * the user leaves — the legacy approach of calling enterPictureInPictureMode() from
+     * onUserLeaveHint is unreliable on newer Android versions because the activity is
+     * already transitioning to paused state when the callback fires.
+     *
+     * Android requires PiP aspect ratios between 1:2.39 and 2.39:1 inclusive. Clamp the
+     * reported video size to that range so we don't crash setPictureInPictureParams().
+     */
+    private fun applyPipParams(autoEnter: Boolean) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
+        try {
+            val rational = clampedRational(videoAspectWidth, videoAspectHeight)
+            val params = PictureInPictureParams.Builder()
+                .setAspectRatio(rational)
+                .setAutoEnterEnabled(autoEnter)
+                .apply {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        setTitle("ZimbaBeats Video")
+                        setSeamlessResizeEnabled(true)
+                    }
+                }
+                .build()
+            setPictureInPictureParams(params)
+        } catch (e: Exception) {
+            android.util.Log.w("MainActivity", "Could not apply PiP params: ${e.message}")
+        }
+    }
+
+    private fun clampedRational(width: Int, height: Int): Rational {
+        // PiP allowed ratio range: [1:2.39, 2.39:1].
+        val raw = width.toDouble() / height.toDouble()
+        val clamped = raw.coerceIn(1.0 / 2.39, 2.39)
+        // Scale to ints; using 1000 as denominator keeps precision well within Rational's range.
+        val w = (clamped * 1000).toInt().coerceAtLeast(1)
+        return Rational(w, 1000)
     }
 
     /**
@@ -107,7 +189,7 @@ class MainActivity : ComponentActivity() {
 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     val params = PictureInPictureParams.Builder()
-                        .setAspectRatio(Rational(16, 9))
+                        .setAspectRatio(clampedRational(videoAspectWidth, videoAspectHeight))
                         .apply {
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                                 setTitle("ZimbaBeats Video")
@@ -178,6 +260,14 @@ class MainActivity : ComponentActivity() {
             // Observe parental control bridge state for restrictions
             val restrictionState by parentalControlBridge.restrictionState.collectAsState()
             val bridgeState by parentalControlBridge.bridgeState.collectAsState()
+
+            // Remote Config update prompt — banner for soft nudge, dialog for hard floor.
+            val updatePromptConfig by remoteConfigManager.updatePromptConfig.collectAsState()
+            val dismissedUpdateVersion by appPreferences.dismissedRemoteUpdateVersionFlow.collectAsState()
+            val updateDecision = UpdatePromptDecision.from(
+                config = updatePromptConfig,
+                currentVersionCode = BuildConfig.VERSION_CODE
+            )
 
             // State for showing block screen and warnings
             var showBlockScreen by remember { mutableStateOf<BlockReason?>(null) }
@@ -394,8 +484,39 @@ class MainActivity : ComponentActivity() {
                                     navController = navController,
                                     modifier = Modifier.fillMaxSize()
                                 )
+
+                                // Dismissible Remote Config update banner. Anchored to
+                                // the top of the content area so it sits above whatever
+                                // screen the user is on without interfering with the
+                                // mini-player or bottom nav. Hidden once the user has
+                                // dismissed this specific target version.
+                                val recommended = updateDecision as? UpdatePromptDecision.Recommended
+                                if (showBottomUI && recommended != null &&
+                                    dismissedUpdateVersion < recommended.targetVersionCode.toLong()) {
+                                    Box(modifier = Modifier.align(Alignment.TopCenter)) {
+                                        RemoteUpdateBanner(
+                                            message = recommended.message,
+                                            onUpdate = { openUpdateUrl(recommended.url) },
+                                            onDismiss = {
+                                                appPreferences.setDismissedRemoteUpdateVersion(
+                                                    recommended.targetVersionCode.toLong()
+                                                )
+                                            }
+                                        )
+                                    }
+                                }
                             }
                         }
+                    }
+
+                    // Required-update dialog — overlays everything (including the block
+                    // screen path above). User has to install the new version to use the
+                    // app; back-press / outside-tap are disabled in the composable.
+                    (updateDecision as? UpdatePromptDecision.Required)?.let { required ->
+                        RemoteUpdateRequiredDialog(
+                            message = required.message,
+                            onUpdate = { openUpdateUrl(required.url) }
+                        )
                     }
 
                     // Screen Time Warning Dialog

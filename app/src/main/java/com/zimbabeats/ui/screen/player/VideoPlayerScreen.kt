@@ -9,6 +9,7 @@ import android.media.AudioManager
 import android.os.Build
 import android.view.View
 import android.view.WindowManager
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -181,6 +182,15 @@ fun VideoPlayerScreen(
         }
     }
 
+    // Back button: instead of popping navigation (which disposes the screen and releases
+    // the player), enter PiP so playback continues in a floating window. Only do this
+    // when the video is actually playing — if it's paused, the user is probably trying
+    // to exit, so fall back to the default back behavior (pop the screen).
+    BackHandler(enabled = playerState.isPlaying && !isInPipMode) {
+        val activity = context.findActivity() as? MainActivity
+        activity?.enterPipMode()
+    }
+
     // Auto-hide controls after 3 seconds
     LaunchedEffect(showControls) {
         if (showControls) {
@@ -292,8 +302,24 @@ fun VideoPlayerScreen(
                         player = viewModel.getPlayer()
                         useController = false // Custom controls
                         setResizeMode(currentResizeMode)
-                        // Pass PlayerView reference to MainActivity for PiP
-                        (ctx.findActivity() as? MainActivity)?.setPlayerView(this)
+                        val activity = ctx.findActivity() as? MainActivity
+                        activity?.setPlayerView(this)
+
+                        // Watch for video-size changes so PiP can use the real aspect
+                        // ratio (otherwise vertical / non-16:9 videos get letterboxed
+                        // inside the floating window).
+                        player?.addListener(object : androidx.media3.common.Player.Listener {
+                            override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) {
+                                activity?.updatePipAspectRatio(videoSize.width, videoSize.height)
+                            }
+                        })
+                        // Apply the current known size immediately (the listener won't
+                        // fire again if the size was reported before this view existed).
+                        player?.videoSize?.let { size ->
+                            if (size.width > 0 && size.height > 0) {
+                                activity?.updatePipAspectRatio(size.width, size.height)
+                            }
+                        }
                     }
                 },
                 update = { view ->
@@ -1448,8 +1474,12 @@ fun DownloadQualityDialog(
                                                 style = MaterialTheme.typography.bodyLarge,
                                                 color = if (isSelected) accentColor else Color.White
                                             )
+                                            val subtitle = buildString {
+                                                append(quality.format.uppercase())
+                                                quality.processingNote?.let { append(" • ").append(it) }
+                                            }
                                             Text(
-                                                text = quality.format.uppercase(),
+                                                text = subtitle,
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = Color.Gray
                                             )

@@ -100,7 +100,12 @@ class VideoRepositoryImpl(
     }
 
     override suspend fun clearAllCachedVideos(): Resource<Unit> = try {
-        videoDao.deleteAllVideos()
+        // Only delete the legacy dummy/mock IDs from old development builds — NOT every
+        // cached video. The Downloads screen joins queue items against the `videos` table
+        // to show titles and thumbnails; wiping the whole table on every launch made
+        // downloaded entries appear as "Unknown" with blank thumbnails (the user reads
+        // this as "the download disappeared").
+        videoDao.deleteDummyVideos()
         Resource.success(Unit)
     } catch (e: Exception) {
         Resource.error("Failed to clear cached videos: ${e.message}", e)
