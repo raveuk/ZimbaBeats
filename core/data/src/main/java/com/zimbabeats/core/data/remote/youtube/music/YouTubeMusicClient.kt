@@ -2,6 +2,7 @@
 
 import android.util.Log
 import com.zimbabeats.core.data.remote.youtube.NewPipeStreamExtractor
+import org.schabi.newpipe.extractor.services.youtube.YoutubeParsingHelper
 import com.zimbabeats.core.domain.model.music.*
 import io.ktor.client.*
 import io.ktor.client.request.*
@@ -397,7 +398,49 @@ class YouTubeMusicClient(private val httpClient: HttpClient) {
             }
         } ?: Log.d(TAG, "NewPipe extractor not available, skipping...")
 
-        // PRIORITY 2: Try iOS client directly - fast and reliable for music tracks
+        // PRIORITY 2: Try the ANDROID_VR (Oculus Quest) client. It is exempt from YouTube's
+        // poToken enforcement, so it returns playable stream URLs without a `pot` token - avoiding
+        // the WEB/iOS poToken context-mismatch that otherwise causes HTTP 403 on the stream fetch.
+        try {
+            Log.d(TAG, "Trying ANDROID_VR client...")
+            val vrResult = tryAndroidVrClient(videoId)
+            if (vrResult != null) {
+                Log.d(TAG, "SUCCESS: Got player data from ANDROID_VR client: ${vrResult.track.title}")
+                return@withContext vrResult
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "ANDROID_VR client failed: ${e.message}")
+        }
+
+        // PRIORITY 3: WEB_REMIX (YouTube Music) + itag-merge. Rescues "- Topic" Art Tracks that
+        // ANDROID_VR reports UNPLAYABLE for: WEB_REMIX supplies metadata + the audio itag list,
+        // NewPipe (music URL) supplies the decoded, poToken-free URLs, merged by itag.
+        try {
+            Log.d(TAG, "Trying WEB_REMIX + itag-merge...")
+            val remixResult = tryWebRemixWithItagMerge(videoId)
+            if (remixResult != null) {
+                Log.d(TAG, "SUCCESS: Got player data from WEB_REMIX itag-merge: ${remixResult.track.title}")
+                return@withContext remixResult
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "WEB_REMIX itag-merge failed: ${e.message}")
+        }
+
+        // PRIORITY 4: Try WEB client with the BotGuard-generated poToken attached.
+        // The poToken is only valid in a WEB context, so it must be paired with a WEB
+        // player request/stream URL (not ANDROID/IOS) to avoid HTTP 403.
+        try {
+            Log.d(TAG, "Trying WEB client with poToken...")
+            val webResult = tryWebClientWithPoToken(videoId)
+            if (webResult != null) {
+                Log.d(TAG, "SUCCESS: Got player data from WEB client (poToken): ${webResult.track.title}")
+                return@withContext webResult
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "WEB client (poToken) failed: ${e.message}")
+        }
+
+        // PRIORITY 3: Try iOS client directly - fast and reliable for music tracks
         // iOS client bypasses many restrictions that cause NewPipe to fail
         // Updated to SimpMusic's working versions: 20.11.6 with iOS 16.7.7
         try {
@@ -803,6 +846,8 @@ class YouTubeMusicClient(private val httpClient: HttpClient) {
         try {
             Log.d(TAG, "Trying ANDROID client for: $videoId")
 
+            val poTokens = newPipeExtractor?.getStreamingPoTokens(videoId)
+
             val requestBody = buildJsonObject {
                 putJsonObject("context") {
                     putJsonObject("client") {
@@ -814,11 +859,22 @@ class YouTubeMusicClient(private val httpClient: HttpClient) {
                         put("osName", "Android")
                         put("osVersion", "13")
                         put("platform", "MOBILE")
+                        poTokens?.visitorData?.let { put("visitorData", it) }
                     }
                 }
                 put("videoId", videoId)
                 put("contentCheckOk", true)
                 put("racyCheckOk", true)
+                poTokens?.playerPoToken?.let { playerPoToken ->
+                    putJsonObject("playbackContext") {
+                        putJsonObject("contentPlaybackContext") {
+                            put("poToken", playerPoToken)
+                        }
+                    }
+                    putJsonObject("serviceIntegrityDimensions") {
+                        put("poToken", playerPoToken)
+                    }
+                }
             }
 
             val response: String = httpClient.post("https://www.youtube.com/youtubei/v1/player?key=AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8") {
@@ -827,12 +883,74 @@ class YouTubeMusicClient(private val httpClient: HttpClient) {
                 header("Origin", "https://www.youtube.com")
                 header("X-YouTube-Client-Name", "3")
                 header("X-YouTube-Client-Version", "19.35.36")
+                poTokens?.visitorData?.let { header("X-Goog-Visitor-Id", it) }
                 setBody(requestBody.toString())
             }.bodyAsText()
 
-            return parseInnertubeResponse(response, videoId, "ANDROID")
+            return parseInnertubeResponse(response, videoId, "ANDROID", poTokens?.streamingPoToken)
         } catch (e: Exception) {
             Log.w(TAG, "ANDROID client failed: ${e.message}")
+            return null
+        }
+    }
+
+    /**
+     * Try WEB client with the BotGuard-generated poToken attached.
+     *
+     * The poToken produced by [PoTokenProviderImpl] is generated using the WEB client's
+     * BotGuard challenge, so it is only valid when used in a WEB player request/stream URL
+     * (attaching it to ANDROID/IOS-issued URLs results in HTTP 403).
+     */
+    private suspend fun tryWebClientWithPoToken(videoId: String): PlayerResult? {
+        try {
+            Log.d(TAG, "Trying WEB client (with poToken) for: $videoId")
+
+            val poTokens = newPipeExtractor?.getStreamingPoTokens(videoId)
+            if (poTokens?.playerPoToken == null) {
+                Log.d(TAG, "No poToken available, skipping WEB client")
+                return null
+            }
+
+            val clientVersion = YoutubeParsingHelper.getClientVersion()
+            val userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+
+            val requestBody = buildJsonObject {
+                putJsonObject("context") {
+                    putJsonObject("client") {
+                        put("clientName", "WEB")
+                        put("clientVersion", clientVersion)
+                        put("hl", "en")
+                        put("gl", "US")
+                        put("userAgent", userAgent)
+                        poTokens.visitorData?.let { put("visitorData", it) }
+                    }
+                }
+                put("videoId", videoId)
+                put("contentCheckOk", true)
+                put("racyCheckOk", true)
+                putJsonObject("playbackContext") {
+                    putJsonObject("contentPlaybackContext") {
+                        put("poToken", poTokens.playerPoToken)
+                    }
+                }
+                putJsonObject("serviceIntegrityDimensions") {
+                    put("poToken", poTokens.playerPoToken)
+                }
+            }
+
+            val response: String = httpClient.post("https://www.youtube.com/youtubei/v1/player?key=AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8") {
+                contentType(ContentType.Application.Json)
+                header("User-Agent", userAgent)
+                header("Origin", "https://www.youtube.com")
+                header("X-YouTube-Client-Name", "1")
+                header("X-YouTube-Client-Version", clientVersion)
+                poTokens.visitorData?.let { header("X-Goog-Visitor-Id", it) }
+                setBody(requestBody.toString())
+            }.bodyAsText()
+
+            return parseInnertubeResponse(response, videoId, "WEB", poTokens.streamingPoToken)
+        } catch (e: Exception) {
+            Log.w(TAG, "WEB client (poToken) failed: ${e.message}")
             return null
         }
     }
@@ -981,6 +1099,8 @@ class YouTubeMusicClient(private val httpClient: HttpClient) {
         osVersion: String?
     ): PlayerResult? {
         try {
+            val poTokens = newPipeExtractor?.getStreamingPoTokens(videoId)
+
             val requestBody = buildJsonObject {
                 putJsonObject("context") {
                     putJsonObject("client") {
@@ -993,11 +1113,22 @@ class YouTubeMusicClient(private val httpClient: HttpClient) {
                             // Use iPhone 14 Pro Max (iPhone15,3) which matches InnerTune
                             put("deviceModel", "iPhone15,3")
                         }
+                        poTokens?.visitorData?.let { put("visitorData", it) }
                     }
                 }
                 put("videoId", videoId)
                 put("contentCheckOk", true)
                 put("racyCheckOk", true)
+                poTokens?.playerPoToken?.let { playerPoToken ->
+                    putJsonObject("playbackContext") {
+                        putJsonObject("contentPlaybackContext") {
+                            put("poToken", playerPoToken)
+                        }
+                    }
+                    putJsonObject("serviceIntegrityDimensions") {
+                        put("poToken", playerPoToken)
+                    }
+                }
             }
 
             // For iOS: match InnerTune's User-Agent format with iOS 17.5.1
@@ -1013,14 +1144,186 @@ class YouTubeMusicClient(private val httpClient: HttpClient) {
                 header("Origin", "https://www.youtube.com")
                 header("X-YouTube-Client-Name", if (clientName == "IOS") "5" else "3")
                 header("X-YouTube-Client-Version", clientVersion)
+                poTokens?.visitorData?.let { header("X-Goog-Visitor-Id", it) }
                 setBody(requestBody.toString())
             }.bodyAsText()
 
-            return parseInnertubeResponse(response, videoId, clientName)
+            return parseInnertubeResponse(response, videoId, clientName, poTokens?.streamingPoToken)
         } catch (e: Exception) {
             Log.w(TAG, "$clientName client failed: ${e.message}")
             return null
         }
+    }
+
+    /**
+     * Try the ANDROID_VR (Oculus Quest) client.
+     *
+     * This client is currently exempt from YouTube's poToken / proof-of-origin enforcement, so it
+     * returns playable googlevideo stream URLs WITHOUT needing a `pot` token. This is the approach
+     * used by PipePipe/SimpMusic's extractor and avoids the WEB/iOS poToken context-mismatch that
+     * causes HTTP 403 on the actual stream fetch. No poToken is sent and none is appended to the URL.
+     */
+    private suspend fun tryAndroidVrClient(videoId: String): PlayerResult? {
+        try {
+            Log.d(TAG, "Trying ANDROID_VR (Oculus Quest) client for: $videoId")
+
+            val cpnChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_"
+            val cpn = (1..16)
+                .map { cpnChars[kotlin.random.Random.nextInt(cpnChars.length)] }
+                .joinToString("")
+
+            // visitorData is a session identifier, not context-bound like the poToken, so reusing
+            // the WebView-issued one (if present) is fine and matches PipePipe's pattern.
+            val visitorData = newPipeExtractor?.getStreamingPoTokens(videoId)?.visitorData
+
+            val requestBody = buildJsonObject {
+                putJsonObject("context") {
+                    putJsonObject("client") {
+                        put("clientName", "ANDROID_VR")
+                        put("clientVersion", "1.65.10")
+                        put("deviceMake", "Oculus")
+                        put("deviceModel", "Quest 3")
+                        put("clientScreen", "WATCH")
+                        put("platform", "MOBILE")
+                        put("osName", "Android")
+                        put("osVersion", "12L")
+                        put("androidSdkVersion", 32)
+                        put("hl", "en")
+                        put("gl", "US")
+                        put("utcOffsetMinutes", 0)
+                        visitorData?.let { put("visitorData", it) }
+                    }
+                }
+                put("videoId", videoId)
+                put("cpn", cpn)
+                put("contentCheckOk", true)
+                put("racyCheckOk", true)
+            }
+
+            val userAgent = "com.google.android.apps.youtube.vr.oculus/1.65.10 " +
+                "(Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip"
+
+            val response: String = httpClient.post("https://youtubei.googleapis.com/youtubei/v1/player?key=AIzaSyA8eiZmM1FaDVjRy-df2KTyQ_vz_yYM39w") {
+                contentType(ContentType.Application.Json)
+                header("User-Agent", userAgent)
+                header("X-Goog-Api-Format-Version", "2")
+                header("X-YouTube-Client-Name", "28")
+                header("X-YouTube-Client-Version", "1.65.10")
+                visitorData?.let { header("X-Goog-Visitor-Id", it) }
+                setBody(requestBody.toString())
+            }.bodyAsText()
+
+            // No poToken to append - ANDROID_VR streams are poToken-exempt.
+            return parseInnertubeResponse(response, videoId, "ANDROID_VR", null)
+        } catch (e: Exception) {
+            Log.w(TAG, "ANDROID_VR client failed: ${e.message}")
+            return null
+        }
+    }
+
+    /**
+     * Try the WEB_REMIX (YouTube Music) client and merge NewPipe-decoded stream URLs by itag.
+     *
+     * This is how SimpMusic resolves "- Topic" Art Tracks (YouTube Music auto-generated tracks)
+     * that ANDROID_VR returns UNPLAYABLE for: the WEB_REMIX player response provides the metadata
+     * and the audio format/itag list, while NewPipe (querying the music.youtube.com URL) provides
+     * the already-decoded, poToken-free stream URLs. We match them by itag - no `pot` needed.
+     */
+    private suspend fun tryWebRemixWithItagMerge(videoId: String): PlayerResult? {
+        try {
+            Log.d(TAG, "Trying WEB_REMIX + itag-merge for: $videoId")
+
+            // 1. Decoded itag -> URL map from NewPipe (music context handles Art Tracks).
+            val itagToUrl = newPipeExtractor?.getAudioStreams(videoId)?.toMap() ?: emptyMap()
+            if (itagToUrl.isEmpty()) {
+                Log.d(TAG, "No NewPipe streams available for itag-merge")
+                return null
+            }
+
+            // 2. WEB_REMIX player request for metadata + the audio format/itag list.
+            val poTokens = newPipeExtractor?.getStreamingPoTokens(videoId)
+            val requestBody = buildJsonObject {
+                putJsonObject("context") {
+                    putJsonObject("client") {
+                        put("clientName", CLIENT_NAME)
+                        put("clientVersion", CLIENT_VERSION)
+                        put("hl", "en")
+                        put("gl", "US")
+                        poTokens?.visitorData?.let { put("visitorData", it) }
+                    }
+                }
+                put("videoId", videoId)
+                put("contentCheckOk", true)
+                put("racyCheckOk", true)
+                putJsonObject("playbackContext") {
+                    putJsonObject("contentPlaybackContext") {
+                        put("signatureTimestamp", newPipeExtractor?.getSignatureTimestamp(videoId) ?: 20073)
+                    }
+                }
+            }
+
+            val response: String = httpClient.post("$INNERTUBE_BASE_URL/player?key=$INNERTUBE_KEY") {
+                contentType(ContentType.Application.Json)
+                header("Origin", "https://music.youtube.com")
+                header("X-YouTube-Client-Name", "67")
+                header("X-YouTube-Client-Version", CLIENT_VERSION)
+                poTokens?.visitorData?.let { header("X-Goog-Visitor-Id", it) }
+                setBody(requestBody.toString())
+            }.bodyAsText()
+
+            return mergeItagResponse(response, videoId, itagToUrl)
+        } catch (e: Exception) {
+            Log.w(TAG, "WEB_REMIX itag-merge failed: ${e.message}")
+            return null
+        }
+    }
+
+    /**
+     * Parse a WEB_REMIX player response for track metadata and pick the highest-bitrate audio
+     * format whose itag has a decoded URL in [itagToUrl]. Returns null if nothing matches.
+     */
+    private fun mergeItagResponse(response: String, videoId: String, itagToUrl: Map<Int, String>): PlayerResult? {
+        val jsonObject = json.parseToJsonElement(response).jsonObject
+
+        val status = jsonObject["playabilityStatus"]?.jsonObject?.get("status")?.jsonPrimitive?.contentOrNull
+        if (status != "OK") {
+            Log.w(TAG, "WEB_REMIX playability: $status")
+            return null
+        }
+
+        val videoDetails = jsonObject["videoDetails"]?.jsonObject
+        val title = videoDetails?.get("title")?.jsonPrimitive?.contentOrNull ?: "Unknown"
+        val author = videoDetails?.get("author")?.jsonPrimitive?.contentOrNull ?: "Unknown Artist"
+        val channelId = videoDetails?.get("channelId")?.jsonPrimitive?.contentOrNull
+        val lengthSeconds = videoDetails?.get("lengthSeconds")?.jsonPrimitive?.contentOrNull?.toLongOrNull() ?: 0L
+        val thumbnailUrl = videoDetails?.get("thumbnail")?.jsonObject?.get("thumbnails")?.jsonArray
+            ?.lastOrNull()?.jsonObject?.get("url")?.jsonPrimitive?.contentOrNull ?: ""
+
+        val track = Track(
+            id = videoId,
+            title = title,
+            artistName = author,
+            artistId = channelId,
+            albumName = null,
+            albumId = null,
+            thumbnailUrl = thumbnailUrl,
+            duration = lengthSeconds * 1000
+        )
+
+        val adaptiveFormats = jsonObject["streamingData"]?.jsonObject?.get("adaptiveFormats")?.jsonArray
+        val bestAudioItag = adaptiveFormats
+            ?.filter { (it.jsonObject["mimeType"]?.jsonPrimitive?.contentOrNull ?: "").startsWith("audio/") }
+            ?.sortedByDescending { it.jsonObject["bitrate"]?.jsonPrimitive?.intOrNull ?: 0 }
+            ?.mapNotNull { it.jsonObject["itag"]?.jsonPrimitive?.intOrNull }
+            ?.firstOrNull { itagToUrl.containsKey(it) }
+
+        if (bestAudioItag == null) {
+            Log.d(TAG, "No WEB_REMIX audio itag matched NewPipe streams")
+            return null
+        }
+
+        Log.d(TAG, "WEB_REMIX itag-merge SUCCESS: itag $bestAudioItag for ${track.title}")
+        return PlayerResult(itagToUrl.getValue(bestAudioItag), track)
     }
 
     private suspend fun tryTvEmbedClient(videoId: String): PlayerResult? {
@@ -1057,7 +1360,16 @@ class YouTubeMusicClient(private val httpClient: HttpClient) {
         }
     }
 
-    private fun parseInnertubeResponse(response: String, videoId: String, clientName: String): PlayerResult? {
+    /**
+     * Appends the `pot` (poToken) query parameter to a googlevideo stream URL, required by
+     * YouTube to avoid HTTP 403 responses when a poToken was used in the player request.
+     */
+    private fun appendPoToken(url: String, poToken: String?): String {
+        if (poToken.isNullOrEmpty()) return url
+        return URLBuilder(url).apply { parameters.append("pot", poToken) }.buildString()
+    }
+
+    private fun parseInnertubeResponse(response: String, videoId: String, clientName: String, streamingPoToken: String? = null): PlayerResult? {
         val jsonElement = json.parseToJsonElement(response)
         val jsonObject = jsonElement.jsonObject
 
@@ -1128,13 +1440,13 @@ class YouTubeMusicClient(private val httpClient: HttpClient) {
             val decodedUrl = newPipeExtractor?.decodeStreamUrl(url, signatureCipher, videoId)
             if (decodedUrl != null) {
                 Log.d(TAG, "NewPipe decoded URL successfully for $clientName")
-                return PlayerResult(decodedUrl, track)
+                return PlayerResult(appendPoToken(decodedUrl, streamingPoToken), track)
             }
 
             // If NewPipe decoding fails but we have a direct URL, try it anyway
             if (url != null) {
                 Log.d(TAG, "Using direct URL (may get 403): ${url.take(80)}...")
-                return PlayerResult(url, track)
+                return PlayerResult(appendPoToken(url, streamingPoToken), track)
             }
         }
 
@@ -1150,12 +1462,12 @@ class YouTubeMusicClient(private val httpClient: HttpClient) {
             val decodedUrl = newPipeExtractor?.decodeStreamUrl(url, signatureCipher, videoId)
             if (decodedUrl != null) {
                 Log.d(TAG, "NewPipe decoded combined stream URL")
-                return PlayerResult(decodedUrl, track)
+                return PlayerResult(appendPoToken(decodedUrl, streamingPoToken), track)
             }
 
             if (url != null) {
                 Log.d(TAG, "Using combined stream URL (fallback)")
-                return PlayerResult(url, track)
+                return PlayerResult(appendPoToken(url, streamingPoToken), track)
             }
         }
 

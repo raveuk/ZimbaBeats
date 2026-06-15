@@ -1,6 +1,8 @@
 package com.zimbabeats.core.data.remote.youtube
 
+import android.content.Context
 import android.util.Log
+import com.zimbabeats.core.data.remote.youtube.potoken.PoTokenProviderImpl
 import com.zimbabeats.core.domain.model.music.Track
 import io.ktor.http.URLBuilder
 import io.ktor.http.parseQueryString
@@ -14,6 +16,7 @@ import org.schabi.newpipe.extractor.downloader.Request
 import org.schabi.newpipe.extractor.downloader.Response
 import org.schabi.newpipe.extractor.services.youtube.YoutubeJavaScriptPlayerManager
 import org.schabi.newpipe.extractor.services.youtube.YoutubeService
+import org.schabi.newpipe.extractor.services.youtube.extractors.YoutubeStreamExtractor
 import org.schabi.newpipe.extractor.stream.StreamInfo
 import okhttp3.ConnectionPool
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -32,7 +35,7 @@ import java.util.concurrent.TimeUnit
  * Based on how SimpMusic handles stream extraction - uses YoutubeJavaScriptPlayerManager
  * to decode the n-parameter on stream URLs.
  */
-class NewPipeStreamExtractor {
+class NewPipeStreamExtractor(private val context: Context) {
 
     companion object {
         private const val TAG = "NewPipeExtractor"
@@ -40,6 +43,27 @@ class NewPipeStreamExtractor {
 
         // User agent for web requests
         private const val USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
+
+    private val poTokenProvider = PoTokenProviderImpl(context)
+
+    /**
+     * poToken data needed to attach to manual InnerTube player requests (and their resulting
+     * googlevideo stream URLs) so they don't come back as HTTP 403.
+     */
+    data class StreamingPoTokens(
+        val visitorData: String?,
+        val playerPoToken: String?,
+        val streamingPoToken: String?
+    )
+
+    /**
+     * Obtains poTokens (via the BotGuard WebView flow) for use with manual InnerTube player
+     * requests in [com.zimbabeats.core.data.remote.youtube.music.YouTubeMusicClient].
+     */
+    suspend fun getStreamingPoTokens(videoId: String): StreamingPoTokens? = withContext(Dispatchers.IO) {
+        val result = poTokenProvider.getWebClientPoToken(videoId) ?: return@withContext null
+        StreamingPoTokens(result.visitorData, result.playerRequestPoToken, result.streamingDataPoToken)
     }
 
     /**
@@ -90,6 +114,9 @@ class NewPipeStreamExtractor {
         try {
             Log.d(TAG, "Initializing NewPipe Extractor...")
             NewPipe.init(OkHttpDownloader())
+            // Register a WebView/BotGuard-based PoToken provider so the WEB client's
+            // googlevideo.com stream URLs don't come back as HTTP 403.
+            YoutubeStreamExtractor.setPoTokenProvider(poTokenProvider)
             isInitialized = true
             Log.d(TAG, "NewPipe Extractor initialized successfully")
             true
@@ -184,8 +211,13 @@ class NewPipeStreamExtractor {
             val service = NewPipe.getService(ServiceList.YouTube.serviceId) as YoutubeService
             val streamInfo = StreamInfo.getInfo(service, url)
 
+            if (streamInfo.errors.isNotEmpty()) {
+                streamInfo.errors.forEach { Log.w(TAG, "StreamInfo error for $videoId", it) }
+            }
+
             // Get audio streams
             val audioStreams = streamInfo.audioStreams
+            Log.d(TAG, "audioStreams=${audioStreams?.size ?: -1}, videoStreams=${streamInfo.videoStreams?.size ?: -1}, videoOnlyStreams=${streamInfo.videoOnlyStreams?.size ?: -1}")
             if (audioStreams.isNullOrEmpty()) {
                 Log.e(TAG, "No audio streams found for: $videoId")
                 return@withContext null
@@ -415,7 +447,10 @@ class NewPipeStreamExtractor {
         }
 
         try {
-            val url = "https://www.youtube.com/watch?v=$videoId"
+            // Use the music.youtube.com watch URL (like SimpMusic) so the YouTube Music
+            // service path is used - this returns audio itags for "- Topic" Art Tracks that
+            // the regular www.youtube.com path classifies as having no audio streams.
+            val url = "https://music.youtube.com/watch?v=$videoId"
             val streamInfo = StreamInfo.getInfo(NewPipe.getService(0), url)
 
             val streams = streamInfo.audioStreams + streamInfo.videoStreams + streamInfo.videoOnlyStreams
@@ -428,6 +463,114 @@ class NewPipeStreamExtractor {
             Log.e(TAG, "Failed to get audio streams: ${e.message}", e)
             emptyList()
         }
+    }
+
+    /**
+     * Return every stream NewPipe knows about for this video, normalized to the same
+     * `StreamUrl` shape that `InnertubeClient` emits. Used by the download path as a
+     * fallback when InnerTube's player endpoint rejects us (HTTP 400 FAILED_PRECONDITION).
+     *
+     * Maps NewPipe's MediaFormat / VideoStream / AudioStream types to the codec strings
+     * we use elsewhere ("avc1", "vp9", "av01", "mp4a", "opus") so DownloadManager's
+     * pairing logic Just Works.
+     */
+    suspend fun getAllStreams(videoId: String): List<StreamUrl> = withContext(Dispatchers.IO) {
+        if (!isInitialized) {
+            if (!initialize()) return@withContext emptyList()
+        }
+        try {
+            val url = "https://www.youtube.com/watch?v=$videoId"
+            val streamInfo = StreamInfo.getInfo(NewPipe.getService(ServiceList.YouTube.serviceId), url)
+            val out = mutableListOf<StreamUrl>()
+
+            // Combined (video + audio) streams.
+            streamInfo.videoStreams?.forEach { v ->
+                val content = v.content ?: return@forEach
+                val height = v.resolution?.replace(Regex("[^0-9]"), "")?.toIntOrNull() ?: 0
+                val container = v.format?.name?.lowercase() ?: "mp4"
+                val codecGuess = guessVideoCodec(container)
+                out += StreamUrl(
+                    url = content,
+                    quality = v.resolution ?: "${height}p",
+                    format = normalizeContainer(container),
+                    isVideoOnly = false,
+                    videoCodec = codecGuess,
+                    audioCodec = if (container.contains("mp4")) "mp4a" else "opus",
+                    height = height,
+                    bitrate = v.bitrate.takeIf { it > 0 } ?: 0,
+                    contentLength = -1L
+                )
+            }
+
+            // Video-only adaptive streams.
+            streamInfo.videoOnlyStreams?.forEach { v ->
+                val content = v.content ?: return@forEach
+                val height = v.resolution?.replace(Regex("[^0-9]"), "")?.toIntOrNull() ?: 0
+                val container = v.format?.name?.lowercase() ?: "mp4"
+                out += StreamUrl(
+                    url = content,
+                    quality = "${v.resolution ?: "${height}p"} (video-only)",
+                    format = normalizeContainer(container),
+                    isVideoOnly = true,
+                    videoCodec = guessVideoCodec(container),
+                    audioCodec = null,
+                    height = height,
+                    bitrate = v.bitrate.takeIf { it > 0 } ?: 0,
+                    contentLength = -1L
+                )
+            }
+
+            // Audio-only adaptive streams.
+            streamInfo.audioStreams?.forEach { a ->
+                val content = a.content ?: return@forEach
+                val container = a.format?.name?.lowercase() ?: "m4a"
+                val codec = when {
+                    container.contains("m4a") || container.contains("mp4") -> "mp4a"
+                    container.contains("opus") || container.contains("webm") -> "opus"
+                    else -> null
+                }
+                out += StreamUrl(
+                    url = content,
+                    quality = "${a.averageBitrate / 1000}kbps",
+                    format = normalizeContainer(container),
+                    isVideoOnly = false,
+                    videoCodec = null,
+                    audioCodec = codec,
+                    height = 0,
+                    bitrate = a.averageBitrate,
+                    contentLength = -1L
+                )
+            }
+
+            Log.d(TAG, "getAllStreams: ${out.size} streams for $videoId " +
+                    "(combined=${streamInfo.videoStreams?.size ?: 0} " +
+                    "videoOnly=${streamInfo.videoOnlyStreams?.size ?: 0} " +
+                    "audioOnly=${streamInfo.audioStreams?.size ?: 0})")
+            out
+        } catch (e: Exception) {
+            Log.e(TAG, "getAllStreams failed for $videoId: ${e.message}", e)
+            emptyList()
+        }
+    }
+
+    /**
+     * NewPipe's MediaFormat enum only carries the container name. Codec has to be guessed
+     * from the container — YouTube serves H.264 in MP4 and VP9 in WebM for video-only DASH,
+     * which matches this mapping for the common cases. Higher-quality WebM may actually be
+     * AV1; downstream code handles either via the same transcode path.
+     */
+    private fun guessVideoCodec(container: String): String = when {
+        container.contains("mp4") -> "avc1"
+        container.contains("webm") -> "vp9"
+        else -> "avc1"
+    }
+
+    private fun normalizeContainer(container: String): String = when {
+        container.contains("mp4") -> "mp4"
+        container.contains("webm") -> "webm"
+        container.contains("m4a") -> "m4a"
+        container.contains("opus") -> "opus"
+        else -> "mp4"
     }
 
     /**
