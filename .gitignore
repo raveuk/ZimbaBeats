@@ -56,3 +56,9 @@ backend/package-lock.json
 *.bak
 *.log
 templog*.txt
+
+# Internal scratch / planning docs - not for the public repo
+DECISIONS_PENDING.md
+DOWNLOAD_REWRITE_PLAN.md
+zimbabeats-bugs-issue.md
+release-notes.md
