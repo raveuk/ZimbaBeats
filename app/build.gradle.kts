@@ -138,9 +138,9 @@ dependencies {
     // streams into a single .mp4. Transformer additionally transcodes VP9/AV1 → H.264
     // when the source codec is not MP4-compatible. media3-effect is a Transformer
     // runtime dependency.
-    implementation("androidx.media3:media3-muxer:1.5.0")
-    implementation("androidx.media3:media3-transformer:1.5.0")
-    implementation("androidx.media3:media3-effect:1.5.0")
+    implementation("androidx.media3:media3-muxer:1.10.1")
+    implementation("androidx.media3:media3-transformer:1.10.1")
+    implementation("androidx.media3:media3-effect:1.10.1")
 
     // Core Android
     implementation(libs.androidx.core.ktx)
