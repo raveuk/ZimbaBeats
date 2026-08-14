@@ -282,8 +282,8 @@ fun VideoPlayerScreen(
         playerState.currentPosition.toFloat() / playerState.duration.toFloat()
     } else 0f
 
-    // Drag-seeking state for landscape slider
-    var isDraggingSlider by remember { mutableStateOf(false) }
+    // Local scraping state to decouple slider thumb from live updates during drag
+    var scrapingProgress by remember { mutableStateOf<Float?>(null) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         if (isLandscape) {
@@ -519,12 +519,17 @@ fun VideoPlayerScreen(
                                 .padding(horizontal = 16.dp, vertical = 8.dp)
                         ) {
                             Slider(
-                                value = progress.coerceIn(0f, 1f),
+                                value = scrapingProgress ?: progress.coerceIn(0f, 1f),
                                 onValueChange = { newValue ->
-                                    isDraggingSlider = true
-                                    if (playerState.duration > 0) {
-                                        viewModel.seekTo((newValue * playerState.duration).toLong())
+                                    scrapingProgress = newValue
+                                },
+                                onValueChangeFinished = {
+                                    scrapingProgress?.let { newValue ->
+                                        if (playerState.duration > 0) {
+                                            viewModel.seekTo((newValue * playerState.duration).toLong())
+                                        }
                                     }
+                                    scrapingProgress = null
                                 },
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = SliderDefaults.colors(
