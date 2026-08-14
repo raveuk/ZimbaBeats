@@ -16,7 +16,9 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -88,13 +90,14 @@ private fun Context.findActivity(): Activity? {
 /**
  * Resize mode options for video player
  */
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 enum class VideoResizeMode(val label: String, val aspectRatioMode: Int) {
     FIT("Fit", AspectRatioFrameLayout.RESIZE_MODE_FIT),
     FILL("Fill", AspectRatioFrameLayout.RESIZE_MODE_FILL),
     ZOOM("Zoom", AspectRatioFrameLayout.RESIZE_MODE_ZOOM)
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, androidx.media3.common.util.UnstableApi::class)
 @Composable
 fun VideoPlayerScreen(
     videoId: String,
@@ -123,9 +126,6 @@ fun VideoPlayerScreen(
     // Double-tap seek feedback
     var showSeekBackward by remember { mutableStateOf(false) }
     var showSeekForward by remember { mutableStateOf(false) }
-
-    // PlayerView reference for resize mode changes
-    var playerViewRef by remember { mutableStateOf<PlayerView?>(null) }
 
     // PiP mode state
     var isInPipMode by remember { mutableStateOf(false) }
@@ -282,682 +282,544 @@ fun VideoPlayerScreen(
         playerState.currentPosition.toFloat() / playerState.duration.toFloat()
     } else 0f
 
-    // Fullscreen landscape player
-    if (isLandscape) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black)
-                .pointerInput(Unit) {
-                    detectTapGestures(
-                        onTap = { showControls = !showControls }
+    // Drag-seeking state for landscape slider
+    var isDraggingSlider by remember { mutableStateOf(false) }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (isLandscape) {
+            // Landscape Player
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black)
+            ) {
+                // 1. Video Player - Bottom Layer
+                val currentResizeMode = resizeMode.aspectRatioMode
+                AndroidView(
+                    factory = { ctx ->
+                        PlayerView(ctx).apply {
+                            player = viewModel.getPlayer()
+                            useController = false // Custom controls
+                            setResizeMode(currentResizeMode)
+                            val activity = ctx.findActivity() as? MainActivity
+                            activity?.setPlayerView(this)
+
+                            player?.addListener(object : androidx.media3.common.Player.Listener {
+                                override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) {
+                                    activity?.updatePipAspectRatio(videoSize.width, videoSize.height)
+                                }
+                            })
+                            player?.videoSize?.let { size ->
+                                if (size.width > 0 && size.height > 0) {
+                                    activity?.updatePipAspectRatio(size.width, size.height)
+                                }
+                            }
+                        }
+                    },
+                    update = { view ->
+                        view.resizeMode = currentResizeMode
+                        (context.findActivity() as? MainActivity)?.setPlayerView(view)
+                    },
+                    modifier = Modifier.fillMaxSize()
+                )
+
+                // 2. Gesture areas - Tap for controls, Double-tap for seek, vertical swipe for brightness/volume
+                Row(modifier = Modifier.fillMaxSize()) {
+                    // Left side - backward seek + brightness
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .pointerInput(Unit) {
+                                detectTapGestures(
+                                    onTap = { showControls = !showControls },
+                                    onDoubleTap = {
+                                        viewModel.seekBackward(5000)
+                                        showSeekBackward = true
+                                    }
+                                )
+                            }
+                            .pointerInput(Unit) {
+                                detectVerticalDragGestures(
+                                    onDragStart = { showBrightnessIndicator = true },
+                                    onDragEnd = { },
+                                    onVerticalDrag = { _, dragAmount ->
+                                        val delta = -dragAmount / 500f
+                                        currentBrightness = (currentBrightness + delta).coerceIn(0.01f, 1f)
+                                        val activity = context as? Activity
+                                        activity?.window?.let { window ->
+                                            val params = window.attributes
+                                            params.screenBrightness = currentBrightness
+                                            window.attributes = params
+                                        }
+                                        showBrightnessIndicator = true
+                                    }
+                                )
+                            }
+                    )
+
+                    // Right side - forward seek + volume
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .pointerInput(Unit) {
+                                detectTapGestures(
+                                    onTap = { showControls = !showControls },
+                                    onDoubleTap = {
+                                        viewModel.seekForward(5000)
+                                        showSeekForward = true
+                                    }
+                                )
+                            }
+                            .pointerInput(Unit) {
+                                detectVerticalDragGestures(
+                                    onDragStart = { showVolumeIndicator = true },
+                                    onDragEnd = { },
+                                    onVerticalDrag = { _, dragAmount ->
+                                        val delta = -dragAmount / 50f
+                                        val newVolume = (currentVolume + delta.roundToInt()).coerceIn(0, maxVolume)
+                                        if (newVolume != currentVolume) {
+                                            currentVolume = newVolume
+                                            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, currentVolume, 0)
+                                        }
+                                        showVolumeIndicator = true
+                                    }
+                                )
+                            }
                     )
                 }
-        ) {
-            // Video Player - Fullscreen
-            val currentResizeMode = resizeMode.aspectRatioMode
-            AndroidView(
-                factory = { ctx ->
-                    PlayerView(ctx).apply {
-                        player = viewModel.getPlayer()
-                        useController = false // Custom controls
-                        setResizeMode(currentResizeMode)
-                        val activity = ctx.findActivity() as? MainActivity
-                        activity?.setPlayerView(this)
 
-                        // Watch for video-size changes so PiP can use the real aspect
-                        // ratio (otherwise vertical / non-16:9 videos get letterboxed
-                        // inside the floating window).
-                        player?.addListener(object : androidx.media3.common.Player.Listener {
-                            override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) {
-                                activity?.updatePipAspectRatio(videoSize.width, videoSize.height)
-                            }
-                        })
-                        // Apply the current known size immediately (the listener won't
-                        // fire again if the size was reported before this view existed).
-                        player?.videoSize?.let { size ->
-                            if (size.width > 0 && size.height > 0) {
-                                activity?.updatePipAspectRatio(size.width, size.height)
-                            }
-                        }
-                    }
-                },
-                update = { view ->
-                    view.resizeMode = currentResizeMode
-                    // Update PlayerView reference in case it changed
-                    (context.findActivity() as? MainActivity)?.setPlayerView(view)
-                },
-                modifier = Modifier.fillMaxSize()
-            )
-
-            // Gesture areas - Double-tap for seek, vertical swipe for brightness (left) / volume (right)
-            Row(modifier = Modifier.fillMaxSize()) {
-                // Left side - backward seek + brightness control
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .pointerInput(Unit) {
-                            detectTapGestures(
-                                onTap = { showControls = !showControls },
-                                onDoubleTap = {
-                                    viewModel.seekBackward(5000)
-                                    showSeekBackward = true
-                                }
-                            )
-                        }
-                        .pointerInput(Unit) {
-                            detectVerticalDragGestures(
-                                onDragStart = {
-                                    showBrightnessIndicator = true
-                                },
-                                onDragEnd = { },
-                                onVerticalDrag = { _, dragAmount ->
-                                    // Calculate brightness change (swipe up = brighter)
-                                    val delta = -dragAmount / 500f
-                                    currentBrightness = (currentBrightness + delta).coerceIn(0.01f, 1f)
-
-                                    // Apply brightness to window
-                                    val activity = context as? Activity
-                                    activity?.window?.let { window ->
-                                        val params = window.attributes
-                                        params.screenBrightness = currentBrightness
-                                        window.attributes = params
-                                    }
-                                    showBrightnessIndicator = true
-                                }
-                            )
-                        },
-                    contentAlignment = Alignment.Center
-                ) {}
-
-                // Right side - forward seek + volume control
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .pointerInput(Unit) {
-                            detectTapGestures(
-                                onTap = { showControls = !showControls },
-                                onDoubleTap = {
-                                    viewModel.seekForward(5000)
-                                    showSeekForward = true
-                                }
-                            )
-                        }
-                        .pointerInput(Unit) {
-                            detectVerticalDragGestures(
-                                onDragStart = {
-                                    showVolumeIndicator = true
-                                },
-                                onDragEnd = { },
-                                onVerticalDrag = { _, dragAmount ->
-                                    // Calculate volume change (swipe up = louder)
-                                    val delta = -dragAmount / 50f
-                                    val newVolume = (currentVolume + delta.roundToInt()).coerceIn(0, maxVolume)
-                                    if (newVolume != currentVolume) {
-                                        currentVolume = newVolume
-                                        audioManager.setStreamVolume(
-                                            AudioManager.STREAM_MUSIC,
-                                            currentVolume,
-                                            0
-                                        )
-                                    }
-                                    showVolumeIndicator = true
-                                }
-                            )
-                        },
-                    contentAlignment = Alignment.Center
-                ) {}
-            }
-
-            // Brightness indicator (left side)
-            AnimatedVisibility(
-                visible = showBrightnessIndicator,
-                enter = fadeIn(),
-                exit = fadeOut(),
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .padding(start = 30.dp)
-            ) {
-                GestureIndicator(
-                    icon = Icons.Default.BrightnessHigh,
-                    value = currentBrightness,
-                    maxValue = 1f,
-                    label = "${(currentBrightness * 100).roundToInt()}%"
-                )
-            }
-
-            // Volume indicator (right side)
-            AnimatedVisibility(
-                visible = showVolumeIndicator,
-                enter = fadeIn(),
-                exit = fadeOut(),
-                modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .padding(end = 30.dp)
-            ) {
-                GestureIndicator(
-                    icon = if (currentVolume == 0) Icons.Default.VolumeOff else Icons.Default.VolumeUp,
-                    value = currentVolume.toFloat(),
-                    maxValue = maxVolume.toFloat(),
-                    label = "${((currentVolume.toFloat() / maxVolume) * 100).roundToInt()}%"
-                )
-            }
-
-            // Seek backward feedback
-            if (showSeekBackward) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.CenterStart)
-                        .padding(start = 60.dp)
+                // 3. Feedback Indicators
+                // Brightness (left)
+                AnimatedVisibility(
+                    visible = showBrightnessIndicator,
+                    enter = fadeIn(), exit = fadeOut(),
+                    modifier = Modifier.align(Alignment.CenterStart).padding(start = 30.dp)
                 ) {
-                    Surface(
-                        color = Color.Black.copy(alpha = 0.6f),
-                        shape = CircleShape,
-                        modifier = Modifier.size(80.dp)
+                    GestureIndicator(
+                        icon = Icons.Default.BrightnessHigh,
+                        value = currentBrightness,
+                        maxValue = 1f,
+                        label = "${(currentBrightness * 100).roundToInt()}%"
+                    )
+                }
+
+                // Volume (right)
+                AnimatedVisibility(
+                    visible = showVolumeIndicator,
+                    enter = fadeIn(), exit = fadeOut(),
+                    modifier = Modifier.align(Alignment.CenterEnd).padding(end = 30.dp)
+                ) {
+                    GestureIndicator(
+                        icon = if (currentVolume == 0) Icons.Default.VolumeOff else Icons.Default.VolumeUp,
+                        value = currentVolume.toFloat(),
+                        maxValue = maxVolume.toFloat(),
+                        label = "${((currentVolume.toFloat() / maxVolume) * 100).roundToInt()}%"
+                    )
+                }
+
+                // Seek Backward (5s)
+                if (showSeekBackward) {
+                    SeekFeedback(Icons.Default.Replay5, "5s", Alignment.CenterStart)
+                }
+
+                // Seek Forward (5s)
+                if (showSeekForward) {
+                    SeekFeedback(Icons.Default.Forward5, "5s", Alignment.CenterEnd)
+                }
+
+                // 4. Controls Overlay
+                if (showControls && !isInPipMode) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.4f))
+                            .systemBarsPadding()
                     ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center,
-                            modifier = Modifier.fillMaxSize()
+                        // Top Bar - Scrollable actions
+                        val topScrollState = rememberScrollState()
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .align(Alignment.TopCenter)
+                                .background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.7f), Color.Transparent)))
+                                .horizontalScroll(topScrollState)
+                                .padding(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            IconButton(onClick = { viewModel.saveProgress(); onNavigateBack() }) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = Color.White)
+                            }
+
+                            IconButton(onClick = { viewModel.cycleRepeatMode() }) {
+                                Icon(
+                                    imageVector = when (uiState.repeatMode) {
+                                        RepeatMode.OFF, RepeatMode.ALL -> Icons.Default.Repeat
+                                        RepeatMode.ONE -> Icons.Default.RepeatOne
+                                    },
+                                    contentDescription = "Repeat",
+                                    tint = if (uiState.repeatMode != RepeatMode.OFF) accentColor else Color.White
+                                )
+                            }
+
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                IconButton(onClick = { (context.findActivity() as? MainActivity)?.enterPipMode() }) {
+                                    Icon(Icons.Default.PictureInPicture, "PiP", tint = Color.White)
+                                }
+                            }
+
+                            Surface(
+                                onClick = { showSpeedSelector = true },
+                                color = Color.Black.copy(alpha = 0.6f),
+                                shape = RoundedCornerShape(4.dp)
+                            ) {
+                                Text("${playerState.playbackSpeed}x", color = Color.White, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
+                            }
+
+                            if (uiState.availableQualities.isNotEmpty()) {
+                                IconButton(onClick = { viewModel.showQualitySelector() }) {
+                                    Icon(Icons.Default.Settings, "Quality", tint = Color.White)
+                                }
+                            }
+
+                            Surface(
+                                onClick = {
+                                    resizeMode = when (resizeMode) {
+                                        VideoResizeMode.FIT -> VideoResizeMode.FILL
+                                        VideoResizeMode.FILL -> VideoResizeMode.ZOOM
+                                        VideoResizeMode.ZOOM -> VideoResizeMode.FIT
+                                    }
+                                },
+                                color = Color.Black.copy(alpha = 0.6f),
+                                shape = RoundedCornerShape(4.dp)
+                            ) {
+                                Text(resizeMode.label, color = Color.White, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
+                            }
+                        }
+
+                        // Center - Play/Pause
+                        IconButton(
+                            onClick = { viewModel.togglePlayPause() },
+                            modifier = Modifier.align(Alignment.Center).size(72.dp).background(Color.Black.copy(alpha = 0.6f), CircleShape)
                         ) {
                             Icon(
-                                Icons.Default.Replay5,
-                                contentDescription = "Seek backward 5s",
-                                tint = Color.White,
-                                modifier = Modifier.size(32.dp)
+                                if (playerState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                contentDescription = "Play/Pause", tint = Color.White, modifier = Modifier.size(48.dp)
                             )
-                            Text("5s", color = Color.White, style = MaterialTheme.typography.labelSmall)
+                        }
+
+                        // Bottom Bar - Seekable Slider
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .align(Alignment.BottomCenter)
+                                .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f))))
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                        ) {
+                            Slider(
+                                value = progress.coerceIn(0f, 1f),
+                                onValueChange = { newValue ->
+                                    isDraggingSlider = true
+                                    if (playerState.duration > 0) {
+                                        viewModel.seekTo((newValue * playerState.duration).toLong())
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = SliderDefaults.colors(
+                                    thumbColor = accentColor,
+                                    activeTrackColor = accentColor,
+                                    inactiveTrackColor = Color.White.copy(alpha = 0.3f)
+                                )
+                            )
+
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text(formatTime(playerState.currentPosition), color = Color.White, style = MaterialTheme.typography.labelSmall)
+                                Text(formatTime(playerState.duration), color = Color.White, style = MaterialTheme.typography.labelSmall)
+                            }
                         }
                     }
                 }
             }
-
-            // Seek forward feedback
-            if (showSeekForward) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.CenterEnd)
-                        .padding(end = 60.dp)
-                ) {
-                    Surface(
-                        color = Color.Black.copy(alpha = 0.6f),
-                        shape = CircleShape,
-                        modifier = Modifier.size(80.dp)
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center,
-                            modifier = Modifier.fillMaxSize()
-                        ) {
-                            Icon(
-                                Icons.Default.Forward5,
-                                contentDescription = "Seek forward 5s",
-                                tint = Color.White,
-                                modifier = Modifier.size(32.dp)
-                            )
-                            Text("5s", color = Color.White, style = MaterialTheme.typography.labelSmall)
-                        }
-                    }
-                }
-            }
-
-            // Controls overlay - hide when in PiP mode
-            if (showControls && !isInPipMode) {
+        } else {
+            // Portrait mode
+            Scaffold(
+                topBar = {
+                    TopAppBar(
+                        title = { },
+                        navigationIcon = {
+                            IconButton(onClick = {
+                                viewModel.saveProgress()
+                                onNavigateBack()
+                            }) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, ContentDescriptions.NAVIGATE_BACK)
+                            }
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = Color.Black.copy(alpha = 0.7f),
+                            navigationIconContentColor = Color.White,
+                            actionIconContentColor = Color.White
+                        )
+                    )
+                },
+                containerColor = Color.Black
+            ) { paddingValues ->
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.4f))
+                        .padding(paddingValues)
                 ) {
-                    // Top bar with back button
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .align(Alignment.TopStart)
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(Color.Black.copy(alpha = 0.7f), Color.Transparent)
-                                )
-                            )
-                            .padding(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        IconButton(onClick = {
-                            viewModel.saveProgress()
-                            onNavigateBack()
-                        }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = Color.White)
-                        }
-
-                        Spacer(modifier = Modifier.weight(1f))
-
-                        // Repeat mode button
-                        IconButton(
-                            onClick = { viewModel.cycleRepeatMode() }
-                        ) {
-                            Icon(
-                                imageVector = when (uiState.repeatMode) {
-                                    RepeatMode.OFF -> Icons.Default.Repeat
-                                    RepeatMode.ALL -> Icons.Default.Repeat
-                                    RepeatMode.ONE -> Icons.Default.RepeatOne
-                                },
-                                contentDescription = "Repeat Mode: ${uiState.repeatMode.name}",
-                                tint = if (uiState.repeatMode != RepeatMode.OFF) accentColor else Color.White
+                    when {
+                        uiState.isLoading -> {
+                            CircularProgressIndicator(
+                                modifier = Modifier.align(Alignment.Center),
+                                color = Color.White
                             )
                         }
 
-                        Spacer(modifier = Modifier.width(8.dp))
-
-                        // PiP button (Android O and above)
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            IconButton(
-                                onClick = {
-                                    // Use findActivity() to properly get MainActivity through ContextWrapper chain
-                                    (context.findActivity() as? MainActivity)?.enterPipMode()
-                                }
+                        uiState.error != null -> {
+                            Column(
+                                modifier = Modifier.align(Alignment.Center),
+                                horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Icon(
-                                    Icons.Default.PictureInPicture,
-                                    contentDescription = "Picture in Picture",
-                                    tint = Color.White
+                                    Icons.Default.Error,
+                                    "Error",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(64.dp)
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    uiState.error!!,
+                                    color = Color.White,
+                                    style = MaterialTheme.typography.bodyLarge
                                 )
                             }
-
-                            Spacer(modifier = Modifier.width(8.dp))
                         }
 
-                        // Speed control button
-                        Surface(
-                            onClick = { showSpeedSelector = true },
-                            color = Color.Black.copy(alpha = 0.6f),
-                            shape = RoundedCornerShape(4.dp)
-                        ) {
-                            Text(
-                                text = "${playerState.playbackSpeed}x",
-                                color = Color.White,
-                                style = MaterialTheme.typography.labelMedium,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.width(8.dp))
-
-                        // Quality selector button (Settings gear)
-                        if (uiState.availableQualities.isNotEmpty()) {
-                            IconButton(
-                                onClick = { viewModel.showQualitySelector() }
-                            ) {
-                                Icon(
-                                    Icons.Default.Settings,
-                                    contentDescription = "Video Quality",
-                                    tint = Color.White
+                        else -> {
+                            Column(modifier = Modifier.fillMaxSize()) {
+                                // Video Player - Fixed at top, doesn't scroll
+                                AndroidView(
+                                    factory = { ctx ->
+                                        PlayerView(ctx).apply {
+                                            player = viewModel.getPlayer()
+                                            useController = true
+                                            controllerShowTimeoutMs = 3000
+                                            setResizeMode(AspectRatioFrameLayout.RESIZE_MODE_FIT)
+                                            // Pass PlayerView reference to MainActivity for PiP
+                                            (ctx.findActivity() as? MainActivity)?.setPlayerView(this)
+                                        }
+                                    },
+                                    update = { view ->
+                                        // Update PlayerView reference in case it changed
+                                        (context.findActivity() as? MainActivity)?.setPlayerView(view)
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .aspectRatio(16f / 9f)
+                                        .background(Color.Black)
                                 )
-                            }
 
-                            Spacer(modifier = Modifier.width(8.dp))
-                        }
-
-                        // Resize mode button
-                        Surface(
-                            onClick = {
-                                resizeMode = when (resizeMode) {
-                                    VideoResizeMode.FIT -> VideoResizeMode.FILL
-                                    VideoResizeMode.FILL -> VideoResizeMode.ZOOM
-                                    VideoResizeMode.ZOOM -> VideoResizeMode.FIT
-                                }
-                            },
-                            color = Color.Black.copy(alpha = 0.6f),
-                            shape = RoundedCornerShape(4.dp)
-                        ) {
-                            Text(
-                                text = resizeMode.label,
-                                color = Color.White,
-                                style = MaterialTheme.typography.labelMedium,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                            )
-                        }
-                    }
-
-                    // Center play/pause button
-                    IconButton(
-                        onClick = { viewModel.togglePlayPause() },
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .size(72.dp)
-                            .background(Color.Black.copy(alpha = 0.6f), CircleShape)
-                    ) {
-                        Icon(
-                            if (playerState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                            contentDescription = if (playerState.isPlaying) "Pause" else "Play",
-                            tint = Color.White,
-                            modifier = Modifier.size(48.dp)
-                        )
-                    }
-
-                    // Bottom bar with progress
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .align(Alignment.BottomCenter)
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f))
-                                )
-                            )
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
-                    ) {
-                        // Progress bar
-                        LinearProgressIndicator(
-                            progress = { progress },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(4.dp)
-                                .clip(RoundedCornerShape(2.dp)),
-                            color = accentColor,
-                            trackColor = Color.White.copy(alpha = 0.3f)
-                        )
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        // Time display
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                formatTime(playerState.currentPosition),
-                                color = Color.White,
-                                style = MaterialTheme.typography.labelSmall
-                            )
-                            Text(
-                                formatTime(playerState.duration),
-                                color = Color.White,
-                                style = MaterialTheme.typography.labelSmall
-                            )
-                        }
-                    }
-                }
-            }
-        }
-        return
-    }
-
-    // Portrait mode - original layout
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { },
-                navigationIcon = {
-                    IconButton(onClick = {
-                        viewModel.saveProgress()
-                        onNavigateBack()
-                    }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, ContentDescriptions.NAVIGATE_BACK)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Black.copy(alpha = 0.7f),
-                    navigationIconContentColor = Color.White,
-                    actionIconContentColor = Color.White
-                )
-            )
-        },
-        containerColor = Color.Black
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            when {
-                uiState.isLoading -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center),
-                        color = Color.White
-                    )
-                }
-
-                uiState.error != null -> {
-                    Column(
-                        modifier = Modifier.align(Alignment.Center),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(
-                            Icons.Default.Error,
-                            "Error",
-                            tint = Color.White,
-                            modifier = Modifier.size(64.dp)
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            uiState.error!!,
-                            color = Color.White,
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                    }
-                }
-
-                else -> {
-                    Column(modifier = Modifier.fillMaxSize()) {
-                        // Video Player - Fixed at top, doesn't scroll
-                        AndroidView(
-                            factory = { ctx ->
-                                PlayerView(ctx).apply {
-                                    player = viewModel.getPlayer()
-                                    useController = true
-                                    controllerShowTimeoutMs = 3000
-                                    setResizeMode(AspectRatioFrameLayout.RESIZE_MODE_FIT)
-                                    // Pass PlayerView reference to MainActivity for PiP
-                                    (ctx.findActivity() as? MainActivity)?.setPlayerView(this)
-                                }
-                            },
-                            update = { view ->
-                                // Update PlayerView reference in case it changed
-                                (context.findActivity() as? MainActivity)?.setPlayerView(view)
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .aspectRatio(16f / 9f)
-                                .background(Color.Black)
-                        )
-
-                        // Action Buttons - Fixed below player, doesn't scroll
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(Color.Black)
-                                .padding(horizontal = 16.dp, vertical = 8.dp)
-                                .semantics { contentDescription = "Video actions" },
-                            horizontalArrangement = Arrangement.SpaceEvenly
-                        ) {
-                            // Previous video button
-                            IconButton(
-                                onClick = { viewModel.skipToPrevious() },
-                                enabled = uiState.hasPreviousVideo
-                            ) {
-                                Icon(
-                                    Icons.Default.SkipPrevious,
-                                    contentDescription = "Previous video",
-                                    tint = if (uiState.hasPreviousVideo) Color.White else Color.White.copy(alpha = 0.3f)
-                                )
-                            }
-
-                            // Next video button
-                            IconButton(
-                                onClick = { viewModel.skipToNext() },
-                                enabled = uiState.hasNextVideo
-                            ) {
-                                Icon(
-                                    Icons.Default.SkipNext,
-                                    contentDescription = "Next video",
-                                    tint = if (uiState.hasNextVideo) Color.White else Color.White.copy(alpha = 0.3f)
-                                )
-                            }
-
-                            val favoriteDescription = if (uiState.isFavorite)
-                                ContentDescriptions.REMOVE_FROM_FAVORITES
-                            else
-                                ContentDescriptions.ADD_TO_FAVORITES
-
-                            IconButton(onClick = { viewModel.toggleFavorite() }) {
-                                Icon(
-                                    if (uiState.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                                    favoriteDescription,
-                                    tint = if (uiState.isFavorite) Color(0xFFE91E63) else Color.White
-                                )
-                            }
-
-                            IconButton(onClick = { viewModel.showPlaylistPicker() }) {
-                                Icon(
-                                    Icons.AutoMirrored.Filled.PlaylistAdd,
-                                    ContentDescriptions.ADD_TO_PLAYLIST,
-                                    tint = Color.White
-                                )
-                            }
-
-                            // Download button with state
-                            if (uiState.canDownload) {
-                                val downloadDescription = when {
-                                    uiState.isLoadingDownloadSize -> "Loading download options"
-                                    uiState.downloadState == com.zimbabeats.ui.viewmodel.DownloadButtonState.DOWNLOADING ->
-                                        "Downloading, ${uiState.downloadProgress} percent complete"
-                                    uiState.downloadState == com.zimbabeats.ui.viewmodel.DownloadButtonState.COMPLETED ->
-                                        "Video downloaded"
-                                    else -> ContentDescriptions.DOWNLOAD_VIDEO
-                                }
-
-                                IconButton(
-                                    onClick = { viewModel.requestDownload() },
-                                    enabled = uiState.downloadState != com.zimbabeats.ui.viewmodel.DownloadButtonState.DOWNLOADING &&
-                                            !uiState.isLoadingDownloadSize,
-                                    modifier = Modifier.semantics {
-                                        contentDescription = downloadDescription
-                                    }
+                                // Action Buttons - Fixed below player, doesn't scroll
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(Color.Black)
+                                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                                        .semantics { contentDescription = "Video actions" },
+                                    horizontalArrangement = Arrangement.SpaceEvenly
                                 ) {
-                                    when {
-                                        uiState.isLoadingDownloadSize -> {
-                                            CircularProgressIndicator(
-                                                modifier = Modifier.size(24.dp),
-                                                color = Color.White,
-                                                strokeWidth = 2.dp
-                                            )
+                                    // Previous video button
+                                    IconButton(
+                                        onClick = { viewModel.skipToPrevious() },
+                                        enabled = uiState.hasPreviousVideo
+                                    ) {
+                                        Icon(
+                                            Icons.Default.SkipPrevious,
+                                            contentDescription = "Previous video",
+                                            tint = if (uiState.hasPreviousVideo) Color.White else Color.White.copy(alpha = 0.3f)
+                                        )
+                                    }
+
+                                    // Next video button
+                                    IconButton(
+                                        onClick = { viewModel.skipToNext() },
+                                        enabled = uiState.hasNextVideo
+                                    ) {
+                                        Icon(
+                                            Icons.Default.SkipNext,
+                                            contentDescription = "Next video",
+                                            tint = if (uiState.hasNextVideo) Color.White else Color.White.copy(alpha = 0.3f)
+                                        )
+                                    }
+
+                                    val favoriteDescription = if (uiState.isFavorite)
+                                        ContentDescriptions.REMOVE_FROM_FAVORITES
+                                    else
+                                        ContentDescriptions.ADD_TO_FAVORITES
+
+                                    IconButton(onClick = { viewModel.toggleFavorite() }) {
+                                        Icon(
+                                            if (uiState.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                            favoriteDescription,
+                                            tint = if (uiState.isFavorite) Color(0xFFE91E63) else Color.White
+                                        )
+                                    }
+
+                                    IconButton(onClick = { viewModel.showPlaylistPicker() }) {
+                                        Icon(
+                                            Icons.AutoMirrored.Filled.PlaylistAdd,
+                                            ContentDescriptions.ADD_TO_PLAYLIST,
+                                            tint = Color.White
+                                        )
+                                    }
+
+                                    // Download button with state
+                                    if (uiState.canDownload) {
+                                        val downloadDescription = when {
+                                            uiState.isLoadingDownloadSize -> "Loading download options"
+                                            uiState.downloadState == com.zimbabeats.ui.viewmodel.DownloadButtonState.DOWNLOADING ->
+                                                "Downloading, ${uiState.downloadProgress} percent complete"
+                                            uiState.downloadState == com.zimbabeats.ui.viewmodel.DownloadButtonState.COMPLETED ->
+                                                "Video downloaded"
+                                            else -> ContentDescriptions.DOWNLOAD_VIDEO
                                         }
-                                        uiState.downloadState == com.zimbabeats.ui.viewmodel.DownloadButtonState.DOWNLOADING -> {
-                                            CircularProgressIndicator(
-                                                progress = { uiState.downloadProgress / 100f },
-                                                modifier = Modifier.size(24.dp),
-                                                color = accentColor,
-                                                strokeWidth = 2.dp
-                                            )
+
+                                        IconButton(
+                                            onClick = { viewModel.requestDownload() },
+                                            enabled = uiState.downloadState != com.zimbabeats.ui.viewmodel.DownloadButtonState.DOWNLOADING &&
+                                                    !uiState.isLoadingDownloadSize,
+                                            modifier = Modifier.semantics {
+                                                contentDescription = downloadDescription
+                                            }
+                                        ) {
+                                            when {
+                                                uiState.isLoadingDownloadSize -> {
+                                                    CircularProgressIndicator(
+                                                        modifier = Modifier.size(24.dp),
+                                                        color = Color.White,
+                                                        strokeWidth = 2.dp
+                                                    )
+                                                }
+                                                uiState.downloadState == com.zimbabeats.ui.viewmodel.DownloadButtonState.DOWNLOADING -> {
+                                                    CircularProgressIndicator(
+                                                        progress = { uiState.downloadProgress / 100f },
+                                                        modifier = Modifier.size(24.dp),
+                                                        color = accentColor,
+                                                        strokeWidth = 2.dp
+                                                    )
+                                                }
+                                                uiState.downloadState == com.zimbabeats.ui.viewmodel.DownloadButtonState.COMPLETED -> {
+                                                    Icon(
+                                                        Icons.Default.DownloadDone,
+                                                        null, // Handled by parent semantics
+                                                        tint = accentColor
+                                                    )
+                                                }
+                                                else -> {
+                                                    Icon(
+                                                        Icons.Default.Download,
+                                                        null, // Handled by parent semantics
+                                                        tint = Color.White
+                                                    )
+                                                }
+                                            }
                                         }
-                                        uiState.downloadState == com.zimbabeats.ui.viewmodel.DownloadButtonState.COMPLETED -> {
+                                    }
+
+                                    // Share button - clean URL only
+                                    if (uiState.canShare) {
+                                        val shareUrl = viewModel.getShareUrl()
+                                        IconButton(
+                                            onClick = {
+                                                val shareIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                                    type = "text/plain"
+                                                    putExtra(android.content.Intent.EXTRA_TEXT, shareUrl)
+                                                }
+                                                val chooserIntent = android.content.Intent.createChooser(shareIntent, "Share URL")
+                                                context.startActivity(chooserIntent)
+                                            }
+                                        ) {
                                             Icon(
-                                                Icons.Default.DownloadDone,
-                                                null, // Handled by parent semantics
-                                                tint = accentColor
-                                            )
-                                        }
-                                        else -> {
-                                            Icon(
-                                                Icons.Default.Download,
-                                                null, // Handled by parent semantics
+                                                Icons.Default.Share,
+                                                ContentDescriptions.SHARE_VIDEO,
                                                 tint = Color.White
                                             )
                                         }
                                     }
                                 }
-                            }
 
-                            // Share button - clean URL only
-                            if (uiState.canShare) {
-                                val shareUrl = viewModel.getShareUrl()
-                                IconButton(
-                                    onClick = {
-                                        val shareIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-                                            type = "text/plain"
-                                            putExtra(android.content.Intent.EXTRA_TEXT, shareUrl)
+                                // Scrollable content below the player and action buttons
+                                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                                    // Video Info (channel, views, description)
+                                    uiState.video?.let { video ->
+                                        item {
+                                            Column(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(16.dp)
+                                            ) {
+                                                Text(
+                                                    text = video.channelName,
+                                                    style = MaterialTheme.typography.titleMedium,
+                                                    color = Color.White.copy(alpha = 0.9f)
+                                                )
+
+                                                video.description?.let { description ->
+                                                    Spacer(modifier = Modifier.height(12.dp))
+
+                                                    Text(
+                                                        text = description,
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = Color.White.copy(alpha = 0.7f),
+                                                        maxLines = 3
+                                                    )
+                                                }
+                                            }
                                         }
-                                        val chooserIntent = android.content.Intent.createChooser(shareIntent, "Share URL")
-                                        context.startActivity(chooserIntent)
                                     }
-                                ) {
-                                    Icon(
-                                        Icons.Default.Share,
-                                        ContentDescriptions.SHARE_VIDEO,
-                                        tint = Color.White
-                                    )
-                                }
-                            }
-                        }
 
-                        // Scrollable content below the player and action buttons
-                        LazyColumn(modifier = Modifier.fillMaxSize()) {
-                            // Video Info (channel, views, description)
-                            uiState.video?.let { video ->
-                                item {
-                                    Column(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(16.dp)
-                                    ) {
-                                        Text(
-                                            text = video.channelName,
-                                            style = MaterialTheme.typography.titleMedium,
-                                            color = Color.White.copy(alpha = 0.9f)
-                                        )
-
-                                        video.description?.let { description ->
-                                            Spacer(modifier = Modifier.height(12.dp))
-
+                                    // Related Videos Section
+                                    if (uiState.relatedVideos.isNotEmpty() || uiState.isLoadingRelated) {
+                                        item {
                                             Text(
-                                                text = description,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = Color.White.copy(alpha = 0.7f),
-                                                maxLines = 3
+                                                text = "More from ${uiState.video?.channelName ?: "this channel"}",
+                                                style = MaterialTheme.typography.titleMedium,
+                                                color = Color.White,
+                                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
                                             )
                                         }
-                                    }
-                                }
-                            }
 
-                            // Related Videos Section
-                            if (uiState.relatedVideos.isNotEmpty() || uiState.isLoadingRelated) {
-                                item {
-                                    Text(
-                                        text = "More from ${uiState.video?.channelName ?: "this channel"}",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = Color.White,
-                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
-                                    )
-                                }
+                                        if (uiState.isLoadingRelated) {
+                                            item {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(32.dp),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    CircularProgressIndicator(color = Color.White)
+                                                }
+                                            }
+                                        } else {
+                                            items(uiState.relatedVideos) { relatedVideo ->
+                                                RelatedVideoItem(
+                                                    video = relatedVideo,
+                                                    onClick = {
+                                                        // Navigate to the related video using queue
+                                                        viewModel.saveProgress()
+                                                        viewModel.playRelatedVideo(relatedVideo)
+                                                    }
+                                                )
+                                            }
+                                        }
 
-                                if (uiState.isLoadingRelated) {
-                                    item {
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(32.dp),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            CircularProgressIndicator(color = Color.White)
+                                        item {
+                                            Spacer(modifier = Modifier.height(80.dp))
                                         }
                                     }
-                                } else {
-                                    items(uiState.relatedVideos) { relatedVideo ->
-                                        RelatedVideoItem(
-                                            video = relatedVideo,
-                                            onClick = {
-                                                // Navigate to the related video using queue
-                                                viewModel.saveProgress()
-                                                viewModel.playRelatedVideo(relatedVideo)
-                                            }
-                                        )
-                                    }
-                                }
-
-                                item {
-                                    Spacer(modifier = Modifier.height(80.dp))
                                 }
                             }
                         }
@@ -1726,6 +1588,42 @@ fun PlaybackSpeedDialog(
                 ) {
                     Text("Cancel", color = Color.White)
                 }
+            }
+        }
+    }
+}
+
+/**
+ * Visual feedback for double-tap seek gesture
+ */
+@Composable
+private fun BoxScope.SeekFeedback(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    alignment: Alignment
+) {
+    Box(
+        modifier = Modifier
+            .align(alignment)
+            .padding(horizontal = 60.dp)
+    ) {
+        Surface(
+            color = Color.Black.copy(alpha = 0.6f),
+            shape = CircleShape,
+            modifier = Modifier.size(80.dp)
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                Icon(
+                    icon,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(32.dp)
+                )
+                Text(label, color = Color.White, style = MaterialTheme.typography.labelSmall)
             }
         }
     }
