@@ -264,9 +264,17 @@ class PlaybackService : MediaLibraryService() {
     }
 
     /**
-     * Callback for handling Android Auto media browsing requests.
+     * Callback for handling Android Auto and Voice Assistant requests.
      */
     private inner class LibrarySessionCallback : MediaLibrarySession.Callback {
+
+        override fun onConnect(
+            session: MediaSession,
+            controller: MediaSession.ControllerInfo
+        ): MediaSession.ConnectionResult {
+            Log.d(TAG, "Controller connecting: ${controller.packageName} (trusted=${controller.isTrusted})")
+            return super.onConnect(session, controller)
+        }
 
         override fun onGetLibraryRoot(
             session: MediaLibrarySession,

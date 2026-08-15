@@ -61,6 +61,8 @@
                 <category android:name="android.intent.category.APP_MUSIC" />
                 <category android:name="android.intent.category.APP_VIDEO" />
                 <category android:name="android.intent.category.DEFAULT" />
+                <!-- Samsung Bixby Specific Category -->
+                <category android:name="com.samsung.android.bixby.category.PLAY_MEDIA" />
             </intent-filter>
 
             <!-- 1. Plain Text Search (Gemini/Assistant generic requests) -->
@@ -101,6 +103,26 @@
                 <data android:scheme="zimbabeats" android:host="play" />
                 <data android:scheme="zimbabeats" android:host="video" />
                 <data android:scheme="zimbabeats" android:host="track" />
+            </intent-filter>
+
+            <!-- YouTube Search Hijacking (Forces ZimbaBeats into the list for Video requests) -->
+            <intent-filter android:priority="1000">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="http" />
+                <data android:scheme="https" />
+                <data android:host="www.youtube.com" />
+                <data android:host="m.youtube.com" />
+                <data android:host="youtube.com" />
+                <data android:pathPrefix="/results" />
+                <data android:pathPrefix="/watch" />
+            </intent-filter>
+
+            <!-- Bixby Specific Intent Action -->
+            <intent-filter>
+                <action android:name="com.samsung.android.bixby.intent.action.PLAY_MEDIA" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
 
             <!-- App Links / Universal Links -->

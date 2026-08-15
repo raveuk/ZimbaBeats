@@ -249,6 +249,18 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+        // Start PlaybackService early to keep MediaSession active for Gemini/Assistants
+        try {
+            val serviceIntent = Intent(this, Class.forName("com.zimbabeats.media.service.PlaybackService"))
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(serviceIntent)
+            } else {
+                startService(serviceIntent)
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "Failed to start PlaybackService early", e)
+        }
+
         // Handle initial intent
         handleIntent(intent)
 
@@ -616,7 +628,8 @@ class MainActivity : ComponentActivity() {
             }
             // Standard Media Search Intent (Bixby / Assistant "Search X on Y")
             "android.intent.action.MEDIA_SEARCH",
-            "android.media.action.MEDIA_PLAY_FROM_SEARCH" -> {
+            "android.media.action.MEDIA_PLAY_FROM_SEARCH",
+            "com.samsung.android.bixby.intent.action.PLAY_MEDIA" -> {
                 val query = intent.getStringExtra(SearchManager.QUERY)
                     ?: intent.getStringExtra("query")
                     ?: intent.getStringExtra("q")
@@ -629,11 +642,23 @@ class MainActivity : ComponentActivity() {
                     )
                 }
             }
-            // Deep Links (Custom Scheme & HTTPS)
+            // Deep Links (Custom Scheme, HTTPS, and YouTube hijacking)
             Intent.ACTION_VIEW -> {
                 data?.let { uri ->
                     android.util.Log.d("MainActivity", "ACTION_VIEW URI: $uri")
                     
+                    // Handle YouTube Search results hijacking
+                    if (uri.host?.contains("youtube.com") == true) {
+                        val query = uri.getQueryParameter("search_query")
+                        if (!query.isNullOrBlank()) {
+                            pendingSearchIntent.value = Screen.Search(
+                                query = query,
+                                autoPlay = true
+                            )
+                            return
+                        }
+                    }
+
                     // 1. Handle specialized content URIs from GlobalSearchProvider
                     // zimbabeats://video/{id} or zimbabeats://track/{id}
                     val pathSegments = uri.pathSegments
