@@ -1,0 +1,30 @@
+# ==========================================
+# Android Studio & Gradle Context Exclusions
+# ==========================================
+
+# Gradle Build Directories (The biggest token bloat)
+.gradle/
+build/
+app/build/
+capture/
+**/build/
+
+# Android Studio & IDE System Metadata
+.idea/
+*.iml
+.cxx/
+local.properties
+.DS_Store
+
+# Compiled Bytecode & Native Artifacts
+*.class
+*.dex
+*.apk
+*.aar
+*.jar
+*.so
+
+# Version Control & Cache Noise
+.git/
+.gitignore
+.gitattributes

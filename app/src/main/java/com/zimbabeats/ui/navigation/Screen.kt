@@ -15,7 +15,11 @@ sealed class Screen {
     data object Home : Screen()
 
     @Serializable
-    data class Search(val mode: String = "VIDEO") : Screen()
+    data class Search(
+        val mode: String = "VIDEO",
+        val query: String? = null,
+        val autoPlay: Boolean = false
+    ) : Screen()
 
     @Serializable
     data object Playlists : Screen()

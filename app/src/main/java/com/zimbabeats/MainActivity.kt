@@ -58,6 +58,8 @@ import com.zimbabeats.ui.screen.UnlockOption
 import com.zimbabeats.ui.theme.ZimbaBeatsTheme
 import com.zimbabeats.ui.util.LocalWindowSizeClass
 import com.zimbabeats.family.ipc.PlaybackVerdict
+import android.app.SearchManager
+import androidx.navigation.NavController
 import kotlinx.coroutines.delay
 import org.koin.android.ext.android.inject
 
@@ -67,6 +69,10 @@ class MainActivity : ComponentActivity() {
     private val cloudPairingClient: CloudPairingClient by inject()
     private val musicRepository: MusicRepository by inject()
     private val remoteConfigManager: RemoteConfigManager by inject()
+
+    // State for handling deep links and system search intents
+    private val pendingSearchIntent = mutableStateOf<Screen.Search?>(null)
+
 
     /**
      * Open the update URL in a browser. Falls back silently if no browser is installed.
@@ -239,6 +245,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // Handle initial intent
+        handleIntent(intent)
+
         setContent {
             // Calculate WindowSizeClass for adaptive layouts
             val windowSizeClass = androidx.compose.material3.windowsizeclass.calculateWindowSizeClass(this)
@@ -485,6 +495,21 @@ class MainActivity : ComponentActivity() {
                                     modifier = Modifier.fillMaxSize()
                                 )
 
+                                // Handle incoming search intents
+                                val pendingSearch by pendingSearchIntent
+                                LaunchedEffect(pendingSearch) {
+                                    pendingSearch?.let { searchArgs ->
+                                        navController.navigate(searchArgs) {
+                                            // Pop up to Home to avoid backstack bloat from voice searches
+                                            popUpTo(Screen.Home) { saveState = true }
+                                            launchSingleTop = true
+                                            restoreState = true
+                                        }
+                                        pendingSearchIntent.value = null
+                                    }
+                                }
+
+
                                 // Dismissible Remote Config update banner. Anchored to
                                 // the top of the content area so it sits above whatever
                                 // screen the user is on without interfering with the
@@ -527,6 +552,50 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                 } // end else (main app content)
+                }
+            }
+        }
+    }
+
+    /**
+     * Handle incoming intents for singleTop launch mode
+     */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleIntent(intent)
+    }
+
+    /**
+     * Parse incoming intents (Deep Links, Search) and update pendingSearchIntent
+     */
+    private fun handleIntent(intent: Intent?) {
+        if (intent == null) return
+
+        when (intent.action) {
+            // Standard Android Search Intent
+            Intent.ACTION_SEARCH -> {
+                val query = intent.getStringExtra(SearchManager.QUERY)
+                if (!query.isNullOrBlank()) {
+                    pendingSearchIntent.value = Screen.Search(
+                        query = query,
+                        autoPlay = true // Voice search usually implies hands-free playback
+                    )
+                }
+            }
+            // Deep Links (Custom Scheme & HTTPS)
+            Intent.ACTION_VIEW -> {
+                intent.data?.let { uri ->
+                    val query = uri.getQueryParameter("q")
+                    val mode = uri.getQueryParameter("mode")?.uppercase() ?: "VIDEO"
+                    val autoPlay = uri.getQueryParameter("autoplay")?.toBoolean() ?: false
+
+                    if (!query.isNullOrBlank()) {
+                        pendingSearchIntent.value = Screen.Search(
+                            query = query,
+                            mode = mode,
+                            autoPlay = autoPlay
+                        )
+                    }
                 }
             }
         }

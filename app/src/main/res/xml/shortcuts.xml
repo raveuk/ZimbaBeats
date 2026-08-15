@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Capability for searching videos -->
+    <capability android:name="actions.intent.GET_THING">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.zimbabeats"
+            android:targetClass="com.zimbabeats.MainActivity"
+            android:data="https://zimbabeats.com/search?q={name}&amp;mode=video&amp;autoplay=true">
+            <parameter
+                android:name="thing.name"
+                android:key="name" />
+        </intent>
+    </capability>
+
+    <!-- Capability for searching music -->
+    <capability android:name="actions.intent.ORDER_MENU_ITEM">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.zimbabeats"
+            android:targetClass="com.zimbabeats.MainActivity"
+            android:data="https://zimbabeats.com/search?q={name}&amp;mode=music&amp;autoplay=true">
+            <parameter
+                android:name="menuItem.name"
+                android:key="name" />
+        </intent>
+    </capability>
+</shortcuts>

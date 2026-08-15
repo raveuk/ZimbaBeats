@@ -99,11 +99,14 @@ fun SearchScreen(
     onArtistClick: (String) -> Unit = {},
     onAlbumClick: (String) -> Unit = {},
     initialSearchMode: SearchMode = SearchMode.VIDEO,
+    initialQuery: String? = null,
+    autoPlay: Boolean = false,
     videoViewModel: SearchViewModel = koinViewModel(),
     musicViewModel: MusicSearchViewModel = koinViewModel(),
     musicPlaybackManager: MusicPlaybackManager = koinInject()
 ) {
     var searchMode by rememberSaveable { mutableStateOf(initialSearchMode) }
+    var hasAutoPlayed by rememberSaveable { mutableStateOf(false) }
 
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -140,8 +143,43 @@ fun SearchScreen(
 
     // Auto-focus search field and show keyboard when screen opens
     LaunchedEffect(Unit) {
-        focusRequester.requestFocus()
-        keyboardController?.show()
+        if (initialQuery.isNullOrBlank()) {
+            focusRequester.requestFocus()
+            keyboardController?.show()
+        }
+    }
+
+    // Handle initial query from voice search / deep link
+    LaunchedEffect(initialQuery) {
+        if (!initialQuery.isNullOrBlank()) {
+            if (searchMode == SearchMode.VIDEO) {
+                videoViewModel.onQueryChange(initialQuery)
+                videoViewModel.performSearch()
+            } else {
+                musicViewModel.onQueryChange(initialQuery)
+                musicViewModel.performSearch()
+            }
+        }
+    }
+
+    // Handle auto-play logic for voice search
+    LaunchedEffect(videoUiState.searchResults, musicUiState.searchResults) {
+        if (autoPlay && !hasAutoPlayed) {
+            if (searchMode == SearchMode.VIDEO && videoUiState.searchResults.isNotEmpty()) {
+                val firstVideo = videoUiState.searchResults.first()
+                onVideoClick(firstVideo.id)
+                hasAutoPlayed = true
+            } else if (searchMode == SearchMode.MUSIC && musicUiState.searchResults.isNotEmpty()) {
+                val allTracks = musicUiState.searchResults
+                    .filterIsInstance<MusicSearchResult.TrackResult>()
+                    .map { it.track }
+                
+                if (allTracks.isNotEmpty()) {
+                    onPlayTracks(allTracks, 0)
+                    hasAutoPlayed = true
+                }
+            }
+        }
     }
 
     Scaffold(

@@ -137,7 +137,9 @@ fun ZimbaBeatsNavHost(
                 onAlbumClick = { albumId ->
                     navController.navigate(Screen.AlbumDetail(albumId))
                 },
-                initialSearchMode = initialMode
+                initialSearchMode = initialMode,
+                initialQuery = args.query,
+                autoPlay = args.autoPlay
             )
         }
 
