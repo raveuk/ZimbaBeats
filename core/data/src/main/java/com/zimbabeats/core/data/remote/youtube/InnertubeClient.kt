@@ -25,12 +25,11 @@ class InnertubeClient(private val httpClient: HttpClient) {
         private const val SUGGEST_URL = "https://suggestqueries-clients6.youtube.com/complete/search"
         private const val INNERTUBE_KEY = "" // Set via local.properties
 
-        // Use ANDROID client for stream URLs (more reliable for direct playback)
-        // Updated to SimpMusic Feb 2026 versions
+        // Updated to modern version (Feb 2026)
         private const val PLAYER_CLIENT_NAME = "ANDROID"
-        private const val PLAYER_CLIENT_VERSION = "19.35.36"
-        private const val ANDROID_SDK_VERSION = 33
-        private const val ANDROID_OS_VERSION = "13"
+        private const val PLAYER_CLIENT_VERSION = "19.45.39"
+        private const val ANDROID_SDK_VERSION = 34
+        private const val ANDROID_OS_VERSION = "14"
 
         // Use WEB client for search (WEB_KIDS no longer works - returns 400 errors)
         // Safety mode is controlled via user.enableSafetyMode in context

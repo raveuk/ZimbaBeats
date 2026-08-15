@@ -426,7 +426,10 @@ class NewPipeStreamExtractor(private val context: Context) {
                 )
             }
 
-            Log.e(TAG, "No video streams found for: $videoId")
+            Log.e(TAG, "No video streams found for: $videoId. Details: " +
+                    "combined=${streamInfo.videoStreams?.size ?: 0}, " +
+                    "videoOnly=${streamInfo.videoOnlyStreams?.size ?: 0}, " +
+                    "audio=${streamInfo.audioStreams?.size ?: 0}")
             return null
 
         } catch (e: Exception) {

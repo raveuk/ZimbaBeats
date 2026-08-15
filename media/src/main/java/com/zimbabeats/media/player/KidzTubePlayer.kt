@@ -14,6 +14,7 @@ import androidx.media3.exoplayer.source.MergingMediaSource
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -49,6 +50,9 @@ class ZimbaBeatsPlayer(private val context: Context) {
 
     private val _playerState = MutableStateFlow(PlayerState())
     val playerState: StateFlow<PlayerState> = _playerState.asStateFlow()
+
+    private val playerScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+    private var positionPollingJob: Job? = null
 
     // Audio normalization using LoudnessEnhancer
     private var loudnessEnhancer: LoudnessEnhancer? = null
@@ -89,8 +93,13 @@ class ZimbaBeatsPlayer(private val context: Context) {
             }
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
-                Log.d(TAG, "isPlaying changed: $isPlaying")
+                Log.d(TAG, "onIsPlayingChanged: isPlaying=$isPlaying")
                 _playerState.value = _playerState.value.copy(isPlaying = isPlaying)
+                if (isPlaying) {
+                    startPositionPolling()
+                } else {
+                    stopPositionPolling()
+                }
             }
 
             override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
@@ -100,6 +109,16 @@ class ZimbaBeatsPlayer(private val context: Context) {
             override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
                 Log.e(TAG, "Player error: ${error.errorCodeName} - ${error.message}")
                 _playerState.value = _playerState.value.copy(isPlaying = false)
+            }
+
+            override fun onPositionDiscontinuity(
+                oldPosition: Player.PositionInfo,
+                newPosition: Player.PositionInfo,
+                reason: Int
+            ) {
+                val pos = newPosition.positionMs.coerceAtLeast(0)
+                Log.v(TAG, "Position discontinuity (reason=$reason), new pos: ${pos}ms")
+                _playerState.value = _playerState.value.copy(currentPosition = pos)
             }
         })
     }
@@ -228,19 +247,52 @@ class ZimbaBeatsPlayer(private val context: Context) {
 
     fun seekTo(positionMs: Long) {
         exoPlayer.seekTo(positionMs)
+        // Update state immediately so UI doesn't snap back to old position
+        _playerState.value = _playerState.value.copy(currentPosition = positionMs)
     }
 
     fun seekForward() {
         exoPlayer.seekForward()
+        _playerState.value = _playerState.value.copy(currentPosition = exoPlayer.currentPosition)
     }
 
     fun seekBackward() {
         exoPlayer.seekBack()
+        _playerState.value = _playerState.value.copy(currentPosition = exoPlayer.currentPosition)
     }
 
     fun getCurrentPosition(): Long = exoPlayer.currentPosition
 
     fun getDuration(): Long = exoPlayer.duration
+
+    private fun startPositionPolling() {
+        Log.d(TAG, "Starting position polling")
+        positionPollingJob?.cancel()
+        positionPollingJob = playerScope.launch {
+            while (isActive) {
+                val currentPos = exoPlayer.currentPosition.coerceAtLeast(0)
+                val duration = exoPlayer.duration.coerceAtLeast(0)
+                if (_playerState.value.currentPosition != currentPos || _playerState.value.duration != duration) {
+                    _playerState.value = _playerState.value.copy(
+                        currentPosition = currentPos,
+                        duration = duration
+                    )
+                    // Log only every few seconds to avoid spamming
+                    if (currentPos % 5000 < 200) {
+                        Log.v(TAG, "Polling position: $currentPos / $duration")
+                    }
+                }
+                delay(200) // Faster polling for smoother UI (200ms)
+            }
+        }
+    }
+
+    private fun stopPositionPolling() {
+        positionPollingJob?.cancel()
+        positionPollingJob = null
+        // Final update to capture exact stop position
+        _playerState.value = _playerState.value.copy(currentPosition = exoPlayer.currentPosition)
+    }
 
     /**
      * Set playback speed
@@ -321,6 +373,7 @@ class ZimbaBeatsPlayer(private val context: Context) {
         } catch (e: Exception) {
             Log.e(TAG, "Error releasing LoudnessEnhancer", e)
         }
+        playerScope.cancel()
         exoPlayer.release()
     }
 }

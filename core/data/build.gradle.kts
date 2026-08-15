@@ -40,7 +40,7 @@ android {
 
 dependencies {
     // Core Library Desugaring with NIO - enables Java 8+ APIs including Charset-based URLDecoder on older Android
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs_nio:2.1.4")
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs_nio:2.1.5")
 
     // Module dependencies
     implementation(project(":core:domain"))
