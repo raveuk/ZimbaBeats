@@ -6,13 +6,15 @@
             android:action="android.intent.action.VIEW"
             android:targetPackage="com.zimbabeats"
             android:targetClass="com.zimbabeats.MainActivity">
-            <url-template android:value="zimbabeats://search?q={query}" />
+            <url-template android:value="zimbabeats://search?query={q}" />
             <parameter
                 android:name="thing.name"
-                android:key="query" />
+                android:key="q" />
         </intent>
         <intent
             android:action="android.intent.action.VIEW"
+            android:targetPackage="com.zimbabeats"
+            android:targetClass="com.zimbabeats.MainActivity"
             android:data="zimbabeats://search" />
     </capability>
 
@@ -22,11 +24,16 @@
             android:action="android.intent.action.VIEW"
             android:targetPackage="com.zimbabeats"
             android:targetClass="com.zimbabeats.MainActivity">
-            <url-template android:value="zimbabeats://play?q={query}&amp;autoplay=true" />
+            <url-template android:value="zimbabeats://play?query={q}&amp;autoplay=true" />
             <parameter
                 android:name="media.name"
-                android:key="query" />
+                android:key="q" />
         </intent>
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.zimbabeats"
+            android:targetClass="com.zimbabeats.MainActivity"
+            android:data="zimbabeats://play" />
     </capability>
 
     <shortcut
@@ -37,6 +44,8 @@
         <capability-binding android:key="actions.intent.PLAY_MEDIA_FROM_SEARCH" />
         <intent
             android:action="android.intent.action.VIEW"
+            android:targetPackage="com.zimbabeats"
+            android:targetClass="com.zimbabeats.MainActivity"
             android:data="zimbabeats://play" />
     </shortcut>
 </shortcuts>

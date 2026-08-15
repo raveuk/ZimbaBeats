@@ -49,6 +49,9 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+                <!-- Signal media capability to system assistants -->
+                <category android:name="android.intent.category.APP_MUSIC" />
+                <category android:name="android.intent.category.APP_VIDEO" />
             </intent-filter>
 
             <intent-filter>
@@ -57,14 +60,22 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
 
+            <!-- 1. Plain Text Search (Gemini/Assistant generic requests) -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEARCH" />
+                <action android:name="android.intent.action.MEDIA_SEARCH" />
+                <action android:name="android.media.action.MEDIA_PLAY_FROM_SEARCH" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.VOICE" />
+            </intent-filter>
+
+            <!-- 2. MIME-Specific Search (Bixby/System media providers) -->
             <intent-filter>
                 <action android:name="android.intent.action.SEARCH" />
                 <action android:name="android.intent.action.MEDIA_SEARCH" />
                 <action android:name="android.media.action.MEDIA_PLAY_FROM_SEARCH" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <category android:name="android.intent.category.VOICE" />
-                <!-- Help Bixby/Assistants identify this as a media app -->
                 <data android:mimeType="video/*" />
                 <data android:mimeType="audio/*" />
                 <data android:mimeType="vnd.android.cursor.item/*" />
@@ -91,6 +102,14 @@
             <meta-data android:name="android.app.searchable" android:resource="@xml/searchable" />
             <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity>
+
+        <!-- Broadcast receiver for media buttons (Headsets, Assistants) -->
+        <receiver android:name="androidx.media3.session.MediaButtonReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MEDIA_BUTTON" />
+            </intent-filter>
+        </receiver>
 
 
         <!-- Background Playback Service - Android Auto enabled -->

@@ -590,7 +590,12 @@ class MainActivity : ComponentActivity() {
         when (action) {
             // Standard Android Search Intent (Generic)
             Intent.ACTION_SEARCH -> {
-                val query = intent.getStringExtra(SearchManager.QUERY)
+                // Some assistants use custom keys, check common ones
+                val query = intent.getStringExtra(SearchManager.QUERY) 
+                    ?: intent.getStringExtra("query") 
+                    ?: intent.getStringExtra("q")
+                
+                android.util.Log.d("MainActivity", "ACTION_SEARCH received: query=$query")
                 if (!query.isNullOrBlank()) {
                     pendingSearchIntent.value = Screen.Search(
                         query = query,
@@ -602,6 +607,10 @@ class MainActivity : ComponentActivity() {
             "android.intent.action.MEDIA_SEARCH",
             "android.media.action.MEDIA_PLAY_FROM_SEARCH" -> {
                 val query = intent.getStringExtra(SearchManager.QUERY)
+                    ?: intent.getStringExtra("query")
+                    ?: intent.getStringExtra("q")
+                    
+                android.util.Log.d("MainActivity", "$action received: query=$query")
                 if (!query.isNullOrBlank()) {
                     pendingSearchIntent.value = Screen.Search(
                         query = query,
@@ -614,8 +623,11 @@ class MainActivity : ComponentActivity() {
                 data?.let { uri ->
                     android.util.Log.d("MainActivity", "ACTION_VIEW URI: $uri")
                     // Handle both custom zimbabeats:// and https:// links
-                    // Support both /search and /play paths for customized routing
-                    val query = uri.getQueryParameter("q") ?: uri.getQueryParameter("query")
+                    // Support multiple query parameter names used by different assistants
+                    val query = uri.getQueryParameter("q") 
+                        ?: uri.getQueryParameter("query")
+                        ?: uri.getQueryParameter("search_query")
+                    
                     val mode = uri.getQueryParameter("mode")?.uppercase() ?: "VIDEO"
                     val autoPlay = uri.getQueryParameter("autoplay")?.toBoolean() ?: (uri.host == "play")
 
