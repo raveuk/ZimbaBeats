@@ -73,6 +73,8 @@ class MainActivity : ComponentActivity() {
 
     // State for handling deep links and system search intents
     private val pendingSearchIntent = mutableStateOf<Screen.Search?>(null)
+    private val pendingDirectPlayback = mutableStateOf<Screen?>(null)
+
 
 
     /**
@@ -496,6 +498,15 @@ class MainActivity : ComponentActivity() {
                                     modifier = Modifier.fillMaxSize()
                                 )
 
+                                // Handle direct playback (e.g. from Global Search Provider)
+                                val directPlayback by pendingDirectPlayback
+                                LaunchedEffect(directPlayback) {
+                                    directPlayback?.let { screen ->
+                                        navController.navigate(screen)
+                                        pendingDirectPlayback.value = null
+                                    }
+                                }
+
                                 // Handle incoming search intents
                                 val pendingSearch by pendingSearchIntent
                                 LaunchedEffect(pendingSearch) {
@@ -622,7 +633,32 @@ class MainActivity : ComponentActivity() {
             Intent.ACTION_VIEW -> {
                 data?.let { uri ->
                     android.util.Log.d("MainActivity", "ACTION_VIEW URI: $uri")
-                    // Handle both custom zimbabeats:// and https:// links
+                    
+                    // 1. Handle specialized content URIs from GlobalSearchProvider
+                    // zimbabeats://video/{id} or zimbabeats://track/{id}
+                    val pathSegments = uri.pathSegments
+                    if (uri.scheme == "zimbabeats") {
+                        when (uri.host) {
+                            "video" -> {
+                                val videoId = pathSegments.firstOrNull() ?: uri.lastPathSegment
+                                if (videoId != null) {
+                                    // Navigate to video player immediately
+                                    pendingDirectPlayback.value = Screen.VideoPlayer(videoId)
+                                    return
+                                }
+                            }
+                            "track" -> {
+                                val trackId = pathSegments.firstOrNull() ?: uri.lastPathSegment
+                                if (trackId != null) {
+                                    // Navigate to music player immediately
+                                    pendingDirectPlayback.value = Screen.MusicPlayer(trackId)
+                                    return
+                                }
+                            }
+                        }
+                    }
+
+                    // 2. Handle both custom zimbabeats:// and https:// links
                     // Support multiple query parameter names used by different assistants
                     val query = uri.getQueryParameter("q") 
                         ?: uri.getQueryParameter("query")

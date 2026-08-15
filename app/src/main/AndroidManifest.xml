@@ -168,6 +168,13 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
+        <!-- Global Search Provider -->
+        <provider
+            android:name="com.zimbabeats.search.GlobalSearchProvider"
+            android:authorities="com.zimbabeats.search"
+            android:exported="true"
+            android:syncable="false" />
     </application>
 
 </manifest>

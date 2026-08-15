@@ -3,7 +3,7 @@ package com.zimbabeats.media.service
 import android.app.PendingIntent
 import android.content.Intent
 import android.net.Uri
-import android.os.Bundle
+import com.zimbabeats.core.domain.repository.SearchRepository
 import android.util.Log
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
@@ -57,6 +57,7 @@ class PlaybackService : MediaLibraryService() {
     private lateinit var notificationManager: PlaybackNotificationManager
     private val autoContentProvider: AutoContentProvider by inject()
     private val musicRepository: MusicRepository by inject()
+    private val searchRepository: SearchRepository by inject()
     private val serviceScope = CoroutineScope(Dispatchers.IO)
 
     override fun onCreate() {
@@ -289,6 +290,77 @@ class PlaybackService : MediaLibraryService() {
             return Futures.immediateFuture(LibraryResult.ofItem(rootItem, params))
         }
 
+        override fun onSearch(
+            session: MediaLibrarySession,
+            browser: MediaSession.ControllerInfo,
+            query: String,
+            params: LibraryParams?
+        ): ListenableFuture<LibraryResult<Void>> {
+            Log.d(TAG, "onSearch called with query: $query")
+            // Notify the browser that we have search results. 
+            // In a real app we might want to perform the search here to get a count,
+            // but for simplicity we'll just say we found something.
+            session.notifySearchResultChanged(browser, query, 5, params)
+            return Futures.immediateFuture(LibraryResult.ofVoid(params))
+        }
+
+        override fun onGetSearchResult(
+            session: MediaLibrarySession,
+            browser: MediaSession.ControllerInfo,
+            query: String,
+            page: Int,
+            pageSize: Int,
+            params: LibraryParams?
+        ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> {
+            Log.d(TAG, "onGetSearchResult called with query: $query, page: $page")
+            return serviceScope.future {
+                try {
+                    val videoResult = searchRepository.searchVideos(query, maxResults = pageSize)
+                    val musicResult = musicRepository.searchMusic(query)
+
+                    val items = mutableListOf<MediaItem>()
+                    
+                    if (videoResult is Resource.Success) {
+                        items.addAll(videoResult.data.videos.map { video ->
+                            MediaItem.Builder()
+                                .setMediaId(video.id)
+                                .setMediaMetadata(MediaMetadata.Builder()
+                                    .setTitle(video.title)
+                                    .setArtist(video.channelName)
+                                    .setArtworkUri(Uri.parse(video.thumbnailUrl))
+                                    .setIsBrowsable(false)
+                                    .setIsPlayable(true)
+                                    .build())
+                                .build()
+                        })
+                    }
+                    
+                    if (musicResult is Resource.Success) {
+                        items.addAll(musicResult.data.filterIsInstance<com.zimbabeats.core.domain.model.music.MusicSearchResult.TrackResult>()
+                            .map { it.track }
+                            .map { track ->
+                                MediaItem.Builder()
+                                    .setMediaId(track.id)
+                                    .setMediaMetadata(MediaMetadata.Builder()
+                                        .setTitle(track.title)
+                                        .setArtist(track.artistName)
+                                        .setArtworkUri(Uri.parse(track.thumbnailUrl))
+                                        .setIsBrowsable(false)
+                                        .setIsPlayable(true)
+                                        .build())
+                                    .build()
+                            })
+                    }
+
+                    LibraryResult.ofItemList(ImmutableList.copyOf(items), params)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error performing search in service", e)
+                    LibraryResult.ofItemList(ImmutableList.of(), params)
+                }
+            }
+        }
+
+
         override fun onGetChildren(
             session: MediaLibrarySession,
             browser: MediaSession.ControllerInfo,
@@ -360,6 +432,23 @@ class PlaybackService : MediaLibraryService() {
         ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
             val picked = mediaItems.getOrNull(startIndex.coerceAtLeast(0))
                 ?: mediaItems.firstOrNull()
+                
+            // Check for voice search query in RequestMetadata
+            val searchQuery = picked?.requestMetadata?.searchQuery
+            if (!searchQuery.isNullOrBlank()) {
+                Log.d(TAG, "onSetMediaItems: Voice search detected: $searchQuery")
+                // Forward to MainActivity for UI playback handling
+                val intent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
+                    action = "android.media.action.MEDIA_PLAY_FROM_SEARCH"
+                    putExtra(android.app.SearchManager.QUERY, searchQuery)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                }
+                if (intent != null) {
+                    startActivity(intent)
+                }
+                return Futures.immediateFailedFuture(UnsupportedOperationException("Forwarded to Activity"))
+            }
+
             val parentId = picked?.mediaMetadata?.extras?.getString(
                 AutoContentProvider.EXTRA_PARENT_ID
             )
