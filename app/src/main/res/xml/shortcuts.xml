@@ -47,6 +47,19 @@
             android:data="zimbabeats://play" />
     </capability>
 
+    <!-- OPEN_APP_FEATURE: For "Open search on ZimbaBeats" or "Open library" -->
+    <capability android:name="actions.intent.OPEN_APP_FEATURE">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.zimbabeats"
+            android:targetClass="com.zimbabeats.MainActivity">
+            <url-template android:value="zimbabeats://{feature}" />
+            <parameter
+                android:name="feature"
+                android:key="feature" />
+        </intent>
+    </capability>
+
     <shortcut
         android:shortcutId="voice_play"
         android:enabled="true"

@@ -29,7 +29,9 @@ class GlobalSearchProvider : ContentProvider(), KoinComponent {
             SearchManager.SUGGEST_COLUMN_INTENT_DATA_ID,
             SearchManager.SUGGEST_COLUMN_ICON_1,
             SearchManager.SUGGEST_COLUMN_INTENT_ACTION,
-            "suggest_intent_data" // Samsung likes this
+            SearchManager.SUGGEST_COLUMN_CONTENT_TYPE,
+            "suggest_intent_data", // Samsung/Legacy
+            "suggest_intent_extra_data" // Samsung
         )
     }
 
@@ -65,7 +67,9 @@ class GlobalSearchProvider : ContentProvider(), KoinComponent {
                         "zimbabeats://video/${video.id}",
                         video.thumbnailUrl,
                         "android.intent.action.VIEW",
-                        "zimbabeats://video/${video.id}"
+                        "video/*",
+                        "zimbabeats://video/${video.id}",
+                        video.id
                     ))
                 }
             }
@@ -84,7 +88,9 @@ class GlobalSearchProvider : ContentProvider(), KoinComponent {
                             "zimbabeats://track/${track.id}",
                             track.thumbnailUrl,
                             "android.intent.action.VIEW",
-                            "zimbabeats://track/${track.id}"
+                            "audio/*",
+                            "zimbabeats://track/${track.id}",
+                            track.id
                         ))
                     }
             }

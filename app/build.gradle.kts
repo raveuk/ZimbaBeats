@@ -37,8 +37,8 @@ android {
         applicationId = "com.zimbabeats"
         minSdk = 24
         targetSdk = 37
-        versionCode = 90
-        versionName = "1.0.90"
+        versionCode = 91
+        versionName = "1.0.91"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

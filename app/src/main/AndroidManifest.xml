@@ -64,16 +64,17 @@
             </intent-filter>
 
             <!-- 1. Plain Text Search (Gemini/Assistant generic requests) -->
-            <intent-filter>
+            <intent-filter android:priority="1000">
                 <action android:name="android.intent.action.SEARCH" />
                 <action android:name="android.intent.action.MEDIA_SEARCH" />
                 <action android:name="android.media.action.MEDIA_PLAY_FROM_SEARCH" />
+                <action android:name="com.google.android.gms.actions.SEARCH_ACTION" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.VOICE" />
             </intent-filter>
 
             <!-- 2. MIME-Specific Search (Bixby/System media providers) -->
-            <intent-filter>
+            <intent-filter android:priority="1000">
                 <action android:name="android.intent.action.SEARCH" />
                 <action android:name="android.intent.action.MEDIA_SEARCH" />
                 <action android:name="android.media.action.MEDIA_PLAY_FROM_SEARCH" />
@@ -82,6 +83,7 @@
                 <data android:mimeType="video/*" />
                 <data android:mimeType="audio/*" />
                 <data android:mimeType="vnd.android.cursor.item/*" />
+                <data android:mimeType="vnd.android.cursor.dir/*" />
             </intent-filter>
 
             <intent-filter>

@@ -437,16 +437,75 @@ class PlaybackService : MediaLibraryService() {
             val searchQuery = picked?.requestMetadata?.searchQuery
             if (!searchQuery.isNullOrBlank()) {
                 Log.d(TAG, "onSetMediaItems: Voice search detected: $searchQuery")
-                // Forward to MainActivity for UI playback handling
-                val intent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
-                    action = "android.media.action.MEDIA_PLAY_FROM_SEARCH"
-                    putExtra(android.app.SearchManager.QUERY, searchQuery)
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                
+                return serviceScope.future {
+                    try {
+                        val videoResult = searchRepository.searchVideos(searchQuery, maxResults = 5)
+                        val musicResult = musicRepository.searchMusic(searchQuery)
+                        
+                        val items = mutableListOf<MediaItem>()
+                        
+                        // Prioritize music for "Play X" commands
+                        if (musicResult is Resource.Success) {
+                            items.addAll(musicResult.data.filterIsInstance<com.zimbabeats.core.domain.model.music.MusicSearchResult.TrackResult>()
+                                .map { it.track }
+                                .map { track ->
+                                    MediaItem.Builder()
+                                        .setMediaId(track.id)
+                                        .setMediaMetadata(MediaMetadata.Builder()
+                                            .setTitle(track.title)
+                                            .setArtist(track.artistName)
+                                            .setArtworkUri(Uri.parse(track.thumbnailUrl))
+                                            .setIsBrowsable(false)
+                                            .setIsPlayable(true)
+                                            .build())
+                                        .setUri(Uri.parse("${AutoContentProvider.AUTO_URI_SCHEME}://track/${track.id}"))
+                                        .build()
+                                })
+                        }
+                        
+                        if (videoResult is Resource.Success && items.isEmpty()) {
+                            items.addAll(videoResult.data.videos.map { video ->
+                                MediaItem.Builder()
+                                    .setMediaId(video.id)
+                                    .setMediaMetadata(MediaMetadata.Builder()
+                                        .setTitle(video.title)
+                                        .setArtist(video.channelName)
+                                        .setArtworkUri(Uri.parse(video.thumbnailUrl))
+                                        .setIsBrowsable(false)
+                                        .setIsPlayable(true)
+                                        .build())
+                                    .setUri(Uri.parse("${AutoContentProvider.AUTO_URI_SCHEME}://track/${video.id}"))
+                                    .build()
+                            })
+                        }
+                        
+                        if (items.isNotEmpty()) {
+                            Log.d(TAG, "Voice search found ${items.size} results. Starting playback.")
+                            MediaSession.MediaItemsWithStartPosition(
+                                ImmutableList.copyOf(items),
+                                0,
+                                0L
+                            )
+                        } else {
+                            Log.w(TAG, "Voice search found no results for: $searchQuery")
+                            // Fallback to forwarding to Activity if nothing found, 
+                            // though we should ideally return something to the Assistant.
+                            MediaSession.MediaItemsWithStartPosition(
+                                ImmutableList.of(),
+                                0,
+                                0L
+                            )
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error handling voice search in service", e)
+                        MediaSession.MediaItemsWithStartPosition(
+                            ImmutableList.of(),
+                            0,
+                            0L
+                        )
+                    }
                 }
-                if (intent != null) {
-                    startActivity(intent)
-                }
-                return Futures.immediateFailedFuture(UnsupportedOperationException("Forwarded to Activity"))
             }
 
             val parentId = picked?.mediaMetadata?.extras?.getString(
