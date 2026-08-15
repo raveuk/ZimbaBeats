@@ -3,6 +3,7 @@ package com.zimbabeats.media.service
 import android.app.PendingIntent
 import android.content.Intent
 import android.net.Uri
+import android.os.Bundle
 import android.util.Log
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
@@ -19,6 +20,7 @@ import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.LibraryResult
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
+import androidx.media3.session.SessionError
 import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
@@ -337,7 +339,7 @@ class PlaybackService : MediaLibraryService() {
             // A concrete item isn't required for browse + select to work on Auto
             // (onGetChildren already returned full items). Return NOT_SUPPORTED so
             // Auto falls back to the cached browse entry rather than retrying.
-            return Futures.immediateFuture(LibraryResult.ofError(LibraryResult.RESULT_ERROR_NOT_SUPPORTED))
+            return Futures.immediateFuture(LibraryResult.ofError(SessionError.ERROR_NOT_SUPPORTED))
         }
 
         /**
@@ -441,7 +443,7 @@ class PlaybackService : MediaLibraryService() {
                     else -> item.buildUpon()
                         .setUri(Uri.parse("${AutoContentProvider.AUTO_URI_SCHEME}://track/${item.mediaId}"))
                         .build()
-                }
             }
+        }
     }
 }

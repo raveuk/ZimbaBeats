@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Capability for searching content -->
+    <!-- Capability for searching content (Standard) -->
     <capability android:name="actions.intent.GET_THING">
         <intent
             android:action="android.intent.action.VIEW"
@@ -11,7 +11,7 @@
                 android:name="thing.name"
                 android:key="query" />
         </intent>
-        <!-- Fallback intent if query is missing -->
+        <!-- Fallback intent -->
         <intent
             android:action="android.intent.action.VIEW"
             android:targetPackage="com.zimbabeats"
@@ -19,7 +19,7 @@
             android:data="https://zimbabeats.com/search" />
     </capability>
 
-    <!-- Capability for playing media from search (Best for "Play X on ZimbaBeats") -->
+    <!-- Capability for playing media (e.g. "Play CoComelon on ZimbaBeats") -->
     <capability android:name="actions.intent.PLAY_MEDIA_FROM_SEARCH">
         <intent
             android:action="android.intent.action.VIEW"

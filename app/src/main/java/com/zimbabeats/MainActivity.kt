@@ -571,21 +571,23 @@ class MainActivity : ComponentActivity() {
      */
     private fun handleIntent(intent: Intent?) {
         if (intent == null) return
-        android.util.Log.d("MainActivity", "Handling intent: action=${intent.action}, data=${intent.data}")
+        val action = intent.action
+        val data = intent.data
+        android.util.Log.d("MainActivity", "Handling intent: action=$action, data=$data")
 
-        when (intent.action) {
+        when (action) {
             // Standard Android Search Intent (Generic)
-            Intent.ACTION_SEARCH -> {
+            Intent.ACTION_SEARCH, "android.intent.action.MEDIA_SEARCH" -> {
                 val query = intent.getStringExtra(SearchManager.QUERY)
-                android.util.Log.d("MainActivity", "ACTION_SEARCH received: query=$query")
+                android.util.Log.d("MainActivity", "$action received: query=$query")
                 if (!query.isNullOrBlank()) {
                     pendingSearchIntent.value = Screen.Search(
                         query = query,
-                        autoPlay = false // Standard search usually just shows results
+                        autoPlay = action == "android.intent.action.MEDIA_SEARCH"
                     )
                 }
             }
-            // Standard Media Search Intent (Google Assistant / Bixby "Play X")
+            // Standard Media Play Search Intent (Google Assistant / Bixby "Play X")
             "android.media.action.MEDIA_PLAY_FROM_SEARCH" -> {
                 val query = intent.getStringExtra(SearchManager.QUERY)
                 android.util.Log.d("MainActivity", "MEDIA_PLAY_FROM_SEARCH received: query=$query")
@@ -598,7 +600,7 @@ class MainActivity : ComponentActivity() {
             }
             // Deep Links (Custom Scheme & HTTPS)
             Intent.ACTION_VIEW -> {
-                intent.data?.let { uri ->
+                data?.let { uri ->
                     val query = uri.getQueryParameter("q")
                     val mode = uri.getQueryParameter("mode")?.uppercase() ?: "VIDEO"
                     val autoPlay = uri.getQueryParameter("autoplay")?.toBoolean() ?: false
