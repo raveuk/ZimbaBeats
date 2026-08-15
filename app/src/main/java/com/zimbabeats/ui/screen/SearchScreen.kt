@@ -1,6 +1,10 @@
 ﻿package com.zimbabeats.ui.screen
 
+import android.content.Intent
+import android.speech.RecognizerIntent
 import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -32,6 +36,7 @@ import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
@@ -57,6 +62,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -105,8 +111,28 @@ fun SearchScreen(
     musicViewModel: MusicSearchViewModel = koinViewModel(),
     musicPlaybackManager: MusicPlaybackManager = koinInject()
 ) {
+    val context = LocalContext.current
     var searchMode by rememberSaveable { mutableStateOf(initialSearchMode) }
     var hasAutoPlayed by rememberSaveable { mutableStateOf(false) }
+
+    // Voice search launcher
+    val speechLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            val spokenText = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()
+            if (!spokenText.isNullOrBlank()) {
+                if (searchMode == SearchMode.VIDEO) {
+                    videoViewModel.onQueryChange(spokenText)
+                    videoViewModel.performSearch()
+                } else {
+                    musicViewModel.onQueryChange(spokenText)
+                    musicViewModel.performSearch()
+                }
+            }
+        }
+    }
+
 
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -223,18 +249,39 @@ fun SearchScreen(
                             }
                         ),
                         trailingIcon = {
-                            if (query.isNotEmpty()) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (query.isNotEmpty()) {
+                                    IconButton(onClick = {
+                                        if (searchMode == SearchMode.VIDEO) {
+                                            videoViewModel.clearSearch()
+                                        } else {
+                                            musicViewModel.clearSearch()
+                                        }
+                                    }) {
+                                        Icon(
+                                            Icons.Default.Clear,
+                                            "Clear",
+                                            tint = MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
+                                }
+
+                                // Voice search button
                                 IconButton(onClick = {
-                                    if (searchMode == SearchMode.VIDEO) {
-                                        videoViewModel.clearSearch()
-                                    } else {
-                                        musicViewModel.clearSearch()
+                                    try {
+                                        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                                            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                                            putExtra(RecognizerIntent.EXTRA_PROMPT, if (searchMode == SearchMode.VIDEO) "What do you want to watch?" else "What do you want to listen to?")
+                                        }
+                                        speechLauncher.launch(intent)
+                                    } catch (e: Exception) {
+                                        Log.e("SearchScreen", "Speech recognition not available", e)
                                     }
                                 }) {
                                     Icon(
-                                        Icons.Default.Clear,
-                                        "Clear",
-                                        tint = MaterialTheme.colorScheme.onSurface
+                                        Icons.Default.Mic,
+                                        "Voice Search",
+                                        tint = if (query.isEmpty()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             }

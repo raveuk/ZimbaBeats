@@ -516,7 +516,7 @@ fun VideoPlayerScreen(
                                 .fillMaxWidth()
                                 .align(Alignment.BottomCenter)
                                 .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f))))
-                                .padding(horizontal = 48.dp, vertical = 12.dp) // Increased padding for landscape
+                                .padding(horizontal = 64.dp, vertical = 16.dp) // Even more padding for landscape safe-zone
                         ) {
                             Slider(
                                 value = scrapingProgress ?: progress.coerceIn(0f, 1f),

@@ -10,6 +10,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <!-- For in-app APK download and install -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
@@ -51,6 +52,12 @@
             </intent-filter>
 
             <intent-filter>
+                <action android:name="android.intent.action.VOICE_COMMAND" />
+                <action android:name="android.intent.action.ASSIST" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
+            <intent-filter>
                 <action android:name="android.intent.action.SEARCH" />
                 <action android:name="android.intent.action.MEDIA_SEARCH" />
                 <action android:name="android.media.action.MEDIA_PLAY_FROM_SEARCH" />
@@ -82,11 +89,8 @@
             </intent-filter>
 
             <meta-data android:name="android.app.searchable" android:resource="@xml/searchable" />
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity>
-
-        <meta-data
-            android:name="android.app.shortcuts"
-            android:resource="@xml/shortcuts" />
 
 
         <!-- Background Playback Service - Android Auto enabled -->
