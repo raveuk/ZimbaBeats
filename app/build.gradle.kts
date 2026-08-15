@@ -9,6 +9,7 @@ plugins {
     alias(libs.plugins.firebase.crashlytics)
 }
 
+
 // Load keystore properties
 val keystorePropertiesFile = rootProject.file("keystore.properties")
 val keystoreProperties = Properties()
@@ -18,7 +19,7 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "com.zimbabeats"
-    compileSdk = 36
+    compileSdk = 37
 
     // Signing configuration - use same key for debug and release for seamless updates
     signingConfigs {
@@ -35,9 +36,9 @@ android {
     defaultConfig {
         applicationId = "com.zimbabeats"
         minSdk = 24
-        targetSdk = 36
-        versionCode = 88
-        versionName = "1.0.88"
+        targetSdk = 37
+        versionCode = 90
+        versionName = "1.0.90"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

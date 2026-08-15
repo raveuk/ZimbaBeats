@@ -28,7 +28,8 @@ class GlobalSearchProvider : ContentProvider(), KoinComponent {
             SearchManager.SUGGEST_COLUMN_TEXT_2,
             SearchManager.SUGGEST_COLUMN_INTENT_DATA_ID,
             SearchManager.SUGGEST_COLUMN_ICON_1,
-            SearchManager.SUGGEST_COLUMN_INTENT_ACTION
+            SearchManager.SUGGEST_COLUMN_INTENT_ACTION,
+            "suggest_intent_data" // Samsung likes this
         )
     }
 
@@ -44,10 +45,11 @@ class GlobalSearchProvider : ContentProvider(), KoinComponent {
         selectionArgs: Array<out String>?,
         sortOrder: String?
     ): Cursor? {
-        val query = uri.lastPathSegment?.lowercase() ?: return null
-        if (query == SearchManager.SUGGEST_URI_PATH_QUERY) return null
+        val query = uri.lastPathSegment?.lowercase()?.takeIf { it != SearchManager.SUGGEST_URI_PATH_QUERY }
+            ?: uri.getQueryParameter("query")
+            ?: return null
 
-        Log.d(TAG, "Global search query: $query")
+        Log.d(TAG, "Global search query: $query (URI: $uri)")
 
         val cursor = MatrixCursor(COLUMNS)
 
@@ -62,7 +64,8 @@ class GlobalSearchProvider : ContentProvider(), KoinComponent {
                         video.channelName,
                         "zimbabeats://video/${video.id}",
                         video.thumbnailUrl,
-                        "android.intent.action.VIEW"
+                        "android.intent.action.VIEW",
+                        "zimbabeats://video/${video.id}"
                     ))
                 }
             }
@@ -80,7 +83,8 @@ class GlobalSearchProvider : ContentProvider(), KoinComponent {
                             track.artistName,
                             "zimbabeats://track/${track.id}",
                             track.thumbnailUrl,
-                            "android.intent.action.VIEW"
+                            "android.intent.action.VIEW",
+                            "zimbabeats://track/${track.id}"
                         ))
                     }
             }

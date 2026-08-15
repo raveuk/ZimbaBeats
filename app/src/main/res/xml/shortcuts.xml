@@ -20,11 +20,22 @@
 
     <!-- PLAY_MEDIA_FROM_SEARCH: Handled for "Play X on ZimbaBeats" -->
     <capability android:name="actions.intent.PLAY_MEDIA_FROM_SEARCH">
+        <!-- 1. Preferred: Custom Scheme (Direct App Hook) -->
         <intent
             android:action="android.intent.action.VIEW"
             android:targetPackage="com.zimbabeats"
             android:targetClass="com.zimbabeats.MainActivity">
             <url-template android:value="zimbabeats://play?query={q}&amp;autoplay=true" />
+            <parameter
+                android:name="media.name"
+                android:key="q" />
+        </intent>
+        <!-- 2. Fallback: App Link (System Standard) -->
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.zimbabeats"
+            android:targetClass="com.zimbabeats.MainActivity">
+            <url-template android:value="https://zimbabeats.com/search?q={q}&amp;autoplay=true" />
             <parameter
                 android:name="media.name"
                 android:key="q" />

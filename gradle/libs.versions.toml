@@ -4,6 +4,11 @@ kotlin = "2.1.0"
 ksp = "2.1.0-1.0.29"
 googleServices = "4.4.2"
 
+
+
+
+
+
 # Firebase
 firebaseBom = "32.7.0"
 playServicesAuth = "21.3.0"
@@ -146,6 +151,10 @@ credentials = { group = "androidx.credentials", name = "credentials", version.re
 credentials-play-services-auth = { group = "androidx.credentials", name = "credentials-play-services-auth", version.ref = "credentialsPlayServicesAuth" }
 googleid = { group = "com.google.android.libraries.identity.googleid", name = "googleid", version.ref = "googleid" }
 kotlinx-coroutines-play-services = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-play-services", version.ref = "coroutines" }
+
+
+
+
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
