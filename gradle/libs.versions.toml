@@ -28,7 +28,7 @@ media3 = "1.5.0"
 room = "2.8.1"
 
 # Koin
-koin = "4.1.1"
+koin = "4.2.2"
 
 # Ktor
 ktor = "3.3.0"
