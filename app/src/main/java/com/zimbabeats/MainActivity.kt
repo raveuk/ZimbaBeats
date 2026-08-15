@@ -59,6 +59,7 @@ import com.zimbabeats.ui.theme.ZimbaBeatsTheme
 import com.zimbabeats.ui.util.LocalWindowSizeClass
 import com.zimbabeats.family.ipc.PlaybackVerdict
 import android.app.SearchManager
+import android.provider.MediaStore
 import androidx.navigation.NavController
 import kotlinx.coroutines.delay
 import org.koin.android.ext.android.inject
@@ -570,15 +571,28 @@ class MainActivity : ComponentActivity() {
      */
     private fun handleIntent(intent: Intent?) {
         if (intent == null) return
+        android.util.Log.d("MainActivity", "Handling intent: action=${intent.action}, data=${intent.data}")
 
         when (intent.action) {
-            // Standard Android Search Intent
+            // Standard Android Search Intent (Generic)
             Intent.ACTION_SEARCH -> {
                 val query = intent.getStringExtra(SearchManager.QUERY)
+                android.util.Log.d("MainActivity", "ACTION_SEARCH received: query=$query")
                 if (!query.isNullOrBlank()) {
                     pendingSearchIntent.value = Screen.Search(
                         query = query,
-                        autoPlay = true // Voice search usually implies hands-free playback
+                        autoPlay = false // Standard search usually just shows results
+                    )
+                }
+            }
+            // Standard Media Search Intent (Google Assistant / Bixby "Play X")
+            "android.media.action.MEDIA_PLAY_FROM_SEARCH" -> {
+                val query = intent.getStringExtra(SearchManager.QUERY)
+                android.util.Log.d("MainActivity", "MEDIA_PLAY_FROM_SEARCH received: query=$query")
+                if (!query.isNullOrBlank()) {
+                    pendingSearchIntent.value = Screen.Search(
+                        query = query,
+                        autoPlay = true
                     )
                 }
             }
@@ -589,6 +603,7 @@ class MainActivity : ComponentActivity() {
                     val mode = uri.getQueryParameter("mode")?.uppercase() ?: "VIDEO"
                     val autoPlay = uri.getQueryParameter("autoplay")?.toBoolean() ?: false
 
+                    android.util.Log.d("MainActivity", "ACTION_VIEW received: query=$query, mode=$mode, autoPlay=$autoPlay")
                     if (!query.isNullOrBlank()) {
                         pendingSearchIntent.value = Screen.Search(
                             query = query,

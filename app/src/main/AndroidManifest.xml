@@ -53,6 +53,7 @@
             <!-- Standard Search Intent (Universal Assistant Support) -->
             <intent-filter>
                 <action android:name="android.intent.action.SEARCH" />
+                <action android:name="android.media.action.MEDIA_PLAY_FROM_SEARCH" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
 
@@ -72,7 +73,7 @@
                 <data android:scheme="https" android:host="zimbabeats.com" android:pathPrefix="/search" />
             </intent-filter>
 
-            <meta-data android:name="android.app.searchable" android:resource="@xml/shortcuts" />
+            <meta-data android:name="android.app.searchable" android:resource="@xml/searchable" />
         </activity>
 
         <meta-data

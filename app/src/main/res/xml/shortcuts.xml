@@ -1,28 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
 <shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Capability for searching videos -->
+    <!-- Capability for searching content -->
     <capability android:name="actions.intent.GET_THING">
         <intent
             android:action="android.intent.action.VIEW"
             android:targetPackage="com.zimbabeats"
-            android:targetClass="com.zimbabeats.MainActivity"
-            android:data="https://zimbabeats.com/search?q={name}&amp;mode=video&amp;autoplay=true">
+            android:targetClass="com.zimbabeats.MainActivity">
+            <url-template android:value="https://zimbabeats.com/search?q={query}" />
             <parameter
                 android:name="thing.name"
-                android:key="name" />
+                android:key="query" />
         </intent>
-    </capability>
-
-    <!-- Capability for searching music -->
-    <capability android:name="actions.intent.ORDER_MENU_ITEM">
+        <!-- Fallback intent if query is missing -->
         <intent
             android:action="android.intent.action.VIEW"
             android:targetPackage="com.zimbabeats"
             android:targetClass="com.zimbabeats.MainActivity"
-            android:data="https://zimbabeats.com/search?q={name}&amp;mode=music&amp;autoplay=true">
+            android:data="https://zimbabeats.com/search" />
+    </capability>
+
+    <!-- Capability for playing media from search (Best for "Play X on ZimbaBeats") -->
+    <capability android:name="actions.intent.PLAY_MEDIA_FROM_SEARCH">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.zimbabeats"
+            android:targetClass="com.zimbabeats.MainActivity">
+            <url-template android:value="https://zimbabeats.com/search?q={query}&amp;autoplay=true" />
             <parameter
-                android:name="menuItem.name"
-                android:key="name" />
+                android:name="media.name"
+                android:key="query" />
         </intent>
     </capability>
 </shortcuts>
