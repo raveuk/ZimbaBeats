@@ -573,39 +573,52 @@ class MainActivity : ComponentActivity() {
         if (intent == null) return
         val action = intent.action
         val data = intent.data
-        android.util.Log.d("MainActivity", "Handling intent: action=$action, data=$data")
+        
+        // Comprehensive logging of all incoming assistant/system intent parameters
+        val extras = intent.extras?.let { bundle ->
+            bundle.keySet().associateWith { key ->
+                try { bundle.get(key) } catch (e: Exception) { "unparseable" }
+            }
+        } ?: emptyMap()
+        
+        android.util.Log.d("MainActivity", "--- Incoming Intent ---")
+        android.util.Log.d("MainActivity", "Action: $action")
+        android.util.Log.d("MainActivity", "Data: $data")
+        android.util.Log.d("MainActivity", "Extras: $extras")
+        android.util.Log.d("MainActivity", "-----------------------")
 
         when (action) {
             // Standard Android Search Intent (Generic)
-            Intent.ACTION_SEARCH, "android.intent.action.MEDIA_SEARCH" -> {
+            Intent.ACTION_SEARCH -> {
                 val query = intent.getStringExtra(SearchManager.QUERY)
-                android.util.Log.d("MainActivity", "$action received: query=$query")
                 if (!query.isNullOrBlank()) {
                     pendingSearchIntent.value = Screen.Search(
                         query = query,
-                        autoPlay = action == "android.intent.action.MEDIA_SEARCH"
+                        autoPlay = false
                     )
                 }
             }
-            // Standard Media Play Search Intent (Google Assistant / Bixby "Play X")
+            // Standard Media Search Intent (Bixby / Assistant "Search X on Y")
+            "android.intent.action.MEDIA_SEARCH",
             "android.media.action.MEDIA_PLAY_FROM_SEARCH" -> {
                 val query = intent.getStringExtra(SearchManager.QUERY)
-                android.util.Log.d("MainActivity", "MEDIA_PLAY_FROM_SEARCH received: query=$query")
                 if (!query.isNullOrBlank()) {
                     pendingSearchIntent.value = Screen.Search(
                         query = query,
-                        autoPlay = true
+                        autoPlay = true // If it's a media search, they likely want to play it
                     )
                 }
             }
             // Deep Links (Custom Scheme & HTTPS)
             Intent.ACTION_VIEW -> {
                 data?.let { uri ->
-                    val query = uri.getQueryParameter("q")
+                    android.util.Log.d("MainActivity", "ACTION_VIEW URI: $uri")
+                    // Handle both custom zimbabeats:// and https:// links
+                    // Support both /search and /play paths for customized routing
+                    val query = uri.getQueryParameter("q") ?: uri.getQueryParameter("query")
                     val mode = uri.getQueryParameter("mode")?.uppercase() ?: "VIDEO"
-                    val autoPlay = uri.getQueryParameter("autoplay")?.toBoolean() ?: false
+                    val autoPlay = uri.getQueryParameter("autoplay")?.toBoolean() ?: (uri.host == "play")
 
-                    android.util.Log.d("MainActivity", "ACTION_VIEW received: query=$query, mode=$mode, autoPlay=$autoPlay")
                     if (!query.isNullOrBlank()) {
                         pendingSearchIntent.value = Screen.Search(
                             query = query,

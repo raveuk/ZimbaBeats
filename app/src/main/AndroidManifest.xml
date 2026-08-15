@@ -50,12 +50,17 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- Standard Search Intent (Universal Assistant Support) -->
             <intent-filter>
                 <action android:name="android.intent.action.SEARCH" />
                 <action android:name="android.intent.action.MEDIA_SEARCH" />
                 <action android:name="android.media.action.MEDIA_PLAY_FROM_SEARCH" />
                 <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <category android:name="android.intent.category.VOICE" />
+                <!-- Help Bixby/Assistants identify this as a media app -->
+                <data android:mimeType="video/*" />
+                <data android:mimeType="audio/*" />
+                <data android:mimeType="vnd.android.cursor.item/*" />
             </intent-filter>
 
             <!-- Custom Scheme Deep Link -->
@@ -63,7 +68,9 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="zimbabeats" android:host="search" />
+                <data android:scheme="zimbabeats" />
+                <data android:host="search" />
+                <data android:host="play" />
             </intent-filter>
 
             <!-- App Links / Universal Links -->
