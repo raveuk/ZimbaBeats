@@ -51,7 +51,7 @@ dependencies {
     implementation("androidx.annotation:annotation:1.9.1")
 
     // WebView (used for BotGuard/PoToken generation to fix YouTube stream 403s)
-    implementation("androidx.webkit:webkit:1.12.1")
+    implementation("androidx.webkit:webkit:1.17.0")
 
     // Room
     implementation(libs.androidx.room.runtime)
