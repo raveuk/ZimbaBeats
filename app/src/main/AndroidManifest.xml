@@ -209,6 +209,7 @@
             android:name="com.zimbabeats.search.GlobalSearchProvider"
             android:authorities="com.zimbabeats.search"
             android:exported="true"
+            android:permission="android.permission.GLOBAL_SEARCH"
             android:syncable="false" />
     </application>
 

@@ -48,10 +48,10 @@ dependencies {
 
     // Core Android
     implementation(libs.androidx.core.ktx)
-    implementation("androidx.annotation:annotation:1.9.1")
+    implementation("androidx.annotation:annotation:1.10.0")
 
     // WebView (used for BotGuard/PoToken generation to fix YouTube stream 403s)
-    implementation("androidx.webkit:webkit:1.12.1")
+    implementation("androidx.webkit:webkit:1.17.0")
 
     // Room
     implementation(libs.androidx.room.runtime)
@@ -66,7 +66,7 @@ dependencies {
     implementation(libs.ktor.client.logging)
 
     // OkHttp (for NewPipe downloader)
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.okhttp3:okhttp:5.5.0")
 
     // Kotlinx Serialization
     implementation(libs.kotlinx.serialization.json)
@@ -80,7 +80,7 @@ dependencies {
     implementation(libs.koin.core)
 
     // HTML parsing for YouTube scraping
-    implementation("org.jsoup:jsoup:1.18.1")
+    implementation("org.jsoup:jsoup:1.23.1")
 
     // NewPipe Extractor for YouTube stream extraction (handles n parameter decryption)
     // Using v0.25.1 with protobuf exclusions to avoid Firebase conflicts

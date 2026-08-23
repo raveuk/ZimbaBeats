@@ -10,48 +10,48 @@ googleServices = "4.4.2"
 
 
 # Firebase
-firebaseBom = "32.7.0"
+firebaseBom = "34.18.0"
 playServicesAuth = "21.3.0"
-credentialsPlayServicesAuth = "1.3.0"
-googleid = "1.1.1"
+credentialsPlayServicesAuth = "1.6.0"
+googleid = "1.2.0"
 
 # Core AndroidX
-coreKtx = "1.17.0"
-lifecycleRuntimeKtx = "2.10.0"
-activityCompose = "1.12.0"
+coreKtx = "1.19.0"
+lifecycleRuntimeKtx = "2.11.0"
+activityCompose = "1.13.0"
 
 # Compose
-composeBom = "2025.01.00"
+composeBom = "2026.08.00"
 
 # Navigation
-navigation = "2.8.5"
+navigation = "2.9.8"
 
 # Media3
-media3 = "1.5.0"
+media3 = "1.11.0"
 
 # Room
-room = "2.8.1"
+room = "2.8.4"
 
 # Koin
-koin = "4.1.1"
+koin = "4.2.2"
 
 # Ktor
-ktor = "3.3.0"
+ktor = "3.5.2"
 
 # Coil
-coil = "3.3.0"
+coil = "3.5.0"
 
 # Coroutines
-coroutines = "1.10.1"
+coroutines = "1.11.0"
 
 # Serialization
-kotlinxSerialization = "1.9.0"
+kotlinxSerialization = "1.11.0"
 
 # WorkManager
-workManager = "2.10.0"
+workManager = "2.11.2"
 
 # DataStore
-datastore = "1.1.1"
+datastore = "1.2.1"
 
 # NewPipe Extractor for stream extraction (pure Java, handles n parameter)
 # Using raveuk/NewPipeExtractor dev branch (fork of TeamNewPipe) with latest YouTube fixes.
@@ -62,8 +62,8 @@ newpipe = "a79e606285"
 junit = "4.13.2"
 junitVersion = "1.3.0"
 espressoCore = "3.7.0"
-mockk = "1.13.14"
-turbine = "1.2.0"
+mockk = "1.14.11"
+turbine = "1.2.1"
 
 [libraries]
 # Core AndroidX
@@ -146,7 +146,7 @@ firebase-auth-ktx = { group = "com.google.firebase", name = "firebase-auth-ktx" 
 firebase-firestore-ktx = { group = "com.google.firebase", name = "firebase-firestore-ktx" }
 firebase-messaging-ktx = { group = "com.google.firebase", name = "firebase-messaging-ktx" }
 firebase-config-ktx = { group = "com.google.firebase", name = "firebase-config-ktx" }
-play-services-auth = { group = "com.google.android.gms", name = "play-services-auth", version.ref = "playServicesAuth" }
+play-services-auth = { group = "com.google.android.gms", name = "play-services-auth", version = "21.6.0" }
 credentials = { group = "androidx.credentials", name = "credentials", version.ref = "credentialsPlayServicesAuth" }
 credentials-play-services-auth = { group = "androidx.credentials", name = "credentials-play-services-auth", version.ref = "credentialsPlayServicesAuth" }
 googleid = { group = "com.google.android.libraries.identity.googleid", name = "googleid", version.ref = "googleid" }
