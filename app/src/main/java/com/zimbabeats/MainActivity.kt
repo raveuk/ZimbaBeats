@@ -250,13 +250,10 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         // Start PlaybackService early to keep MediaSession active for Gemini/Assistants
+        // Using startService instead of startForegroundService to avoid "Service.startForeground() not called" ANR/Crash
         try {
             val serviceIntent = Intent(this, Class.forName("com.zimbabeats.media.service.PlaybackService"))
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                startForegroundService(serviceIntent)
-            } else {
-                startService(serviceIntent)
-            }
+            startService(serviceIntent)
         } catch (e: Exception) {
             android.util.Log.e("MainActivity", "Failed to start PlaybackService early", e)
         }

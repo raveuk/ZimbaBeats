@@ -8,11 +8,11 @@ import android.database.MatrixCursor
 import android.net.Uri
 import android.provider.BaseColumns
 import android.util.Log
-import com.zimbabeats.core.domain.model.music.MusicSearchResult
-import com.zimbabeats.core.domain.repository.MusicRepository
 import com.zimbabeats.core.domain.repository.SearchRepository
 import com.zimbabeats.core.domain.util.Resource
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
@@ -36,7 +36,6 @@ class GlobalSearchProvider : ContentProvider(), KoinComponent {
     }
 
     private val searchRepository: SearchRepository by inject()
-    private val musicRepository: MusicRepository by inject()
 
     override fun onCreate(): Boolean = true
 
@@ -55,44 +54,27 @@ class GlobalSearchProvider : ContentProvider(), KoinComponent {
 
         val cursor = MatrixCursor(COLUMNS)
 
+        // Only search local data to avoid blocking system threads with network calls (prevents ANRs)
         runBlocking {
-            // 1. Search Videos
-            val videoResult = searchRepository.searchVideos(query, maxResults = 5)
-            if (videoResult is Resource.Success) {
-                videoResult.data.videos.forEachIndexed { index, video ->
-                    cursor.addRow(arrayOf(
-                        index,
-                        video.title,
-                        video.channelName,
-                        "zimbabeats://video/${video.id}",
-                        video.thumbnailUrl,
-                        "android.intent.action.VIEW",
-                        "video/*",
-                        "zimbabeats://video/${video.id}",
-                        video.id
-                    ))
-                }
-            }
-
-            // 2. Search Music
-            val musicResult = musicRepository.searchMusic(query)
-            if (musicResult is Resource.Success) {
-                musicResult.data.filterIsInstance<MusicSearchResult.TrackResult>()
-                    .take(5)
-                    .forEachIndexed { index, result ->
-                        val track = result.track
+            try {
+                withTimeout(500) { // Max 500ms for safety
+                    val videoResult = searchRepository.searchVideosLocally(query).firstOrNull()
+                    videoResult?.take(5)?.forEachIndexed { index, video ->
                         cursor.addRow(arrayOf(
-                            index + 100, // Offset IDs to avoid collision
-                            track.title,
-                            track.artistName,
-                            "zimbabeats://track/${track.id}",
-                            track.thumbnailUrl,
+                            index,
+                            video.title,
+                            video.channelName,
+                            "zimbabeats://video/${video.id}",
+                            video.thumbnailUrl,
                             "android.intent.action.VIEW",
-                            "audio/*",
-                            "zimbabeats://track/${track.id}",
-                            track.id
+                            "video/*",
+                            "zimbabeats://video/${video.id}",
+                            video.id
                         ))
                     }
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Local search failed or timed out in GlobalSearchProvider: ${e.message}")
             }
         }
 
