@@ -60,8 +60,11 @@ import com.zimbabeats.ui.util.LocalWindowSizeClass
 import com.zimbabeats.family.ipc.PlaybackVerdict
 import android.app.SearchManager
 import android.provider.MediaStore
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 
 class MainActivity : ComponentActivity() {
@@ -250,12 +253,14 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         // Start PlaybackService early to keep MediaSession active for Gemini/Assistants
-        // Using startService instead of startForegroundService to avoid "Service.startForeground() not called" ANR/Crash
-        try {
-            val serviceIntent = Intent(this, Class.forName("com.zimbabeats.media.service.PlaybackService"))
-            startService(serviceIntent)
-        } catch (e: Exception) {
-            android.util.Log.e("MainActivity", "Failed to start PlaybackService early", e)
+        // Deferred to background thread to avoid blocking main thread during app startup (prevents ANR)
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val serviceIntent = Intent(this@MainActivity, Class.forName("com.zimbabeats.media.service.PlaybackService"))
+                startService(serviceIntent)
+            } catch (e: Exception) {
+                android.util.Log.e("MainActivity", "Failed to start PlaybackService early", e)
+            }
         }
 
         // Handle initial intent

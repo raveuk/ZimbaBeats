@@ -54,14 +54,27 @@ class GlobalSearchProvider : ContentProvider(), KoinComponent {
 
         val cursor = MatrixCursor(COLUMNS)
 
-        // Only search local data to avoid blocking system threads with network calls (prevents ANRs)
+        // Add a primary action to search within the app - this is instant and prevents ANRs
+        cursor.addRow(arrayOf(
+            0,
+            "Search ZimbaBeats for '$query'",
+            "Find videos and music",
+            "zimbabeats://search?q=$query",
+            android.R.drawable.ic_menu_search,
+            "android.intent.action.VIEW",
+            "text/plain",
+            "zimbabeats://search?q=$query",
+            query
+        ))
+
+        // Only attempt local search if query is specific enough and avoid blocking main thread indefinitely
         runBlocking {
             try {
-                withTimeout(500) { // Max 500ms for safety
+                withTimeout(400) { // Reduced timeout for faster response
                     val videoResult = searchRepository.searchVideosLocally(query).firstOrNull()
-                    videoResult?.take(5)?.forEachIndexed { index, video ->
+                    videoResult?.take(3)?.forEachIndexed { index, video ->
                         cursor.addRow(arrayOf(
-                            index,
+                            index + 1,
                             video.title,
                             video.channelName,
                             "zimbabeats://video/${video.id}",
@@ -74,7 +87,7 @@ class GlobalSearchProvider : ContentProvider(), KoinComponent {
                     }
                 }
             } catch (e: Exception) {
-                Log.w(TAG, "Local search failed or timed out in GlobalSearchProvider: ${e.message}")
+                // Silently ignore failures - keeping the primary "Search within app" result
             }
         }
 
