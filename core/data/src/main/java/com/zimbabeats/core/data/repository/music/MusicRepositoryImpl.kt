@@ -10,6 +10,8 @@ import com.zimbabeats.core.data.mapper.toEntityList
 import com.zimbabeats.core.data.remote.youtube.music.YouTubeMusicClient
 import com.zimbabeats.core.domain.model.music.*
 import com.zimbabeats.core.domain.repository.MusicRepository
+import com.zimbabeats.core.domain.repository.PlayerData
+import com.zimbabeats.core.domain.repository.YouTubeMusicPlaylistData
 import com.zimbabeats.core.domain.util.Resource
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -129,7 +131,7 @@ class MusicRepositoryImpl(
         }
     }
 
-    override suspend fun getYouTubeMusicPlaylist(playlistId: String): Resource<MusicRepository.YouTubeMusicPlaylistData> {
+    override suspend fun getYouTubeMusicPlaylist(playlistId: String): Resource<YouTubeMusicPlaylistData> {
         return try {
             val playlist = musicClient.getYouTubeMusicPlaylist(playlistId)
             if (playlist != null) {
@@ -138,7 +140,7 @@ class MusicRepositoryImpl(
                     trackDao.insertTracks(playlist.tracks.toEntityList())
                 }
                 Resource.success(
-                    MusicRepository.YouTubeMusicPlaylistData(
+                    YouTubeMusicPlaylistData(
                         id = playlist.id,
                         title = playlist.title,
                         author = playlist.author,
@@ -181,14 +183,14 @@ class MusicRepositoryImpl(
         }
     }
 
-    override suspend fun getPlayerData(trackId: String): Resource<MusicRepository.PlayerData> {
+    override suspend fun getPlayerData(trackId: String): Resource<PlayerData> {
         return try {
             val result = musicClient.getPlayerData(trackId)
             if (result != null) {
                 // Cache the track
                 trackDao.insertTrack(result.track.toEntity())
                 Log.d(TAG, "Cached track: ${result.track.title}")
-                Resource.success(MusicRepository.PlayerData(result.streamUrl, result.track))
+                Resource.success(PlayerData(result.streamUrl, result.track))
             } else {
                 Resource.error("Failed to get player data")
             }

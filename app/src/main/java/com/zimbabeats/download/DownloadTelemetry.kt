@@ -1,11 +1,10 @@
 package com.zimbabeats.download
 
 import android.content.Context
+import android.os.Bundle
 import android.util.Log
 import com.google.firebase.analytics.FirebaseAnalytics
-import com.google.firebase.analytics.ktx.analytics
 import com.google.firebase.crashlytics.FirebaseCrashlytics
-import com.google.firebase.ktx.Firebase
 
 /**
  * Tracks download-pipeline events to Firebase Analytics and reports failures as
@@ -64,15 +63,16 @@ class DownloadTelemetry(@Suppress("UNUSED_PARAMETER") context: Context) {
         const val RESULT_UNKNOWN_FAILED = "unknown_failed"
     }
 
-    private val analytics: FirebaseAnalytics by lazy { Firebase.analytics }
+    private val analytics: FirebaseAnalytics by lazy { FirebaseAnalytics.getInstance(context) }
     private val crashlytics: FirebaseCrashlytics by lazy { FirebaseCrashlytics.getInstance() }
 
     fun trackQualitiesLoaded(resolverTier: String, streamCount: Int) {
         Log.d(TAG, "qualities_loaded tier=$resolverTier count=$streamCount")
-        analytics.logEvent(EVENT_QUALITIES_LOADED) {
-            param(PARAM_RESOLVER_TIER, resolverTier)
-            param(PARAM_STREAM_COUNT, streamCount.toLong())
+        val bundle = Bundle().apply {
+            putString(PARAM_RESOLVER_TIER, resolverTier)
+            putLong(PARAM_STREAM_COUNT, streamCount.toLong())
         }
+        analytics.logEvent(EVENT_QUALITIES_LOADED, bundle)
     }
 
     fun trackDownloadCompleted(
@@ -83,13 +83,14 @@ class DownloadTelemetry(@Suppress("UNUSED_PARAMETER") context: Context) {
         fileSizeBytes: Long
     ) {
         Log.d(TAG, "download_completed mode=$mode result=$result quality=$quality duration=${durationMs}ms size=$fileSizeBytes")
-        analytics.logEvent(EVENT_DOWNLOAD_COMPLETED) {
-            param(PARAM_MODE, mode)
-            param(PARAM_RESULT, result)
-            param(PARAM_QUALITY, quality)
-            param(PARAM_DURATION_MS, durationMs)
-            param(PARAM_FILE_SIZE_BYTES, fileSizeBytes)
+        val bundle = Bundle().apply {
+            putString(PARAM_MODE, mode)
+            putString(PARAM_RESULT, result)
+            putString(PARAM_QUALITY, quality)
+            putLong(PARAM_DURATION_MS, durationMs)
+            putLong(PARAM_FILE_SIZE_BYTES, fileSizeBytes)
         }
+        analytics.logEvent(EVENT_DOWNLOAD_COMPLETED, bundle)
     }
 
     /**
@@ -118,21 +119,4 @@ class DownloadTelemetry(@Suppress("UNUSED_PARAMETER") context: Context) {
 
     /** Marker exception so synthesized failures group together in the Crashlytics UI. */
     private class DownloadFailure(message: String) : RuntimeException(message)
-
-    /**
-     * Helper to mimic Firebase's `bundleOf`-style param block without depending on
-     * `firebase-analytics-ktx`'s param() extension everywhere.
-     */
-    private inline fun FirebaseAnalytics.logEvent(name: String, block: ParamBuilder.() -> Unit) {
-        val builder = ParamBuilder()
-        builder.block()
-        logEvent(name, builder.build())
-    }
-
-    private class ParamBuilder {
-        private val bundle = android.os.Bundle()
-        fun param(key: String, value: String) = bundle.putString(key, value)
-        fun param(key: String, value: Long) = bundle.putLong(key, value)
-        fun build(): android.os.Bundle = bundle
-    }
 }

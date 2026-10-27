@@ -224,7 +224,7 @@ class MusicContentFilter {
         }
         // Check by name
         val nameLower = artistName.lowercase()
-        MusicFilterConfig.trustedArtistNames.forEach { trusted ->
+        for (trusted in MusicFilterConfig.trustedArtistNames) {
             if (nameLower.contains(trusted.lowercase())) {
                 return 90
             }

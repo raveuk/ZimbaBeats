@@ -46,6 +46,7 @@ class AppPreferences(private val context: Context) {
         private val KEY_ACCENT_COLOR = stringPreferencesKey("accent_color")
         private val KEY_DOWNLOAD_NETWORK = stringPreferencesKey("download_network")
         private val KEY_ACCESSIBILITY_MODE = stringPreferencesKey("accessibility_mode")
+        private val KEY_CUSTOM_DOWNLOAD_URI = stringPreferencesKey("custom_download_uri")
 
         // Onboarding Keys
         private val KEY_FIRST_LAUNCH_COMPLETE = booleanPreferencesKey("first_launch_complete")
@@ -163,6 +164,11 @@ class AppPreferences(private val context: Context) {
             AccessibilityMode.ALWAYS_OFF -> false
         }
     }.stateIn(scope, SharingStarted.Eagerly, isSystemTalkBackEnabled())
+
+    // Custom Download URI Flow
+    val customDownloadUriFlow: StateFlow<String?> = context.dataStore.data
+        .map { preferences -> preferences[KEY_CUSTOM_DOWNLOAD_URI] }
+        .stateIn(scope, SharingStarted.Eagerly, null)
 
     // Audio Settings - Normalize Audio Flow
     val normalizeAudioFlow: StateFlow<Boolean> = context.dataStore.data
@@ -307,6 +313,18 @@ class AppPreferences(private val context: Context) {
         scope.launch {
             context.dataStore.edit { preferences ->
                 preferences[KEY_ACCESSIBILITY_MODE] = mode.name
+            }
+        }
+    }
+    
+    fun setCustomDownloadUri(uri: String?) {
+        scope.launch {
+            context.dataStore.edit { preferences ->
+                if (uri != null) {
+                    preferences[KEY_CUSTOM_DOWNLOAD_URI] = uri
+                } else {
+                    preferences.remove(KEY_CUSTOM_DOWNLOAD_URI)
+                }
             }
         }
     }

@@ -21,10 +21,13 @@ android {
     namespace = "com.zimbabeats"
     compileSdk = 37
 
-    // Signing configuration - use same key for debug and release for seamless updates
+    val hasReleaseKeystore = keystorePropertiesFile.exists() && 
+        file(keystoreProperties.getProperty("storeFile", "")).exists()
+
+    // Signing configuration - use same key for debug and release if available
     signingConfigs {
-        create("release") {
-            if (keystorePropertiesFile.exists()) {
+        if (hasReleaseKeystore) {
+            create("release") {
                 storeFile = file(keystoreProperties["storeFile"] as String)
                 storePassword = keystoreProperties["storePassword"] as String
                 keyAlias = keystoreProperties["keyAlias"] as String
@@ -37,8 +40,8 @@ android {
         applicationId = "com.zimbabeats"
         minSdk = 24
         targetSdk = 37
-        versionCode = 94
-        versionName = "1.0.94"
+        versionCode = 95
+        versionName = "1.0.95"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -50,8 +53,8 @@ android {
 
     buildTypes {
         debug {
-            // Use release signing for debug too - ensures consistent signature for updates
-            if (keystorePropertiesFile.exists()) {
+            // Use release signing for debug too if available - ensures consistent signature for updates
+            if (hasReleaseKeystore) {
                 signingConfig = signingConfigs.getByName("release")
             }
         }
@@ -62,7 +65,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            if (keystorePropertiesFile.exists()) {
+            if (hasReleaseKeystore) {
                 signingConfig = signingConfigs.getByName("release")
             }
         }
@@ -181,12 +184,12 @@ dependencies {
 
     // Firebase
     implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.auth.ktx)
-    implementation(libs.firebase.firestore.ktx)
-    implementation(libs.firebase.messaging.ktx)
-    implementation(libs.firebase.config.ktx)
-    implementation("com.google.firebase:firebase-analytics-ktx")
-    implementation("com.google.firebase:firebase-crashlytics-ktx")
+    implementation(libs.firebase.auth)
+    implementation(libs.firebase.firestore)
+    implementation(libs.firebase.messaging)
+    implementation(libs.firebase.config)
+    implementation("com.google.firebase:firebase-analytics")
+    implementation("com.google.firebase:firebase-crashlytics")
     implementation(libs.play.services.auth)
 
     // Google Sign-In with Credential Manager

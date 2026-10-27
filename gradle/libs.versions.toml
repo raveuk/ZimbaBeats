@@ -10,18 +10,18 @@ googleServices = "4.4.2"
 
 
 # Firebase
-firebaseBom = "34.18.0"
+firebaseBom = "33.7.0"
 playServicesAuth = "21.3.0"
 credentialsPlayServicesAuth = "1.6.0"
 googleid = "1.2.0"
 
 # Core AndroidX
-coreKtx = "1.19.0"
-lifecycleRuntimeKtx = "2.11.0"
+coreKtx = "1.13.1"
+lifecycleRuntimeKtx = "2.8.4"
 activityCompose = "1.13.0"
 
 # Compose
-composeBom = "2026.08.00"
+composeBom = "2024.10.01"
 
 # Navigation
 navigation = "2.9.8"
@@ -33,19 +33,19 @@ media3 = "1.11.0"
 room = "2.8.4"
 
 # Koin
-koin = "4.2.2"
+koin = "4.0.0"
 
 # Ktor
-ktor = "3.5.2"
+ktor = "3.0.3"
 
 # Coil
-coil = "3.5.0"
+coil = "3.0.4"
 
 # Coroutines
-coroutines = "1.11.0"
+coroutines = "1.9.0"
 
 # Serialization
-kotlinxSerialization = "1.11.0"
+kotlinxSerialization = "1.7.3"
 
 # WorkManager
 workManager = "2.11.2"
@@ -142,10 +142,10 @@ newpipe-extractor = { group = "com.github.raveuk", name = "NewPipeExtractor", ve
 
 # Firebase
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
-firebase-auth-ktx = { group = "com.google.firebase", name = "firebase-auth-ktx" }
-firebase-firestore-ktx = { group = "com.google.firebase", name = "firebase-firestore-ktx" }
-firebase-messaging-ktx = { group = "com.google.firebase", name = "firebase-messaging-ktx" }
-firebase-config-ktx = { group = "com.google.firebase", name = "firebase-config-ktx" }
+firebase-auth = { group = "com.google.firebase", name = "firebase-auth" }
+firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore" }
+firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging" }
+firebase-config = { group = "com.google.firebase", name = "firebase-config" }
 play-services-auth = { group = "com.google.android.gms", name = "play-services-auth", version = "21.6.0" }
 credentials = { group = "androidx.credentials", name = "credentials", version.ref = "credentialsPlayServicesAuth" }
 credentials-play-services-auth = { group = "androidx.credentials", name = "credentials-play-services-auth", version.ref = "credentialsPlayServicesAuth" }

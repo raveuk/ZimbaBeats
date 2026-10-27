@@ -54,6 +54,7 @@ data class SettingsUiState(
     val updateResult: UpdateResult? = null,
     val author: String = BuildConfig.AUTHOR,
     // In-app download state
+    val customDownloadUri: String? = null,
     val downloadState: DownloadState = DownloadState.Idle,
     val isDownloading: Boolean = false,
     // Family cloud sync state
@@ -118,6 +119,12 @@ class SettingsViewModel(
         viewModelScope.launch {
             appPreferences.downloadNetworkFlow.collect { pref ->
                 _uiState.value = _uiState.value.copy(downloadNetworkPreference = pref)
+            }
+        }
+        
+        viewModelScope.launch {
+            appPreferences.customDownloadUriFlow.collect { uri ->
+                _uiState.value = _uiState.value.copy(customDownloadUri = uri)
             }
         }
 
@@ -226,6 +233,10 @@ class SettingsViewModel(
 
     fun setDownloadNetworkPreference(preference: DownloadNetworkPreference) {
         appPreferences.setDownloadNetwork(preference)
+    }
+    
+    fun setCustomDownloadUri(uri: String?) {
+        appPreferences.setCustomDownloadUri(uri)
     }
 
     fun setThemeMode(mode: ThemeMode) {

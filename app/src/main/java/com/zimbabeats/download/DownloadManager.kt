@@ -1,7 +1,9 @@
 ﻿package com.zimbabeats.download
 
 import android.content.Context
+import android.net.Uri
 import android.util.Log
+import androidx.documentfile.provider.DocumentFile
 import androidx.work.*
 import com.zimbabeats.core.data.remote.youtube.NewPipeStreamExtractor
 import com.zimbabeats.core.data.remote.youtube.StreamUrl
@@ -17,8 +19,11 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.flow.firstOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import java.io.File
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 
@@ -209,14 +214,36 @@ class DownloadManager(
      * Check if a video is already downloaded
      */
     fun isDownloaded(videoId: String): Boolean {
-        val videoFile = java.io.File(downloadsDir, "$videoId.mp4")
-        return videoFile.exists()
+        return getDownloadedFilePath(videoId) != null
     }
 
     /**
-     * Get the file path for a downloaded video
+     * Get the file path or content URI for a downloaded video
      */
     fun getDownloadedFilePath(videoId: String): String? {
+        // Run blocking here to query the repository DB, which tracks the actual file path.
+        // This makes it compatible with both internal storage and custom URIs.
+        val downloadedVideo = runBlocking(Dispatchers.IO) {
+            downloadRepository.getDownloadedVideo(videoId).firstOrNull()
+        }
+        
+        if (downloadedVideo != null) {
+            val path = downloadedVideo.filePath
+            if (path.startsWith("content://")) {
+                // Verify the SAF document still exists
+                val uri = Uri.parse(path)
+                val doc = DocumentFile.fromSingleUri(context, uri)
+                if (doc != null && doc.exists()) {
+                    return path
+                }
+            } else {
+                // Verify standard file
+                val file = File(path)
+                if (file.exists()) return path
+            }
+        }
+        
+        // Fallback for files that might not be in DB but exist on disk (legacy)
         val videoFile = java.io.File(downloadsDir, "$videoId.mp4")
         return if (videoFile.exists()) videoFile.absolutePath else null
     }

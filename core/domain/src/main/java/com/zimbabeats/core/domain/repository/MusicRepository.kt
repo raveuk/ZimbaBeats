@@ -1,8 +1,35 @@
 ﻿package com.zimbabeats.core.domain.repository
 
-import com.zimbabeats.core.domain.model.music.*
+import com.zimbabeats.core.domain.model.music.Album
+import com.zimbabeats.core.domain.model.music.Artist
+import com.zimbabeats.core.domain.model.music.Lyrics
+import com.zimbabeats.core.domain.model.music.MusicBrowseSection
+import com.zimbabeats.core.domain.model.music.MusicPlaylist
+import com.zimbabeats.core.domain.model.music.MusicSearchFilter
+import com.zimbabeats.core.domain.model.music.MusicSearchResult
+import com.zimbabeats.core.domain.model.music.Track
 import com.zimbabeats.core.domain.util.Resource
 import kotlinx.coroutines.flow.Flow
+
+/**
+ * Data class for YouTube Music playlist with tracks
+ */
+data class YouTubeMusicPlaylistData(
+    val id: String,
+    val title: String,
+    val author: String?,
+    val thumbnailUrl: String,
+    val trackCount: Int,
+    val tracks: List<Track>
+)
+
+/**
+ * Result containing both stream URL and track info
+ */
+data class PlayerData(
+    val streamUrl: String,
+    val track: Track
+)
 
 /**
  * Repository interface for music-related operations
@@ -47,18 +74,6 @@ interface MusicRepository {
     suspend fun getAlbum(albumId: String): Resource<Album>
 
     /**
-     * Data class for YouTube Music playlist with tracks
-     */
-    data class YouTubeMusicPlaylistData(
-        val id: String,
-        val title: String,
-        val author: String?,
-        val thumbnailUrl: String,
-        val trackCount: Int,
-        val tracks: List<Track>
-    )
-
-    /**
      * Get YouTube Music playlist details with tracks
      */
     suspend fun getYouTubeMusicPlaylist(playlistId: String): Resource<YouTubeMusicPlaylistData>
@@ -74,14 +89,6 @@ interface MusicRepository {
      * Get audio stream URL for a track
      */
     suspend fun getAudioStreamUrl(trackId: String): Resource<String>
-
-    /**
-     * Result containing both stream URL and track info
-     */
-    data class PlayerData(
-        val streamUrl: String,
-        val track: Track
-    )
 
     /**
      * Get audio stream URL and track details for a track
@@ -105,21 +112,8 @@ interface MusicRepository {
     suspend fun recordListen(trackId: String, listenDuration: Long)
 
     // ==================== Library - Favorites ====================
-
-    /**
-     * Get all favorite tracks
-     */
     fun getFavoriteTracks(): Flow<List<Track>>
-
-    /**
-     * Toggle favorite status for a track
-     * @return true if track is now a favorite, false if removed
-     */
     suspend fun toggleFavorite(track: Track): Resource<Boolean>
-
-    /**
-     * Check if a track is a favorite
-     */
     fun isFavorite(trackId: String): Flow<Boolean>
 
     // ==================== Library - History ====================

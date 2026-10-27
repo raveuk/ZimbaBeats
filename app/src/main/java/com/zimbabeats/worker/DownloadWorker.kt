@@ -6,9 +6,14 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.media.MediaScannerConnection
+import android.net.Uri
 import android.os.Build
+import android.os.Environment
+import android.provider.DocumentsContract
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.documentfile.provider.DocumentFile
 import androidx.work.CoroutineWorker
 import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
@@ -16,11 +21,14 @@ import androidx.work.workDataOf
 import com.zimbabeats.R
 import com.zimbabeats.core.data.remote.youtube.YouTubeService
 import com.zimbabeats.core.domain.repository.DownloadRepository
+import com.zimbabeats.data.AppPreferences
 import com.zimbabeats.download.DownloadTelemetry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -54,6 +62,7 @@ class DownloadWorker(
     private val downloadRepository: DownloadRepository by inject()
     private val youTubeService: YouTubeService by inject()
     private val telemetry: DownloadTelemetry by inject()
+    private val appPreferences: AppPreferences by inject()
 
     /**
      * Highest percent we've reported so far. Used to enforce monotonic progress when
@@ -183,12 +192,12 @@ class DownloadWorker(
 
         try {
             val downloadsDir = File(applicationContext.filesDir, "downloads").apply { mkdirs() }
-            val finalFile = File(downloadsDir, "$videoId.mp4")
+            val tempFile = File(downloadsDir, "$videoId.mp4.tmp")
 
             val (resultFile, bytesWritten) = when (mode) {
-                MODE_PASSTHROUGH -> handlePassthrough(videoId, finalFile)
-                MODE_TRANSMUX -> handlePairedStreams(videoId, finalFile, transcode = false)
-                MODE_TRANSCODE -> handlePairedStreams(videoId, finalFile, transcode = true)
+                MODE_PASSTHROUGH -> handlePassthrough(videoId, tempFile)
+                MODE_TRANSMUX -> handlePairedStreams(videoId, tempFile, transcode = false)
+                MODE_TRANSCODE -> handlePairedStreams(videoId, tempFile, transcode = true)
                 else -> {
                     Log.e(TAG, "Unknown mode: $mode")
                     null
@@ -213,10 +222,72 @@ class DownloadWorker(
                 telemetry.recordNonFatal(failureBucket, null)
                 return@withContext Result.failure(workDataOf(KEY_ERROR to "Download failed"))
             }
+            
+            // Check for custom download location in preferences
+            val customUriString = appPreferences.customDownloadUriFlow.firstOrNull()
+            var finalOutputPath = resultFile.absolutePath
+            
+            if (customUriString != null) {
+                try {
+                    val treeUri = Uri.parse(customUriString)
+                    val treeDir = DocumentFile.fromTreeUri(applicationContext, treeUri)
+                    if (treeDir != null && treeDir.canWrite()) {
+                        // Delete any existing file with same name to avoid duplicates
+                        treeDir.findFile("$videoId.mp4")?.delete()
+
+                        val newFile = treeDir.createFile("video/mp4", "$videoId.mp4")
+                        if (newFile != null) {
+                            applicationContext.contentResolver.openOutputStream(newFile.uri)?.use { output ->
+                                resultFile.inputStream().use { input ->
+                                    input.copyTo(output)
+                                }
+                            }
+                            finalOutputPath = newFile.uri.toString()
+                            // Delete the temp file from internal storage
+                            resultFile.delete()
+                            Log.d(TAG, "Successfully copied download to custom SAF location: $finalOutputPath")
+
+                            // Force MediaStore scan so the file appears in gallery and file managers
+                            val realPath = getRealPathFromUri(applicationContext, newFile.uri)
+                            if (realPath != null) {
+                                MediaScannerConnection.scanFile(
+                                    applicationContext,
+                                    arrayOf(realPath),
+                                    arrayOf("video/mp4")
+                                ) { path, uri ->
+                                    Log.d(TAG, "MediaScanner scanned $path -> $uri")
+                                }
+                            }
+                        } else {
+                            Log.w(TAG, "Failed to create file in custom location, falling back to internal")
+                        }
+                    } else {
+                        Log.w(TAG, "Custom location not writable, falling back to internal")
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error copying to custom location", e)
+                    // Keep resultFile as fallback
+                }
+            }
+            
+            // If we didn't move it to SAF, rename the temp file to final internal file
+            if (finalOutputPath == resultFile.absolutePath) {
+                val internalFinal = File(downloadsDir, "$videoId.mp4")
+                if (resultFile.renameTo(internalFinal)) {
+                    finalOutputPath = internalFinal.absolutePath
+                    // Also scan internal final file
+                    MediaScannerConnection.scanFile(
+                        applicationContext,
+                        arrayOf(internalFinal.absolutePath),
+                        arrayOf("video/mp4"),
+                        null
+                    )
+                }
+            }
 
             downloadRepository.completeDownload(
                 videoId = videoId,
-                filePath = resultFile.absolutePath,
+                filePath = finalOutputPath,
                 fileSize = bytesWritten,
                 thumbnailPath = null
             )
@@ -341,56 +412,89 @@ class DownloadWorker(
         weight: Double,
         baseProgress: Int
     ): Long? {
-        return try {
-            val client = OkHttpClient.Builder()
-                .connectTimeout(60, TimeUnit.SECONDS)
-                .readTimeout(10, TimeUnit.MINUTES)
-                .writeTimeout(10, TimeUnit.MINUTES)
-                .build()
+        val client = OkHttpClient.Builder()
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
+            .retryOnConnectionFailure(true)
+            .build()
 
-            val request = Request.Builder()
-                .url(url)
-                .header("User-Agent", "com.google.android.youtube/21.03.36 (Linux; U; Android 14) gzip")
-                .header("Accept", "*/*")
-                .header("Origin", "https://www.youtube.com")
-                .header("Referer", "https://www.youtube.com/")
-                .build()
+        var downloadedBytes = if (target.exists()) target.length() else 0L
+        var totalBytes = -1L
+        var maxRetries = 5
 
-            val response = client.newCall(request).execute()
-            if (!response.isSuccessful) {
-                Log.e(TAG, "HTTP ${response.code} for $url")
-                response.close()
-                return null
-            }
+        while (maxRetries > 0) {
+            try {
+                val requestBuilder = Request.Builder()
+                    .url(url)
+                    .header("User-Agent", "com.google.android.youtube/21.03.36 (Linux; U; Android 14) gzip")
+                    .header("Accept", "*/*")
+                    .header("Origin", "https://www.youtube.com")
+                    .header("Referer", "https://www.youtube.com/")
 
-            val body = response.body ?: return null
-            val totalBytes = body.contentLength()
-            val written = AtomicLong(0)
-            var lastReported = -1
+                if (downloadedBytes > 0) {
+                    requestBuilder.header("Range", "bytes=$downloadedBytes-")
+                }
 
-            body.byteStream().use { input ->
-                FileOutputStream(target).use { output ->
-                    val buffer = ByteArray(64 * 1024)
-                    var n: Int
-                    while (input.read(buffer).also { n = it } != -1) {
-                        output.write(buffer, 0, n)
-                        val cur = written.addAndGet(n.toLong())
-                        if (totalBytes > 0) {
-                            val phasePct = ((cur.toDouble() / totalBytes) * 100 * weight).toInt()
-                            val overall = baseProgress + phasePct.coerceAtMost((DOWNLOAD_PHASE_END_PERCENT * weight).toInt())
-                            if (overall != lastReported) {
-                                lastReported = overall
+                val response = client.newCall(requestBuilder.build()).execute()
+                
+                if (response.code !in 200..299) {
+                    Log.e(TAG, "HTTP ${response.code} for $url")
+                    response.close()
+                    if (response.code == 416) {
+                        return target.length()
+                    }
+                    return null
+                }
+
+                val body = response.body ?: return null
+                if (totalBytes < 0) {
+                    val contentLength = body.contentLength()
+                    totalBytes = if (response.code == 206) downloadedBytes + contentLength else contentLength
+                }
+
+                body.byteStream().use { input ->
+                    FileOutputStream(target, downloadedBytes > 0).use { output ->
+                        val buffer = ByteArray(64 * 1024)
+                        var n: Int
+                        while (input.read(buffer).also { n = it } != -1) {
+                            output.write(buffer, 0, n)
+                            downloadedBytes += n
+                            if (totalBytes > 0) {
+                                val phasePct = ((downloadedBytes.toDouble() / totalBytes) * 100 * weight).toInt()
+                                val overall = baseProgress + phasePct.coerceAtMost((DOWNLOAD_PHASE_END_PERCENT * weight).toInt())
                                 reportProgress(videoId, overall)
                             }
                         }
                     }
                 }
+                
+                return downloadedBytes
+
+            } catch (e: Exception) {
+                maxRetries--
+                Log.w(TAG, "downloadToFile exception (retries left=$maxRetries, downloaded=$downloadedBytes)", e)
+                if (maxRetries <= 0) {
+                    Log.e(TAG, "downloadToFile failed permanently for $url", e)
+                    return null
+                }
+                delay(1000)
             }
-            written.get()
-        } catch (e: Exception) {
-            Log.e(TAG, "downloadToFile failed for $url", e)
-            null
         }
+        return null
+    }
+
+    private fun getRealPathFromUri(context: Context, uri: Uri): String? {
+        if (uri.scheme == "file") return uri.path
+        if (uri.scheme == "content") {
+            val docId = runCatching { DocumentsContract.getDocumentId(uri) }.getOrNull()
+            if (docId != null && docId.startsWith("primary:")) {
+                val relativePath = docId.removePrefix("primary:")
+                val file = File(Environment.getExternalStorageDirectory(), relativePath)
+                return file.absolutePath
+            }
+        }
+        return null
     }
 
     private suspend fun reportProgress(videoId: String, percent: Int) {

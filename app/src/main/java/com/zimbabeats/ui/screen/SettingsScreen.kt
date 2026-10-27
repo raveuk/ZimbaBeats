@@ -2,7 +2,10 @@
 
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.net.Uri
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -48,6 +51,22 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = koinViewModel()
 ) {
     val context = LocalContext.current
+    
+    val folderPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocumentTree()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            val contentResolver = context.contentResolver
+            val takeFlags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+            try {
+                contentResolver.takePersistableUriPermission(uri, takeFlags)
+                viewModel.setCustomDownloadUri(uri.toString())
+            } catch (e: SecurityException) {
+                Toast.makeText(context, "Permission denied to access folder", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+    
     val uiState by viewModel.uiState.collectAsState()
     var showQualityDialog by remember { mutableStateOf(false) }
     var showThemeDialog by remember { mutableStateOf(false) }
@@ -193,6 +212,35 @@ fun SettingsScreen(
                     title = "Download Network",
                     subtitle = uiState.downloadNetworkPreference.displayName,
                     onClick = { showDownloadNetworkDialog = true }
+                )
+            }
+            
+            item {
+                SettingsItem(
+                    icon = Icons.Default.Folder,
+                    title = "Download Location",
+                    subtitle = if (uiState.customDownloadUri != null) {
+                        try {
+                            val path = Uri.parse(uiState.customDownloadUri).lastPathSegment ?: "Custom folder"
+                            "Custom: $path"
+                        } catch (e: Exception) {
+                            "Custom folder"
+                        }
+                    } else "Default app storage",
+                    onClick = {
+                        if (uiState.customDownloadUri != null) {
+                            // Already set, allow resetting
+                            viewModel.setCustomDownloadUri(null)
+                            Toast.makeText(context, "Reset to default app storage", Toast.LENGTH_SHORT).show()
+                        } else {
+                            // Launch folder picker
+                            try {
+                                folderPickerLauncher.launch(null)
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "File picker not available", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
                 )
             }
 
