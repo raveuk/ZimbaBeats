@@ -1,6 +1,18 @@
 ﻿package com.zimbabeats.ui.screen
 
+import android.content.res.Configuration
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -82,168 +94,86 @@ fun HomeScreen(
     val isRefreshing = if (selectedContentMode == ContentMode.VIDEO) uiState.isRefreshing else musicUiState.isRefreshing
     val isLoading = if (selectedContentMode == ContentMode.VIDEO) uiState.isLoading else musicUiState.isLoading
 
-    Scaffold(
-        topBar = {
-            // Spotify-style top bar with gradient
-            Column(
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
+                        MaterialTheme.colorScheme.background.copy(alpha = 0.85f),
+                        MaterialTheme.colorScheme.background
+                    ),
+                    startY = 0f,
+                    endY = 1000f
+                )
+            )
+            .windowInsetsPadding(WindowInsets.displayCutout)
+    ) {
+        Scaffold(
+            containerColor = Color.Transparent
+        ) { paddingValues ->
+            PullToRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = {
+                    if (selectedContentMode == ContentMode.VIDEO) {
+                        viewModel.refreshVideos()
+                    } else {
+                        musicViewModel.refresh()
+                    }
+                },
+                state = pullToRefreshState,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
-                                MaterialTheme.colorScheme.background
-                            )
-                        )
-                    )
+                    .fillMaxSize()
+                    .padding(paddingValues)
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        "Zimba Beats Player",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    IconButton(onClick = onNavigateToSettings) {
-                        Icon(
-                            Icons.Default.Settings,
-                            ContentDescriptions.OPEN_SETTINGS,
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                }
+                // Use key to force recomposition when parental settings change
+                val videoContentKey = "${uiState.parentalControlEnabled}_${uiState.selectedAgeLevel.name}_${uiState.videos.size}"
+                val musicContentKey = "${musicUiState.parentalControlEnabled}_${musicUiState.sections.size}"
 
-                // Search Box
-                Surface(
-                    onClick = { onNavigateToSearch(selectedContentMode) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .padding(bottom = 8.dp),
-                    shape = MaterialTheme.shapes.extraLarge,
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Icon(
-                            if (selectedContentMode == ContentMode.VIDEO) Icons.Default.Search
-                            else Icons.Default.MusicNote,
-                            contentDescription = "Search",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = if (selectedContentMode == ContentMode.VIDEO)
-                                "What do you want to watch?"
-                            else
-                                "What do you want to listen to?",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-
-                // Video/Music Toggle Chips
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .padding(bottom = 12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    FilterChip(
-                        selected = selectedContentMode == ContentMode.VIDEO,
-                        onClick = { selectedContentMode = ContentMode.VIDEO },
-                        label = { Text("Videos") },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.VideoLibrary,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    )
-                    FilterChip(
-                        selected = selectedContentMode == ContentMode.MUSIC,
-                        onClick = {
-                            selectedContentMode = ContentMode.MUSIC
-                        },
-                        label = { Text("Music") },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.MusicNote,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    )
-                }
-            }
-        },
-        containerColor = MaterialTheme.colorScheme.background
-    ) { paddingValues ->
-        PullToRefreshBox(
-            isRefreshing = isRefreshing,
-            onRefresh = {
-                if (selectedContentMode == ContentMode.VIDEO) {
-                    viewModel.refreshVideos()
-                } else {
-                    musicViewModel.refresh()
-                }
-            },
-            state = pullToRefreshState,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            // Use key to force recomposition when parental settings change
-            val videoContentKey = "${uiState.parentalControlEnabled}_${uiState.selectedAgeLevel.name}_${uiState.videos.size}"
-            val musicContentKey = "${musicUiState.parentalControlEnabled}_${musicUiState.sections.size}"
-
-            Crossfade(
-                targetState = Triple(selectedContentMode, isLoading && !isRefreshing, if (selectedContentMode == ContentMode.VIDEO) videoContentKey else musicContentKey),
-                label = "home_content"
-            ) { (mode, loading, _) ->
-                if (loading) {
-                    HomeShimmer()
-                } else {
-                    when (mode) {
-                        ContentMode.VIDEO -> {
-                            VideoHomeContent(
-                                uiState = uiState,
-                                isKidMode = uiState.parentalControlEnabled,
-                                onVideoClick = onVideoClick,
-                                onNavigateToPlaylists = onNavigateToPlaylists,
-                                onNavigateToLibrary = onNavigateToLibrary,
-                                onChannelClick = { channel -> viewModel.loadChannelVideos(channel) }
-                            )
-                        }
-                        ContentMode.MUSIC -> {
-                            MusicHomeContent(
-                                uiState = musicUiState,
-                                isKidMode = uiState.parentalControlEnabled,
-                                onTrackClick = onTrackClick,
-                                onAlbumClick = onAlbumClick,
-                                onArtistClick = onArtistClick,
-                                onPlaylistClick = onYouTubeMusicPlaylistClick,
-                                onNavigateToPlaylists = onNavigateToPlaylists,
-                                onNavigateToLibrary = onNavigateToLibrary
-                            )
+                Crossfade(
+                    targetState = Triple(selectedContentMode, isLoading && !isRefreshing, if (selectedContentMode == ContentMode.VIDEO) videoContentKey else musicContentKey),
+                    label = "home_content"
+                ) { (mode, loading, _) ->
+                    if (loading) {
+                        HomeShimmer()
+                    } else {
+                        when (mode) {
+                            ContentMode.VIDEO -> {
+                                VideoHomeContent(
+                                    uiState = uiState,
+                                    isKidMode = uiState.parentalControlEnabled,
+                                    selectedContentMode = selectedContentMode,
+                                    onContentModeSelected = { selectedContentMode = it },
+                                    onNavigateToSearch = onNavigateToSearch,
+                                    onNavigateToSettings = onNavigateToSettings,
+                                    isLandscape = isLandscape,
+                                    onVideoClick = onVideoClick,
+                                    onChannelClick = { channel -> viewModel.loadChannelVideos(channel) }
+                                )
+                            }
+                            ContentMode.MUSIC -> {
+                                MusicHomeContent(
+                                    uiState = musicUiState,
+                                    isKidMode = uiState.parentalControlEnabled,
+                                    selectedContentMode = selectedContentMode,
+                                    onContentModeSelected = { selectedContentMode = it },
+                                    onNavigateToSearch = onNavigateToSearch,
+                                    onNavigateToSettings = onNavigateToSettings,
+                                    isLandscape = isLandscape,
+                                    onTrackClick = onTrackClick,
+                                    onAlbumClick = onAlbumClick,
+                                    onArtistClick = onArtistClick,
+                                    onPlaylistClick = onYouTubeMusicPlaylistClick
+                                )
+                            }
                         }
                     }
                 }
             }
-        }
 
         // Error snackbar
         uiState.error?.let { error ->
@@ -261,15 +191,19 @@ fun HomeScreen(
             }
         }
     }
+    }
 }
 
 @Composable
 private fun VideoHomeContent(
     uiState: HomeUiState,
     isKidMode: Boolean,
+    selectedContentMode: ContentMode,
+    onContentModeSelected: (ContentMode) -> Unit,
+    onNavigateToSearch: (ContentMode) -> Unit,
+    onNavigateToSettings: () -> Unit,
+    isLandscape: Boolean,
     onVideoClick: (String) -> Unit,
-    onNavigateToPlaylists: () -> Unit,
-    onNavigateToLibrary: () -> Unit,
     onChannelClick: (PopularChannel) -> Unit
 ) {
     val hasContent = uiState.videos.isNotEmpty() ||
@@ -287,16 +221,19 @@ private fun VideoHomeContent(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(32.dp)
-                .semantics(mergeDescendants = true) {
-                    contentDescription = if (isKidMode)
-                        "No videos yet. Use the search bar above to find fun and educational videos."
-                    else
-                        "No videos yet. Use the search bar above to start exploring."
-                },
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            HomeHeader(
+                selectedContentMode = selectedContentMode,
+                onContentModeSelected = onContentModeSelected,
+                onNavigateToSearch = onNavigateToSearch,
+                onNavigateToSettings = onNavigateToSettings,
+                isLandscape = isLandscape
+            )
+
+            Spacer(modifier = Modifier.weight(1f))
+
             val iconSize = WindowSizeUtil.getLargeIconSize()
             Icon(
                 Icons.Default.VideoLibrary,
@@ -320,34 +257,24 @@ private fun VideoHomeContent(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+
+            Spacer(modifier = Modifier.weight(1f))
         }
     } else {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+            contentPadding = PaddingValues(bottom = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Quick Action Chips
+            // Header scrolls with content
             item {
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(horizontal = 16.dp)
-                ) {
-                    item {
-                        QuickActionChip(
-                            text = "Playlists",
-                            icon = Icons.AutoMirrored.Filled.PlaylistPlay,
-                            onClick = onNavigateToPlaylists
-                        )
-                    }
-                    item {
-                        QuickActionChip(
-                            text = "Library",
-                            icon = Icons.Default.VideoLibrary,
-                            onClick = onNavigateToLibrary
-                        )
-                    }
-                }
+                HomeHeader(
+                    selectedContentMode = selectedContentMode,
+                    onContentModeSelected = onContentModeSelected,
+                    onNavigateToSearch = onNavigateToSearch,
+                    onNavigateToSettings = onNavigateToSettings,
+                    isLandscape = isLandscape
+                )
             }
 
             // Quick Picks Grid (4 items in 2x2 or horizontal scroll)
@@ -698,12 +625,15 @@ private fun VideoSection(
 private fun MusicHomeContent(
     uiState: com.zimbabeats.ui.viewmodel.music.MusicHomeUiState,
     isKidMode: Boolean,
+    selectedContentMode: ContentMode,
+    onContentModeSelected: (ContentMode) -> Unit,
+    onNavigateToSearch: (ContentMode) -> Unit,
+    onNavigateToSettings: () -> Unit,
+    isLandscape: Boolean,
     onTrackClick: (String) -> Unit,
     onAlbumClick: (String) -> Unit,
     onArtistClick: (String) -> Unit,
-    onPlaylistClick: (String) -> Unit,
-    onNavigateToPlaylists: () -> Unit,
-    onNavigateToLibrary: () -> Unit
+    onPlaylistClick: (String) -> Unit
 ) {
     val hasContent = uiState.sections.isNotEmpty() ||
             uiState.recentlyPlayed.isNotEmpty() ||
@@ -714,16 +644,19 @@ private fun MusicHomeContent(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(32.dp)
-                .semantics(mergeDescendants = true) {
-                    contentDescription = if (isKidMode)
-                        "No music yet. Search for fun songs, lullabies, and sing-alongs!"
-                    else
-                        "No music yet. Use the search bar above to discover music."
-                },
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            HomeHeader(
+                selectedContentMode = selectedContentMode,
+                onContentModeSelected = onContentModeSelected,
+                onNavigateToSearch = onNavigateToSearch,
+                onNavigateToSettings = onNavigateToSettings,
+                isLandscape = isLandscape
+            )
+
+            Spacer(modifier = Modifier.weight(1f))
+
             val iconSize = WindowSizeUtil.getLargeIconSize()
             Icon(
                 Icons.Default.MusicNote,
@@ -747,34 +680,24 @@ private fun MusicHomeContent(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+
+            Spacer(modifier = Modifier.weight(1f))
         }
     } else {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+            contentPadding = PaddingValues(bottom = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Quick Action Chips
+            // Header scrolls with content
             item {
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(horizontal = 16.dp)
-                ) {
-                    item {
-                        QuickActionChip(
-                            text = "Playlists",
-                            icon = Icons.AutoMirrored.Filled.PlaylistPlay,
-                            onClick = onNavigateToPlaylists
-                        )
-                    }
-                    item {
-                        QuickActionChip(
-                            text = "Library",
-                            icon = Icons.Default.MusicNote,
-                            onClick = onNavigateToLibrary
-                        )
-                    }
-                }
+                HomeHeader(
+                    selectedContentMode = selectedContentMode,
+                    onContentModeSelected = onContentModeSelected,
+                    onNavigateToSearch = onNavigateToSearch,
+                    onNavigateToSettings = onNavigateToSettings,
+                    isLandscape = isLandscape
+                )
             }
 
             // Recently Played Section
@@ -1088,3 +1011,251 @@ private fun PlaylistCard(
         }
     }
 }
+
+// ==================== SCROLLABLE HOME HEADER ====================
+
+@Composable
+private fun HomeHeader(
+    selectedContentMode: ContentMode,
+    onContentModeSelected: (ContentMode) -> Unit,
+    onNavigateToSearch: (ContentMode) -> Unit,
+    onNavigateToSettings: () -> Unit,
+    isLandscape: Boolean
+) {
+    if (isLandscape) {
+        // Landscape Compact Header Row
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "Zimba Beats",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            Surface(
+                onClick = { onNavigateToSearch(selectedContentMode) },
+                modifier = Modifier
+                    .weight(1f)
+                    .height(40.dp),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        if (selectedContentMode == ContentMode.VIDEO) Icons.Default.Search
+                        else Icons.Default.MusicNote,
+                        contentDescription = "Search",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(
+                        text = if (selectedContentMode == ContentMode.VIDEO)
+                            "Search videos..."
+                        else
+                            "Search music...",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+
+            ContentModeToggle(
+                selectedMode = selectedContentMode,
+                onModeSelected = onContentModeSelected
+            )
+
+            IconButton(onClick = onNavigateToSettings, modifier = Modifier.size(36.dp)) {
+                Icon(
+                    Icons.Default.Settings,
+                    ContentDescriptions.OPEN_SETTINGS,
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+    } else {
+        // Portrait Header
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(bottom = 0.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .padding(top = 4.dp, bottom = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Zimba Beats Player",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                IconButton(onClick = onNavigateToSettings) {
+                    Icon(
+                        Icons.Default.Settings,
+                        ContentDescriptions.OPEN_SETTINGS,
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+
+            // Search Box
+            Surface(
+                onClick = { onNavigateToSearch(selectedContentMode) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 8.dp),
+                shape = MaterialTheme.shapes.extraLarge,
+                color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        if (selectedContentMode == ContentMode.VIDEO) Icons.Default.Search
+                        else Icons.Default.MusicNote,
+                        contentDescription = "Search",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = if (selectedContentMode == ContentMode.VIDEO)
+                            "What do you want to watch?"
+                        else
+                            "What do you want to listen to?",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            // Aesthetic Video/Music Segmented Toggle
+            Box(
+                modifier = Modifier
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 4.dp)
+            ) {
+                ContentModeToggle(
+                    selectedMode = selectedContentMode,
+                    onModeSelected = onContentModeSelected
+                )
+            }
+        }
+    }
+}
+
+// ==================== AESTHETIC TOGGLE COMPONENTS ====================
+
+@Composable
+private fun ContentModeToggle(
+    selectedMode: ContentMode,
+    onModeSelected: (ContentMode) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.12f)),
+        modifier = modifier
+    ) {
+        Row(
+            modifier = Modifier.padding(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            ContentModeOption(
+                text = "Videos",
+                icon = Icons.Default.VideoLibrary,
+                isSelected = selectedMode == ContentMode.VIDEO,
+                onClick = { onModeSelected(ContentMode.VIDEO) }
+            )
+            ContentModeOption(
+                text = "Music",
+                icon = Icons.Default.MusicNote,
+                isSelected = selectedMode == ContentMode.MUSIC,
+                onClick = { onModeSelected(ContentMode.MUSIC) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun ContentModeOption(
+    text: String,
+    icon: ImageVector,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.94f else 1f,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "mode_option_scale"
+    )
+
+    val animatedBackgroundColor by animateColorAsState(
+        targetValue = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+        animationSpec = tween(durationMillis = 200),
+        label = "mode_option_bg"
+    )
+
+    val animatedContentColor by animateColorAsState(
+        targetValue = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+        animationSpec = tween(durationMillis = 200),
+        label = "mode_option_content"
+    )
+
+    Surface(
+        onClick = onClick,
+        shape = CircleShape,
+        color = animatedBackgroundColor,
+        shadowElevation = if (isSelected) 4.dp else 0.dp,
+        interactionSource = interactionSource,
+        modifier = Modifier.scale(scale)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = animatedContentColor,
+                modifier = Modifier.size(18.dp)
+            )
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
+                color = animatedContentColor
+            )
+        }
+    }
+}
+

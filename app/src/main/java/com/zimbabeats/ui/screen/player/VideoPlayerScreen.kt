@@ -11,9 +11,20 @@ import android.view.View
 import android.view.WindowManager
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.palette.graphics.Palette
+import coil3.compose.AsyncImagePainter
+import coil3.compose.rememberAsyncImagePainter
+import coil3.request.ImageRequest
+import coil3.request.allowHardware
+import coil3.toBitmap
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.horizontalScroll
@@ -44,6 +55,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
@@ -68,7 +80,9 @@ import com.zimbabeats.ui.accessibility.Announcements
 import com.zimbabeats.ui.accessibility.ContentDescriptions
 import com.zimbabeats.ui.viewmodel.VideoPlayerViewModel
 import com.zimbabeats.media.queue.RepeatMode
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
@@ -117,11 +131,46 @@ fun VideoPlayerScreen(
     // Detect landscape mode
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
+    // Extract dominant palette color from video thumbnail
+    var dominantColor by remember { mutableStateOf(Color.Transparent) }
+    val animatedDominantColor by animateColorAsState(
+        targetValue = dominantColor,
+        animationSpec = tween(500),
+        label = "video_dominant_color"
+    )
+
+    val thumbnailPainter = rememberAsyncImagePainter(
+        model = ImageRequest.Builder(context)
+            .data(uiState.video?.thumbnailUrl)
+            .allowHardware(false)
+            .build()
+    )
+
+    LaunchedEffect(thumbnailPainter.state) {
+        val state = thumbnailPainter.state
+        if (state is AsyncImagePainter.State.Success) {
+            withContext(Dispatchers.Default) {
+                runCatching {
+                    val bitmap = state.result.image.toBitmap()
+                    Palette.from(bitmap).generate { palette ->
+                        val swatch = palette?.vibrantSwatch
+                            ?: palette?.dominantSwatch
+                            ?: palette?.mutedSwatch
+                        swatch?.rgb?.let { rgb ->
+                            dominantColor = Color(rgb)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     // Video resize mode state
     var resizeMode by remember { mutableStateOf(VideoResizeMode.FIT) }
 
     // Controls visibility state
     var showControls by remember { mutableStateOf(true) }
+    var isControlsLocked by remember { mutableStateOf(false) }
 
     // Double-tap seek feedback
     var showSeekBackward by remember { mutableStateOf(false) }
@@ -330,31 +379,35 @@ fun VideoPlayerScreen(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
-                            .pointerInput(Unit) {
+                            .pointerInput(isControlsLocked) {
                                 detectTapGestures(
                                     onTap = { showControls = !showControls },
                                     onDoubleTap = {
-                                        viewModel.seekBackward(5000)
-                                        showSeekBackward = true
+                                        if (!isControlsLocked) {
+                                            viewModel.seekBackward(10000)
+                                            showSeekBackward = true
+                                        }
                                     }
                                 )
                             }
-                            .pointerInput(Unit) {
-                                detectVerticalDragGestures(
-                                    onDragStart = { showBrightnessIndicator = true },
-                                    onDragEnd = { },
-                                    onVerticalDrag = { _, dragAmount ->
-                                        val delta = -dragAmount / 500f
-                                        currentBrightness = (currentBrightness + delta).coerceIn(0.01f, 1f)
-                                        val activity = context as? Activity
-                                        activity?.window?.let { window ->
-                                            val params = window.attributes
-                                            params.screenBrightness = currentBrightness
-                                            window.attributes = params
+                            .pointerInput(isControlsLocked) {
+                                if (!isControlsLocked) {
+                                    detectVerticalDragGestures(
+                                        onDragStart = { showBrightnessIndicator = true },
+                                        onDragEnd = { },
+                                        onVerticalDrag = { _, dragAmount ->
+                                            val delta = -dragAmount / 500f
+                                            currentBrightness = (currentBrightness + delta).coerceIn(0.01f, 1f)
+                                            val activity = context as? Activity
+                                            activity?.window?.let { window ->
+                                                val params = window.attributes
+                                                params.screenBrightness = currentBrightness
+                                                window.attributes = params
+                                            }
+                                            showBrightnessIndicator = true
                                         }
-                                        showBrightnessIndicator = true
-                                    }
-                                )
+                                    )
+                                }
                             }
                     )
 
@@ -363,29 +416,33 @@ fun VideoPlayerScreen(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
-                            .pointerInput(Unit) {
+                            .pointerInput(isControlsLocked) {
                                 detectTapGestures(
                                     onTap = { showControls = !showControls },
                                     onDoubleTap = {
-                                        viewModel.seekForward(5000)
-                                        showSeekForward = true
+                                        if (!isControlsLocked) {
+                                            viewModel.seekForward(10000)
+                                            showSeekForward = true
+                                        }
                                     }
                                 )
                             }
-                            .pointerInput(Unit) {
-                                detectVerticalDragGestures(
-                                    onDragStart = { showVolumeIndicator = true },
-                                    onDragEnd = { },
-                                    onVerticalDrag = { _, dragAmount ->
-                                        val delta = -dragAmount / 50f
-                                        val newVolume = (currentVolume + delta.roundToInt()).coerceIn(0, maxVolume)
-                                        if (newVolume != currentVolume) {
-                                            currentVolume = newVolume
-                                            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, currentVolume, 0)
+                            .pointerInput(isControlsLocked) {
+                                if (!isControlsLocked) {
+                                    detectVerticalDragGestures(
+                                        onDragStart = { showVolumeIndicator = true },
+                                        onDragEnd = { },
+                                        onVerticalDrag = { _, dragAmount ->
+                                            val delta = -dragAmount / 50f
+                                            val newVolume = (currentVolume + delta.roundToInt()).coerceIn(0, maxVolume)
+                                            if (newVolume != currentVolume) {
+                                                currentVolume = newVolume
+                                                audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, currentVolume, 0)
+                                            }
+                                            showVolumeIndicator = true
                                         }
-                                        showVolumeIndicator = true
-                                    }
-                                )
+                                    )
+                                }
                             }
                     )
                 }
@@ -419,129 +476,325 @@ fun VideoPlayerScreen(
                     )
                 }
 
-                // Seek Backward (5s)
+                // Seek Backward (10s)
                 if (showSeekBackward) {
-                    SeekFeedback(Icons.Default.Replay5, "5s", Alignment.CenterStart)
+                    SeekFeedback(Icons.Default.Replay10, "10s", Alignment.CenterStart)
                 }
 
-                // Seek Forward (5s)
+                // Seek Forward (10s)
                 if (showSeekForward) {
-                    SeekFeedback(Icons.Default.Forward5, "5s", Alignment.CenterEnd)
+                    SeekFeedback(Icons.Default.Forward10, "10s", Alignment.CenterEnd)
                 }
 
                 // 4. Controls Overlay
                 if (showControls && !isInPipMode) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.4f))
-                            .systemBarsPadding()
-                    ) {
-                        // Top Bar - Scrollable actions
-                        val topScrollState = rememberScrollState()
-                        Row(
+                    if (isControlsLocked) {
+                        // Locked controls overlay - floating lock badge
+                        Box(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .align(Alignment.TopCenter)
-                                .background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.7f), Color.Transparent)))
-                                .horizontalScroll(topScrollState)
-                                .padding(8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.25f))
+                                .systemBarsPadding(),
+                            contentAlignment = Alignment.Center
                         ) {
-                            IconButton(onClick = { viewModel.saveProgress(); onNavigateBack() }) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = Color.White)
-                            }
-
-                            IconButton(onClick = { viewModel.cycleRepeatMode() }) {
-                                Icon(
-                                    imageVector = when (uiState.repeatMode) {
-                                        RepeatMode.OFF, RepeatMode.ALL -> Icons.Default.Repeat
-                                        RepeatMode.ONE -> Icons.Default.RepeatOne
-                                    },
-                                    contentDescription = "Repeat",
-                                    tint = if (uiState.repeatMode != RepeatMode.OFF) accentColor else Color.White
-                                )
-                            }
-
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                                IconButton(onClick = { (context.findActivity() as? MainActivity)?.enterPipMode() }) {
-                                    Icon(Icons.Default.PictureInPicture, "PiP", tint = Color.White)
-                                }
-                            }
-
                             Surface(
-                                onClick = { showSpeedSelector = true },
-                                color = Color.Black.copy(alpha = 0.6f),
-                                shape = RoundedCornerShape(4.dp)
+                                onClick = { isControlsLocked = false },
+                                shape = CircleShape,
+                                color = Color.Black.copy(alpha = 0.8f),
+                                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.25f)),
+                                shadowElevation = 12.dp
                             ) {
-                                Text("${playerState.playbackSpeed}x", color = Color.White, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
-                            }
-
-                            if (uiState.availableQualities.isNotEmpty()) {
-                                IconButton(onClick = { viewModel.showQualitySelector() }) {
-                                    Icon(Icons.Default.Settings, "Quality", tint = Color.White)
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Lock,
+                                        contentDescription = "Unlock controls",
+                                        tint = accentColor,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Text(
+                                        text = "Screen Locked · Tap to Unlock",
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White
+                                    )
                                 }
                             }
-
-                            Surface(
-                                onClick = {
-                                    resizeMode = when (resizeMode) {
-                                        VideoResizeMode.FIT -> VideoResizeMode.FILL
-                                        VideoResizeMode.FILL -> VideoResizeMode.ZOOM
-                                        VideoResizeMode.ZOOM -> VideoResizeMode.FIT
+                        }
+                    } else {
+                        // Full landscape controls overlay
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.45f))
+                                .systemBarsPadding()
+                        ) {
+                            // Top Bar - Video Title & Quick Tools
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .align(Alignment.TopCenter)
+                                    .background(
+                                        Brush.verticalGradient(
+                                            colors = listOf(Color.Black.copy(alpha = 0.85f), Color.Transparent)
+                                        )
+                                    )
+                                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                // Left: Back arrow + Video Title & Channel
+                                Row(
+                                    modifier = Modifier.weight(1f, fill = false),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    IconButton(onClick = { viewModel.saveProgress(); onNavigateBack() }) {
+                                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = Color.White)
                                     }
-                                },
-                                color = Color.Black.copy(alpha = 0.6f),
-                                shape = RoundedCornerShape(4.dp)
-                            ) {
-                                Text(resizeMode.label, color = Color.White, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
-                            }
-                        }
 
-                        // Center - Play/Pause
-                        IconButton(
-                            onClick = { viewModel.togglePlayPause() },
-                            modifier = Modifier.align(Alignment.Center).size(72.dp).background(Color.Black.copy(alpha = 0.6f), CircleShape)
-                        ) {
-                            Icon(
-                                if (playerState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                                contentDescription = "Play/Pause", tint = Color.White, modifier = Modifier.size(48.dp)
-                            )
-                        }
-
-                        // Bottom Bar - Seekable Slider
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .align(Alignment.BottomCenter)
-                                .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f))))
-                                .padding(horizontal = 64.dp, vertical = 16.dp) // Even more padding for landscape safe-zone
-                        ) {
-                            Slider(
-                                value = scrapingProgress ?: progress.coerceIn(0f, 1f),
-                                onValueChange = { newValue ->
-                                    scrapingProgress = newValue
-                                },
-                                onValueChangeFinished = {
-                                    scrapingProgress?.let { newValue ->
-                                        if (playerState.duration > 0) {
-                                            viewModel.seekTo((newValue * playerState.duration).toLong())
+                                    Column(modifier = Modifier.padding(end = 12.dp)) {
+                                        uiState.video?.title?.let { title ->
+                                            Text(
+                                                text = title,
+                                                style = MaterialTheme.typography.titleSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color.White,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+                                        uiState.video?.channelName?.let { channel ->
+                                            Text(
+                                                text = channel,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = Color.White.copy(alpha = 0.7f),
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
                                         }
                                     }
-                                    scrapingProgress = null
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = SliderDefaults.colors(
-                                    thumbColor = accentColor,
-                                    activeTrackColor = accentColor,
-                                    inactiveTrackColor = Color.White.copy(alpha = 0.3f)
-                                )
-                            )
+                                }
 
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text(formatTime(playerState.currentPosition), color = Color.White, style = MaterialTheme.typography.labelSmall)
-                                Text(formatTime(playerState.duration), color = Color.White, style = MaterialTheme.typography.labelSmall)
+                                // Right: Scrollable Quick Action Tools
+                                val topScrollState = rememberScrollState()
+                                Row(
+                                    modifier = Modifier.horizontalScroll(topScrollState),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    // Lock Screen Button
+                                    IconButton(
+                                        onClick = { isControlsLocked = true },
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .background(Color.White.copy(alpha = 0.15f), CircleShape)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.LockOpen,
+                                            contentDescription = "Lock controls",
+                                            tint = Color.White,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+
+                                    // Repeat Mode Button
+                                    IconButton(onClick = { viewModel.cycleRepeatMode() }) {
+                                        Icon(
+                                            imageVector = when (uiState.repeatMode) {
+                                                RepeatMode.OFF, RepeatMode.ALL -> Icons.Default.Repeat
+                                                RepeatMode.ONE -> Icons.Default.RepeatOne
+                                            },
+                                            contentDescription = "Repeat",
+                                            tint = if (uiState.repeatMode != RepeatMode.OFF) accentColor else Color.White
+                                        )
+                                    }
+
+                                    // PiP Mode
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                        IconButton(onClick = { (context.findActivity() as? MainActivity)?.enterPipMode() }) {
+                                            Icon(Icons.Default.PictureInPicture, "PiP", tint = Color.White)
+                                        }
+                                    }
+
+                                    // Speed Selector Pill
+                                    Surface(
+                                        onClick = { showSpeedSelector = true },
+                                        color = Color.White.copy(alpha = 0.15f),
+                                        shape = CircleShape
+                                    ) {
+                                        Text(
+                                            text = "${playerState.playbackSpeed}x",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.White,
+                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                        )
+                                    }
+
+                                    // Quality Settings
+                                    if (uiState.availableQualities.isNotEmpty()) {
+                                        IconButton(onClick = { viewModel.showQualitySelector() }) {
+                                            Icon(Icons.Default.Settings, "Quality", tint = Color.White)
+                                        }
+                                    }
+
+                                    // Aspect Ratio / Resize Mode
+                                    Surface(
+                                        onClick = {
+                                            resizeMode = when (resizeMode) {
+                                                VideoResizeMode.FIT -> VideoResizeMode.FILL
+                                                VideoResizeMode.FILL -> VideoResizeMode.ZOOM
+                                                VideoResizeMode.ZOOM -> VideoResizeMode.FIT
+                                            }
+                                        },
+                                        color = Color.White.copy(alpha = 0.15f),
+                                        shape = CircleShape
+                                    ) {
+                                        Text(
+                                            text = resizeMode.label,
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.White,
+                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                        )
+                                    }
+                                }
+                            }
+
+                            // Center - Playback Control Hub (-10s, Play/Pause, +10s)
+                            Row(
+                                modifier = Modifier.align(Alignment.Center),
+                                horizontalArrangement = Arrangement.spacedBy(36.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // -10s Seek Backward
+                                IconButton(
+                                    onClick = {
+                                        viewModel.seekBackward(10000)
+                                        showSeekBackward = true
+                                    },
+                                    modifier = Modifier
+                                        .size(56.dp)
+                                        .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                                        .border(1.dp, Color.White.copy(alpha = 0.2f), CircleShape)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Replay10,
+                                        contentDescription = "Seek backward 10 seconds",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(32.dp)
+                                    )
+                                }
+
+                                // Play / Pause Button
+                                IconButton(
+                                    onClick = { viewModel.togglePlayPause() },
+                                    modifier = Modifier
+                                        .size(80.dp)
+                                        .background(Color.Black.copy(alpha = 0.65f), CircleShape)
+                                        .border(2.dp, accentColor, CircleShape)
+                                ) {
+                                    Icon(
+                                        imageVector = if (playerState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                        contentDescription = if (playerState.isPlaying) "Pause" else "Play",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(48.dp)
+                                    )
+                                }
+
+                                // +10s Seek Forward
+                                IconButton(
+                                    onClick = {
+                                        viewModel.seekForward(10000)
+                                        showSeekForward = true
+                                    },
+                                    modifier = Modifier
+                                        .size(56.dp)
+                                        .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                                        .border(1.dp, Color.White.copy(alpha = 0.2f), CircleShape)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Forward10,
+                                        contentDescription = "Seek forward 10 seconds",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(32.dp)
+                                    )
+                                }
+                            }
+
+                            // Bottom Bar - Scrubbing Badge & Time Slider
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .align(Alignment.BottomCenter)
+                                    .background(
+                                        Brush.verticalGradient(
+                                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.85f))
+                                        )
+                                    )
+                                    .padding(horizontal = 48.dp, vertical = 12.dp)
+                            ) {
+                                // Live Scrubbing Badge when dragging slider
+                                if (scrapingProgress != null) {
+                                    val scrubPositionMs = ((scrapingProgress ?: 0f) * playerState.duration).toLong()
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(bottom = 2.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Surface(
+                                            color = accentColor,
+                                            shape = RoundedCornerShape(12.dp)
+                                        ) {
+                                            Text(
+                                                text = formatTime(scrubPositionMs),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color.Black,
+                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
+                                            )
+                                        }
+                                    }
+                                }
+
+                                Slider(
+                                    value = scrapingProgress ?: progress.coerceIn(0f, 1f),
+                                    onValueChange = { newValue ->
+                                        scrapingProgress = newValue
+                                    },
+                                    onValueChangeFinished = {
+                                        scrapingProgress?.let { newValue ->
+                                            if (playerState.duration > 0) {
+                                                viewModel.seekTo((newValue * playerState.duration).toLong())
+                                            }
+                                        }
+                                        scrapingProgress = null
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = SliderDefaults.colors(
+                                        thumbColor = accentColor,
+                                        activeTrackColor = accentColor,
+                                        inactiveTrackColor = Color.White.copy(alpha = 0.3f)
+                                    )
+                                )
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "${formatTime(playerState.currentPosition)} / ${formatTime(playerState.duration)}",
+                                        color = Color.White,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
                             }
                         }
                     }
@@ -604,7 +857,22 @@ fun VideoPlayerScreen(
                         }
 
                         else -> {
-                            Column(modifier = Modifier.fillMaxSize()) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(
+                                        if (animatedDominantColor != Color.Transparent)
+                                            Brush.verticalGradient(
+                                                colors = listOf(
+                                                    animatedDominantColor.copy(alpha = 0.3f),
+                                                    Color.Black
+                                                )
+                                            )
+                                        else Brush.verticalGradient(
+                                            colors = listOf(Color.Black, Color.Black)
+                                        )
+                                    )
+                            ) {
                                 // Video Player - Fixed at top, doesn't scroll
                                 AndroidView(
                                     factory = { ctx ->

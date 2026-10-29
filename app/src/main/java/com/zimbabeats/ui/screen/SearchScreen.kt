@@ -551,7 +551,7 @@ fun SearchScreen(
                                                 )
                                             },
                                             modifier = Modifier.height(36.dp),
-                                            shape = RoundedCornerShape(22.dp),
+                                            shape = CircleShape,
                                             colors = SuggestionChipDefaults.suggestionChipColors(
                                                 containerColor = if (hasLiveSuggestions) {
                                                     // YouTube live suggestions - use tertiary color

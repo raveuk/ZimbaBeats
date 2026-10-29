@@ -37,11 +37,11 @@ object ZimbaBeatsCorners {
     // Component-specific
     val Card = RoundedCornerShape(16.dp)
     val Button = RoundedCornerShape(12.dp)
-    val Chip = RoundedCornerShape(8.dp)
-    val TextField = RoundedCornerShape(12.dp)
+    val Chip = RoundedCornerShape(50)  // Sleek pill shape
+    val TextField = RoundedCornerShape(16.dp)
     val BottomSheet = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
     val MiniPlayer = RoundedCornerShape(16.dp)
     val AlbumArt = RoundedCornerShape(12.dp)
-    val Thumbnail = RoundedCornerShape(8.dp)
+    val Thumbnail = RoundedCornerShape(12.dp)
     val NavigationBar = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
 }

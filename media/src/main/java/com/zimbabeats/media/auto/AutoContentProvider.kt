@@ -135,6 +135,7 @@ class AutoContentProvider(
         val metadata = MediaMetadata.Builder()
             .setTitle(playlist.name)
             .setSubtitle("${playlist.trackCount} tracks")
+            .setMediaType(MediaMetadata.MEDIA_TYPE_PLAYLIST)
             .apply {
                 playlist.thumbnailUrl?.let { setArtworkUri(Uri.parse(it)) }
             }
@@ -156,9 +157,14 @@ class AutoContentProvider(
         title: String,
         subtitle: String
     ): MediaItem {
+        val mediaType = when (id) {
+            PLAYLISTS_ID -> MediaMetadata.MEDIA_TYPE_FOLDER_PLAYLISTS
+            else -> MediaMetadata.MEDIA_TYPE_FOLDER_MIXED
+        }
         val metadata = MediaMetadata.Builder()
             .setTitle(title)
             .setSubtitle(subtitle)
+            .setMediaType(mediaType)
             .setIsPlayable(false)
             .setIsBrowsable(true)
             .build()

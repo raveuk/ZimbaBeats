@@ -67,16 +67,16 @@ fun EnhancedVideoCard(
     val accessibilityDescription = "${video.title} by ${video.channelName}${if (durationText.isNotEmpty()) ", $durationText" else ""}$progressText. Double tap to play."
 
     // Glassmorphism card - balanced opacity
-    val cardShape = RoundedCornerShape(12.dp)
+    val cardShape = RoundedCornerShape(16.dp)
     Box(
         modifier = modifier
-            .width(160.dp)
+            .width(170.dp)
             .scale(scale)
             .clip(cardShape)
-            .background(GlassWhiteStrong)
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f))
             .border(
-                width = 1.5.dp,
-                color = GlassBorderStrong,
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f),
                 shape = cardShape
             )
             .semantics {
@@ -95,7 +95,7 @@ fun EnhancedVideoCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(16f / 9f)
-                    .clip(RoundedCornerShape(8.dp))
+                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
                     .clearAndSetSemantics { } // Clear child semantics, handled by parent
             ) {
                 AsyncImage(
@@ -175,12 +175,12 @@ fun EnhancedVideoCard(
             // Video info - compact style
             Column(
                 modifier = Modifier.padding(
-                    start = 4.dp,
-                    end = 4.dp,
-                    top = 8.dp,
-                    bottom = 4.dp
+                    start = 12.dp,
+                    end = 12.dp,
+                    top = 10.dp,
+                    bottom = 12.dp
                 ),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
                     text = video.title,
