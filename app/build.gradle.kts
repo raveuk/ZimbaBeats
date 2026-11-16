@@ -49,16 +49,20 @@ android {
         buildConfigField("String", "GITHUB_REPO", "\"raveuk/ZimbaBeats\"")
         buildConfigField("String", "AUTHOR", "\"ZimbaBeats\"")
         buildConfigField("String", "BUY_COFFEE_URL", "\"https://buymeacoffee.com/zimbabeats\"")
+        manifestPlaceholders["crashlyticsCollectionEnabled"] = "true"
     }
 
     buildTypes {
         debug {
+            // Disable Crashlytics in debug builds to prevent synchronous initialization timeout and startup ANR
+            manifestPlaceholders["crashlyticsCollectionEnabled"] = "false"
             // Use release signing for debug too if available - ensures consistent signature for updates
             if (hasReleaseKeystore) {
                 signingConfig = signingConfigs.getByName("release")
             }
         }
         release {
+            manifestPlaceholders["crashlyticsCollectionEnabled"] = "true"
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(

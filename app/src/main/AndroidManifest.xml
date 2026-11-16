@@ -36,7 +36,6 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:usesCleartextTraffic="true"
-        android:extractNativeLibs="true"
         android:theme="@style/Theme.ZimbaBeats">
 
         <!-- Samsung Bixby Capabilities -->
@@ -44,7 +43,10 @@
         <meta-data android:name="com.samsung.android.music.category" android:value="true" />
         <meta-data android:name="com.samsung.android.video.category" android:value="true" />
 
-
+        <!-- Disable automatic Crashlytics initialization in debug builds to prevent synchronous startup ANR -->
+        <meta-data
+            android:name="firebase_crashlytics_collection_enabled"
+            android:value="${crashlyticsCollectionEnabled}" />
 
         <activity
             android:name=".MainActivity"

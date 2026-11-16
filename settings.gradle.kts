@@ -32,3 +32,5 @@ include(":core:data")
 include(":core:common")
 include(":media")
 include(":service")
+include(":shared")
+

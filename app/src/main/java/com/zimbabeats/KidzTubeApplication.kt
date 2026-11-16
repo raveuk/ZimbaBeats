@@ -148,12 +148,14 @@ class ZimbaBeatsApplication : Application(), SingletonImageLoader.Factory {
     }
 
     private fun initializeParentalControlBridge() {
-        try {
-            val bridge: ParentalControlBridge = get()
-            bridge.initialize()
-            android.util.Log.d("ZimbaBeats", "ParentalControlBridge initialized")
-        } catch (e: Exception) {
-            android.util.Log.e("ZimbaBeats", "Failed to initialize ParentalControlBridge", e)
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val bridge: ParentalControlBridge = get()
+                bridge.initialize()
+                android.util.Log.d("ZimbaBeats", "ParentalControlBridge initialized")
+            } catch (e: Exception) {
+                android.util.Log.e("ZimbaBeats", "Failed to initialize ParentalControlBridge", e)
+            }
         }
     }
 
@@ -170,16 +172,18 @@ class ZimbaBeatsApplication : Application(), SingletonImageLoader.Factory {
     }
 
     private fun initializeCloudSync() {
-        try {
-            val cloudPairingClient: CloudPairingClient = get()
-            if (cloudPairingClient.isPaired()) {
-                cloudPairingClient.startSettingsSync()
-                android.util.Log.d("ZimbaBeats", "Cloud sync started - linked to family")
-            } else {
-                android.util.Log.d("ZimbaBeats", "Not linked to family - skipping cloud sync")
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val cloudPairingClient: CloudPairingClient = get()
+                if (cloudPairingClient.isPaired()) {
+                    cloudPairingClient.startSettingsSync()
+                    android.util.Log.d("ZimbaBeats", "Cloud sync started - linked to family")
+                } else {
+                    android.util.Log.d("ZimbaBeats", "Not linked to family - skipping cloud sync")
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("ZimbaBeats", "Failed to initialize cloud sync", e)
             }
-        } catch (e: Exception) {
-            android.util.Log.e("ZimbaBeats", "Failed to initialize cloud sync", e)
         }
     }
 
