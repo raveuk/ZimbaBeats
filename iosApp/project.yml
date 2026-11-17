@@ -12,8 +12,6 @@ settings:
     CURRENT_PROJECT_VERSION: "96"
     INFOPLIST_FILE: ZimbaBeats/Info.plist
     ENABLE_BITCODE: NO
-    CODE_SIGNING_REQUIRED: NO
-    CODE_SIGNING_ALLOWED: NO
 
 targets:
   ZimbaBeats:
