@@ -14,27 +14,41 @@
 .cxx
 local.properties
 
-# Signing keys - keep secure, don't commit
+# Signing keys & certificates - keep secure, never commit
 *.jks
 *.keystore
+*.p12
+*.pfx
+*.p8
+*.mobileprovision
+*.cer
+*.crt
+*.der
 keystore.properties
+signing.properties
 
-# Firebase config - contains API keys
+# Firebase & Google Services config - contains private API keys
 google-services.json
 **/google-services.json
+GoogleService-Info.plist
+**/GoogleService-Info.plist
+.firebaserc
+*service-account*.json
 
-# IDE and build artifacts
+# IDE, tooling, and AI agents
 .idea/
 .kotlin/
 .claude/
 .agents/
+.vscode/
 nul
 
 # Sensitive/Security files - never commit
 CLAUDE.md
-.firebaserc
 *templog*.txt
 *.env
+*.env.*
+.env*
 credentials.json
 secrets.json
 *.pem
