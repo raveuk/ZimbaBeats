@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <application>
+        <!-- In debug builds, remove CrashlyticsRegistrar and FirebaseSessionsRegistrar
+             from FirebaseInitProvider's eager ComponentDiscoveryService so they do not
+             synchronously block handleBindApplication on startup. -->
+        <service
+            android:name="com.google.firebase.components.ComponentDiscoveryService"
+            tools:node="merge">
+            <meta-data
+                android:name="com.google.firebase.components:com.google.firebase.crashlytics.FirebaseCrashlyticsKtxRegistrar"
+                tools:node="remove" />
+            <meta-data
+                android:name="com.google.firebase.components:com.google.firebase.crashlytics.CrashlyticsRegistrar"
+                tools:node="remove" />
+            <meta-data
+                android:name="com.google.firebase.components:com.google.firebase.sessions.FirebaseSessionsRegistrar"
+                tools:node="remove" />
+        </service>
+    </application>
+</manifest>

@@ -15,17 +15,25 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.zimbabeats.core.domain.model.Video
+import com.zimbabeats.data.AppPreferences
+import com.zimbabeats.data.VideoDisplayMode
+import com.zimbabeats.ui.components.EnhancedVideoCard
+import com.zimbabeats.ui.components.VideoDisplayModeToggle
+import com.zimbabeats.ui.components.YouTubeVideoTile
 import com.zimbabeats.ui.viewmodel.FavoritesViewModel
 import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.koinInject
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FavoritesScreen(
     onNavigateBack: () -> Unit,
     onVideoClick: (String) -> Unit,
-    viewModel: FavoritesViewModel = koinViewModel()
+    viewModel: FavoritesViewModel = koinViewModel(),
+    appPreferences: AppPreferences = koinInject()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val videoDisplayMode by appPreferences.videoDisplayModeFlow.collectAsState()
 
     Scaffold(
         topBar = {
@@ -34,6 +42,15 @@ fun FavoritesScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                    }
+                },
+                actions = {
+                    if (uiState.favorites.isNotEmpty()) {
+                        VideoDisplayModeToggle(
+                            currentMode = videoDisplayMode,
+                            onModeSelected = { appPreferences.setVideoDisplayMode(it) },
+                            modifier = Modifier.padding(end = 8.dp)
+                        )
                     }
                 }
             )
@@ -103,11 +120,50 @@ fun FavoritesScreen(
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        items(uiState.favorites) { video ->
-                            FavoriteVideoItem(
-                                video = video,
-                                onClick = { onVideoClick(video.id) }
-                            )
+                        when (videoDisplayMode) {
+                            VideoDisplayMode.TILE -> {
+                                items(uiState.favorites, key = { it.id }) { video ->
+                                    YouTubeVideoTile(
+                                        video = video,
+                                        onClick = { onVideoClick(video.id) },
+                                        trailing = {
+                                            Icon(
+                                                imageVector = Icons.Default.Favorite,
+                                                contentDescription = "Favorited",
+                                                tint = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
+                                    )
+                                }
+                            }
+                            VideoDisplayMode.GRID -> {
+                                val rows = uiState.favorites.chunked(2)
+                                items(rows) { rowVideos ->
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        rowVideos.forEach { video ->
+                                            EnhancedVideoCard(
+                                                video = video,
+                                                onClick = { onVideoClick(video.id) },
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                        }
+                                        if (rowVideos.size == 1) {
+                                            Spacer(modifier = Modifier.weight(1f))
+                                        }
+                                    }
+                                }
+                            }
+                            VideoDisplayMode.LIST -> {
+                                items(uiState.favorites, key = { it.id }) { video ->
+                                    FavoriteVideoItem(
+                                        video = video,
+                                        onClick = { onVideoClick(video.id) }
+                                    )
+                                }
+                            }
                         }
                     }
                 }

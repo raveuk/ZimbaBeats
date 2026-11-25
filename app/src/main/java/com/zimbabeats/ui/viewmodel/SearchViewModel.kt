@@ -8,12 +8,14 @@ import com.zimbabeats.core.domain.model.SearchSuggestion
 import com.zimbabeats.core.domain.model.Video
 import com.zimbabeats.core.domain.repository.SearchRepository
 import com.zimbabeats.core.domain.util.Resource
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 data class SearchUiState(
     val query: String = "",
@@ -180,7 +182,7 @@ class SearchViewModel(
      * Sort videos by upload date (newest first).
      */
     private fun sortByLatest(videos: List<Video>): List<Video> {
-        return videos.sortedByDescending { it.publishedAt }
+        return videos.distinctBy { it.id }.sortedByDescending { it.publishedAt }
     }
 
     private fun loadRecentSearches() {
@@ -340,14 +342,16 @@ class SearchViewModel(
             searchRepository.updateSuggestion(query)
 
             // Search YouTube - filtering is done after results are returned.
-            // 200 matches the InnerTube pagination cap so all fetched pages are kept; results
-            // are then sorted newest-first below.
-            when (val result = searchRepository.searchVideos(query, maxResults = 200)) {
+            // 40 (~2 pages) returns plenty of relevant results quickly without triggering
+            // a 10-page JSON allocation storm or GC pauses.
+            when (val result = searchRepository.searchVideos(query, maxResults = 40)) {
                 is Resource.Success -> {
                     val searchResult = result.data
                     // First apply safety filtering via Bridge, then sort by latest (newest first)
-                    val filteredVideos = filterVideosByCloud(searchResult.videos)
-                    val sortedVideos = sortByLatest(filteredVideos)
+                    val (filteredVideos, sortedVideos) = withContext(Dispatchers.Default) {
+                        val filtered = filterVideosByCloud(searchResult.videos)
+                        filtered to sortByLatest(filtered)
+                    }
                     _uiState.value = _uiState.value.copy(
                         searchResults = sortedVideos,
                         isSearching = false,

@@ -76,6 +76,11 @@ import androidx.compose.ui.unit.dp
 import com.zimbabeats.core.domain.model.Video
 import com.zimbabeats.core.domain.model.music.MusicSearchFilter
 import com.zimbabeats.core.domain.model.music.MusicSearchResult
+import com.zimbabeats.data.AppPreferences
+import com.zimbabeats.data.VideoDisplayMode
+import com.zimbabeats.ui.components.EnhancedVideoCard
+import com.zimbabeats.ui.components.VideoDisplayModeToggle
+import com.zimbabeats.ui.components.YouTubeVideoTile
 import com.zimbabeats.ui.data.KidSafeSuggestions
 import com.zimbabeats.ui.theme.*
 import com.zimbabeats.ui.viewmodel.SearchViewModel
@@ -113,11 +118,13 @@ fun SearchScreen(
     autoPlay: Boolean = false,
     videoViewModel: SearchViewModel = koinViewModel(),
     musicViewModel: MusicSearchViewModel = koinViewModel(),
-    musicPlaybackManager: MusicPlaybackManager = koinInject()
+    musicPlaybackManager: MusicPlaybackManager = koinInject(),
+    appPreferences: AppPreferences = koinInject()
 ) {
     val context = LocalContext.current
     var searchMode by rememberSaveable { mutableStateOf(initialSearchMode) }
     var hasAutoPlayed by rememberSaveable { mutableStateOf(false) }
+    val videoDisplayMode by appPreferences.videoDisplayModeFlow.collectAsState()
 
     // Voice search launcher
     val speechLauncher = rememberLauncherForActivityResult(
@@ -334,7 +341,8 @@ fun SearchScreen(
                     .fillMaxWidth()
                     .horizontalScroll(rememberScrollState())
                     .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 FilterChip(
                     selected = searchMode == SearchMode.VIDEO,
@@ -360,6 +368,15 @@ fun SearchScreen(
                         )
                     }
                 )
+
+                // Video display mode switcher in top bar when in Video mode
+                if (searchMode == SearchMode.VIDEO) {
+                    Spacer(modifier = Modifier.width(4.dp))
+                    VideoDisplayModeToggle(
+                        currentMode = videoDisplayMode,
+                        onModeSelected = { appPreferences.setVideoDisplayMode(it) }
+                    )
+                }
 
                 // Music filters (only show when in music mode and has results)
                 if (searchMode == SearchMode.MUSIC && musicUiState.hasSearched) {
@@ -747,11 +764,44 @@ fun SearchScreen(
                                         )
                                     }
 
-                                    items(videoUiState.searchResults) { video ->
-                                        SearchResultItem(
-                                            video = video,
-                                            onClick = { onVideoClick(video.id) }
-                                        )
+                                    when (videoDisplayMode) {
+                                        VideoDisplayMode.TILE -> {
+                                            items(videoUiState.searchResults, key = { it.id }) { video ->
+                                                YouTubeVideoTile(
+                                                    video = video,
+                                                    onClick = { onVideoClick(video.id) },
+                                                    modifier = Modifier.padding(vertical = 4.dp)
+                                                )
+                                            }
+                                        }
+                                        VideoDisplayMode.GRID -> {
+                                            val rows = videoUiState.searchResults.chunked(2)
+                                            items(rows) { rowVideos ->
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                                ) {
+                                                    rowVideos.forEach { video ->
+                                                        EnhancedVideoCard(
+                                                            video = video,
+                                                            onClick = { onVideoClick(video.id) },
+                                                            modifier = Modifier.weight(1f)
+                                                        )
+                                                    }
+                                                    if (rowVideos.size == 1) {
+                                                        Spacer(modifier = Modifier.weight(1f))
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        VideoDisplayMode.LIST -> {
+                                            items(videoUiState.searchResults, key = { it.id }) { video ->
+                                                SearchResultItem(
+                                                    video = video,
+                                                    onClick = { onVideoClick(video.id) }
+                                                )
+                                            }
+                                        }
                                     }
 
                                     item {

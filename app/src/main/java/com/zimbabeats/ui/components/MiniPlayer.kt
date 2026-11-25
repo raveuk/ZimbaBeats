@@ -133,8 +133,9 @@ fun MiniPlayer(
                     .build()
             )
 
-            LaunchedEffect(painter.state) {
-                val state = painter.state
+            val painterState by painter.state.collectAsState()
+            LaunchedEffect(painterState) {
+                val state = painterState
                 if (state is AsyncImagePainter.State.Success) {
                     withContext(Dispatchers.Default) {
                         try {

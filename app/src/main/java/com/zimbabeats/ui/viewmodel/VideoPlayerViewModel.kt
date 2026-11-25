@@ -315,7 +315,9 @@ class VideoPlayerViewModel(
                         )
 
                         player.playVideo(bestStream.url, video.title)
-                        restoreSavedProgress(videoId)
+                        if (bestStream.format != "hls") {
+                            restoreSavedProgress(videoId)
+                        }
                         startWatchSession(videoId)
 
                         // Save to watch history immediately
@@ -1086,9 +1088,9 @@ class VideoPlayerViewModel(
 
         // Save watch history in a scope that won't be cancelled
         cleanupScope.launch {
-            if (video != null) {
-                val watchDuration = (System.currentTimeMillis() - currentWatchStartTime) / 1000
-                val totalDuration = duration / 1000
+            if (video != null && currentWatchStartTime > 0L) {
+                val watchDuration = ((System.currentTimeMillis() - currentWatchStartTime) / 1000).coerceAtLeast(0L)
+                val totalDuration = if (duration > 0) duration / 1000 else video.duration.coerceAtLeast(0L)
                 val completionPercentage = if (duration > 0) {
                     (currentPosition.toFloat() / duration) * 100
                 } else 0f

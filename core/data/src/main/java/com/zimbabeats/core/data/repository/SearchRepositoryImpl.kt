@@ -14,8 +14,10 @@ import com.zimbabeats.core.domain.model.SearchSuggestion
 import com.zimbabeats.core.domain.model.Video
 import com.zimbabeats.core.domain.repository.SearchRepository
 import com.zimbabeats.core.domain.util.Resource
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 
 class SearchRepositoryImpl(
     private val database: ZimbaBeatsDatabase,
@@ -38,32 +40,35 @@ class SearchRepositoryImpl(
             videos.map { it.toDomain() }
         }
 
-    override suspend fun searchVideos(query: String, maxResults: Int): Resource<SearchResult> = try {
-        // Search YouTube using Innertube API with correction support
-        val searchResult = youTubeService.searchVideosWithCorrection(query, maxResults)
+    override suspend fun searchVideos(query: String, maxResults: Int): Resource<SearchResult> =
+        withContext(Dispatchers.IO) {
+            try {
+                // Search YouTube using Innertube API with correction support
+                val searchResult = youTubeService.searchVideosWithCorrection(query, maxResults)
 
-        // Convert to domain models
-        val videos = searchResult.videos.map { it.toDomainModel() }
+                // Convert to domain models
+                val videos = searchResult.videos.map { it.toDomainModel() }
 
-        // Save to database so videos can be played when clicked
-        val entities = searchResult.videos.map { it.toEntity() }
-        videoDao.insertVideos(entities)
+                // Save to database so videos can be played when clicked
+                val entities = searchResult.videos.map { it.toEntity() }
+                videoDao.insertVideos(entities)
 
-        // Create search result with correction info
-        val result = SearchResult(
-            query = query,
-            videos = videos,
-            totalResults = videos.size,
-            hasMore = videos.size >= maxResults,
-            correctedQuery = searchResult.correctedQuery
-        )
+                // Create search result with correction info
+                val result = SearchResult(
+                    query = query,
+                    videos = videos,
+                    totalResults = videos.size,
+                    hasMore = videos.size >= maxResults,
+                    correctedQuery = searchResult.correctedQuery
+                )
 
-        Resource.success(result)
-    } catch (e: YouTubeException) {
-        Resource.error("YouTube search failed: ${e.message}", e)
-    } catch (e: Exception) {
-        Resource.error("Search failed: ${e.message}", e)
-    }
+                Resource.success(result)
+            } catch (e: YouTubeException) {
+                Resource.error("YouTube search failed: ${e.message}", e)
+            } catch (e: Exception) {
+                Resource.error("Search failed: ${e.message}", e)
+            }
+        }
 
     override suspend fun getYouTubeSuggestions(query: String): Resource<List<String>> = try {
         val suggestions = youTubeService.getSearchSuggestions(query)

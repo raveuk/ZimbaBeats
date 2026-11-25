@@ -52,9 +52,10 @@ class YouTubeService(private val httpClient: HttpClient) {
             val limitedResults = results.take(maxResults)
             Log.d(TAG, "Returning ${limitedResults.size} real YouTube results")
             limitedResults
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e(TAG, "Search failed for: $query", e)
-            e.printStackTrace()
             // Return empty list on error - no mock data
             emptyList()
         }
@@ -69,9 +70,10 @@ class YouTubeService(private val httpClient: HttpClient) {
             val results = innertubeClient.getTrendingVideos()
             Log.d(TAG, "Innertube trending returned ${results.size} videos")
             results.take(maxResults)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e(TAG, "Failed to fetch trending videos", e)
-            e.printStackTrace()
             emptyList()
         }
     }
@@ -162,22 +164,25 @@ class YouTubeService(private val httpClient: HttpClient) {
      * Now always uses WEB client with safe search (WEB_KIDS no longer works)
      * CloudContentFilter provides additional filtering
      */
-    suspend fun searchVideosWithCorrection(query: String, maxResults: Int = 50): SearchResultWithCorrection {
-        return try {
-            Log.d(TAG, "Searching with correction for: '$query' (kidSafeMode: ${innertubeClient.kidSafeModeEnabled})")
-            val result = innertubeClient.searchVideosWithCorrection(query)
-            Log.d(TAG, "Got ${result.videos.size} results, correction: ${result.correctedQuery}")
+    suspend fun searchVideosWithCorrection(query: String, maxResults: Int = 50): SearchResultWithCorrection =
+        withContext(Dispatchers.IO) {
+            try {
+                Log.d(TAG, "Searching with correction for: '$query', maxResults: $maxResults (kidSafeMode: ${innertubeClient.kidSafeModeEnabled})")
+                val result = innertubeClient.searchVideosWithCorrection(query, maxResults)
+                Log.d(TAG, "Got ${result.videos.size} results, correction: ${result.correctedQuery}")
 
-            SearchResultWithCorrection(
-                videos = result.videos.take(maxResults),
-                correctedQuery = result.correctedQuery,
-                originalQuery = result.originalQuery
-            )
-        } catch (e: Exception) {
-            Log.e(TAG, "Search with correction failed for: $query", e)
-            SearchResultWithCorrection(emptyList(), null, query)
+                SearchResultWithCorrection(
+                    videos = result.videos.take(maxResults),
+                    correctedQuery = result.correctedQuery,
+                    originalQuery = result.originalQuery
+                )
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e(TAG, "Search with correction failed for: $query", e)
+                SearchResultWithCorrection(emptyList(), null, query)
+            }
         }
-    }
 
     private fun parseSearchResults(html: String): List<YouTubeVideo> {
         try {

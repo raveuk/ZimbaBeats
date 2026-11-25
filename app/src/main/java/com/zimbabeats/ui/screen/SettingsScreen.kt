@@ -34,6 +34,7 @@ import com.zimbabeats.data.AccentColor
 import com.zimbabeats.data.AccessibilityMode
 import com.zimbabeats.data.DownloadNetworkPreference
 import com.zimbabeats.data.ThemeMode
+import com.zimbabeats.data.VideoDisplayMode
 import com.zimbabeats.ui.accessibility.ContentDescriptions
 import com.zimbabeats.ui.util.WindowSizeUtil
 import com.zimbabeats.ui.components.YouTubeAccountDialog
@@ -69,6 +70,7 @@ fun SettingsScreen(
     
     val uiState by viewModel.uiState.collectAsState()
     var showQualityDialog by remember { mutableStateOf(false) }
+    var showVideoDisplayModeDialog by remember { mutableStateOf(false) }
     var showThemeDialog by remember { mutableStateOf(false) }
     var showAccentColorDialog by remember { mutableStateOf(false) }
     var showDownloadNetworkDialog by remember { mutableStateOf(false) }
@@ -138,6 +140,15 @@ fun SettingsScreen(
                     title = "Preferred Quality",
                     subtitle = uiState.preferredQuality,
                     onClick = { showQualityDialog = true }
+                )
+            }
+
+            item {
+                SettingsItem(
+                    icon = Icons.Default.ViewAgenda,
+                    title = "Video Display Layout",
+                    subtitle = "${uiState.videoDisplayMode.displayName} • ${uiState.videoDisplayMode.description}",
+                    onClick = { showVideoDisplayModeDialog = true }
                 )
             }
 
@@ -575,6 +586,18 @@ fun SettingsScreen(
                 showQualityDialog = false
             },
             onDismiss = { showQualityDialog = false }
+        )
+    }
+
+    // Video display mode selection dialog
+    if (showVideoDisplayModeDialog) {
+        VideoDisplayModeDialog(
+            currentMode = uiState.videoDisplayMode,
+            onModeSelected = { mode ->
+                viewModel.setVideoDisplayMode(mode)
+                showVideoDisplayModeDialog = false
+            },
+            onDismiss = { showVideoDisplayModeDialog = false }
         )
     }
 
@@ -1262,6 +1285,53 @@ private fun QualitySelectionDialog(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(quality)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close")
+            }
+        }
+    )
+}
+
+@Composable
+private fun VideoDisplayModeDialog(
+    currentMode: VideoDisplayMode,
+    onModeSelected: (VideoDisplayMode) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Video Display Layout") },
+        text = {
+            Column {
+                VideoDisplayMode.entries.forEach { mode ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onModeSelected(mode) }
+                            .padding(vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = mode == currentMode,
+                            onClick = { onModeSelected(mode) }
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
+                            Text(
+                                text = mode.displayName,
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                            Text(
+                                text = mode.description,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
             }

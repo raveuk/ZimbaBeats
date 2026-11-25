@@ -317,9 +317,14 @@ class CloudContentFilter(
         }
 
         // Layer 3: Age-based filtering (synced from parent)
+        val isOlderUser = settings.ageRating in listOf(
+            "THIRTEEN_PLUS", "13+", "FOURTEEN_PLUS", "14+",
+            "SIXTEEN_PLUS", "16+", "EIGHTEEN_PLUS", "18+", "ALL"
+        )
         if (settings.ageBasedFilteringEnabled) {
-            // Age-based duration check
-            if (settings.ageMaxDurationSeconds > 0 && durationSeconds > settings.ageMaxDurationSeconds) {
+            // Age-based duration check (apply automatic age duration cap to younger kids;
+            // explicit parent-configured maxVideoDurationMinutes above still applies to all)
+            if (!isOlderUser && settings.ageMaxDurationSeconds > 0 && durationSeconds > settings.ageMaxDurationSeconds) {
                 val maxMinutes = settings.ageMaxDurationSeconds / 60
                 Log.d(TAG, "Age-based duration block: $durationSeconds sec > ${settings.ageMaxDurationSeconds} sec (max $maxMinutes min for ${settings.ageRating})")
                 return BlockResult(true, BlockReason.AGE_RESTRICTED, "Video too long for age group (max ${maxMinutes}min)")

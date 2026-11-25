@@ -353,6 +353,8 @@ class HomeViewModel(
 
     private var previousParentalEnabled: Boolean? = null
     private var previousAgeLevel: AgeRating? = null
+    private var videoContentJob: kotlinx.coroutines.Job? = null
+    private var moodSectionsJob: kotlinx.coroutines.Job? = null
 
     init {
         // Start observing parental control bridge state
@@ -392,6 +394,16 @@ class HomeViewModel(
             cloudPairingClient.pairingStatus.collect { pairingStatus ->
                 val isLinkedToFamily = pairingStatus is com.zimbabeats.cloud.PairingStatus.Paired
                 val isEnabled = contentFilter?.filterSettings?.value?.let { true } ?: false
+
+                // If paired on initial startup, wait briefly for Firestore cloudSettings to arrive
+                // so we don't fire 6 searches for AgeRating.ALL and then immediately fire 6 more.
+                if (previousParentalEnabled == null && isLinkedToFamily && cloudPairingClient.cloudSettings.value == null) {
+                    var waitedMs = 0
+                    while (cloudPairingClient.cloudSettings.value == null && waitedMs < 1500) {
+                        kotlinx.coroutines.delay(50)
+                        waitedMs += 50
+                    }
+                }
 
                 // Get age rating from cloud settings (synced from Family app)
                 val cloudAgeRating = cloudPairingClient.cloudSettings.value?.ageRating
@@ -549,12 +561,18 @@ class HomeViewModel(
     }
 
     /**
-     * Load video content (trending, curated, quick picks)
+     * Load video content (trending, curated, quick picks).
+     * Cancels any previous in-flight load so settings/age updates don't stack duplicate requests.
      */
     private fun loadVideoContent() {
-        viewModelScope.launch {
+        videoContentJob?.cancel()
+        videoContentJob = viewModelScope.launch(Dispatchers.IO) {
             Log.d(TAG, "Starting to load video content...")
             _uiState.value = _uiState.value.copy(isLoading = true)
+
+            launch {
+                loadQuickPicks()
+            }
 
             Log.d(TAG, "Fetching trending videos...")
             when (val result = videoRepository.fetchTrendingVideos(20)) {
@@ -577,11 +595,6 @@ class HomeViewModel(
                 else -> {}
             }
         }
-
-        // Load quick picks
-        viewModelScope.launch {
-            loadQuickPicks()
-        }
     }
 
     /**
@@ -589,7 +602,7 @@ class HomeViewModel(
      */
     private fun loadUserContent() {
         // Load recently watched
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             videoRepository.getWatchHistory(10).collect { history ->
                 _uiState.value = _uiState.value.copy(
                     recentlyWatched = filterVideosByBridge(history)
@@ -598,7 +611,7 @@ class HomeViewModel(
         }
 
         // Load most watched
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             videoRepository.getMostWatched(10).collect { mostWatched ->
                 _uiState.value = _uiState.value.copy(
                     mostWatched = filterVideosByBridge(mostWatched)
@@ -607,7 +620,7 @@ class HomeViewModel(
         }
 
         // Load favorites
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             videoRepository.getFavoriteVideos().collect { favorites ->
                 _uiState.value = _uiState.value.copy(
                     favorites = filterVideosByBridge(favorites)
@@ -617,9 +630,11 @@ class HomeViewModel(
     }
 
     /**
-     * Load mood-based sections with videos using age-specific queries
+     * Load mood-based sections with videos using age-specific queries.
+     * Cancels any previous mood section job so age rating updates cancel stale queries.
      */
     private fun loadMoodSections(ageLevel: com.zimbabeats.core.domain.model.AgeRating) {
+        moodSectionsJob?.cancel()
         val isKidsMode = _uiState.value.parentalControlEnabled
         val moodQueries = if (isKidsMode) getMoodQueriesForAge(ageLevel) else GENERAL_MOOD_QUERIES
         val moods = if (isKidsMode) getMoodSectionsForAge(ageLevel) else GENERAL_MOODS
@@ -627,31 +642,35 @@ class HomeViewModel(
         Log.d(TAG, "Loading mood sections for ${ageLevel.displayName}")
         Log.d(TAG, "Mood queries: $moodQueries")
 
-        moods.forEach { mood ->
-            viewModelScope.launch {
-                val query = moodQueries[mood.id] ?: return@launch
-                Log.d(TAG, "Loading mood '${mood.title}' with query: $query")
-                try {
-                    when (val result = searchRepository.searchVideos(query, 8)) {
-                        is Resource.Success -> {
-                            val filteredVideos = filterVideosByBridge(result.data.videos)
+        moodSectionsJob = viewModelScope.launch(Dispatchers.IO) {
+            moods.forEach { mood ->
+                launch {
+                    val query = moodQueries[mood.id] ?: return@launch
+                    Log.d(TAG, "Loading mood '${mood.title}' with query: $query")
+                    try {
+                        when (val result = searchRepository.searchVideos(query, 8)) {
+                            is Resource.Success -> {
+                                val filteredVideos = filterVideosByBridge(result.data.videos)
 
-                            // Update the mood section with videos
-                            val updatedMoods = _uiState.value.moodSections.map { section ->
-                                if (section.id == mood.id) {
-                                    section.copy(videos = filteredVideos, isLoading = false)
-                                } else section
+                                // Update the mood section with videos
+                                val updatedMoods = _uiState.value.moodSections.map { section ->
+                                    if (section.id == mood.id) {
+                                        section.copy(videos = filteredVideos, isLoading = false)
+                                    } else section
+                                }
+                                _uiState.value = _uiState.value.copy(moodSections = updatedMoods)
+                                Log.d(TAG, "Loaded ${filteredVideos.size} videos for mood: ${mood.title} (query: $query)")
                             }
-                            _uiState.value = _uiState.value.copy(moodSections = updatedMoods)
-                            Log.d(TAG, "Loaded ${filteredVideos.size} videos for mood: ${mood.title} (query: $query)")
+                            is Resource.Error -> {
+                                Log.e(TAG, "Failed to load mood ${mood.id}: ${result.message}")
+                            }
+                            else -> {}
                         }
-                        is Resource.Error -> {
-                            Log.e(TAG, "Failed to load mood ${mood.id}: ${result.message}")
-                        }
-                        else -> {}
+                    } catch (e: kotlinx.coroutines.CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error loading mood ${mood.id}: ${e.message}")
                     }
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error loading mood ${mood.id}: ${e.message}")
                 }
             }
         }
@@ -683,6 +702,8 @@ class HomeViewModel(
                 }
                 else -> {}
             }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e(TAG, "Error loading quick picks: ${e.message}")
         }
@@ -853,7 +874,7 @@ class HomeViewModel(
         }
 
         Log.d(TAG, "Filtered to ${filteredVideos.size} videos (${videos.size - filteredVideos.size} blocked)")
-        filteredVideos
+        filteredVideos.distinctBy { it.id }
     }
 
     fun toggleFavorite(video: Video) {

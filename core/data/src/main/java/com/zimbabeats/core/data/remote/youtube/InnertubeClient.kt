@@ -25,40 +25,134 @@ class InnertubeClient(private val httpClient: HttpClient) {
         private const val SUGGEST_URL = "https://suggestqueries-clients6.youtube.com/complete/search"
         private const val INNERTUBE_KEY = "" // Set via local.properties
 
-        // Updated to modern version (Feb 2026)
+        // Updated to match YouTubeClient.ANDROID (yt-dlp INNERTUBE_CLIENTS)
         private const val PLAYER_CLIENT_NAME = "ANDROID"
-        private const val PLAYER_CLIENT_VERSION = "19.45.39"
-        private const val ANDROID_SDK_VERSION = 34
-        private const val ANDROID_OS_VERSION = "14"
+        private const val PLAYER_CLIENT_VERSION = "21.26.364"
+        private const val ANDROID_SDK_VERSION = 30
+        private const val ANDROID_OS_VERSION = "11"
+        private const val ANDROID_USER_AGENT = "com.google.android.youtube/$PLAYER_CLIENT_VERSION (Linux; U; Android $ANDROID_OS_VERSION) gzip"
+
+        private const val IOS_CLIENT_NAME = "IOS"
+        private const val IOS_CLIENT_VERSION = "19.45.4"
+        private const val IOS_USER_AGENT = "com.google.ios.youtube/19.45.4 (iPhone16,2; U; CPU iOS 18_1_0 like Mac OS X;)"
 
         // Use WEB client for search (WEB_KIDS no longer works - returns 400 errors)
         // Safety mode is controlled via user.enableSafetyMode in context
-        // Updated to SimpMusic Feb 2026 version
+        // Updated to latest production version
         private const val SEARCH_CLIENT_NAME = "WEB"
-        private const val SEARCH_CLIENT_VERSION = "2.20250222.10.00"
+        private const val SEARCH_CLIENT_VERSION = "2.20250312.04.00"
     }
 
     // Flag to enable kid-safe mode
     var kidSafeModeEnabled: Boolean = false
 
+    private val json = Json { ignoreUnknownKeys = true }
+
     /**
-     * Extract stream URLs for a video using Innertube API
+     * Fast targeted extraction of JSON objects assigned to `"$key": { ... }` inside a large
+     * YouTube InnerTube response (~1.8 MB for WEB search).
+     * Avoids parsing a 200,000-node JsonElement DOM for the 97% of the payload we don't use.
+     */
+    private fun extractJsonObjectsByKey(source: String, key: String): List<JsonObject> {
+        val needle = "\"$key\":"
+        val results = mutableListOf<JsonObject>()
+        var searchFrom = 0
+        val length = source.length
+
+        while (searchFrom < length) {
+            val keyIdx = source.indexOf(needle, searchFrom)
+            if (keyIdx < 0) break
+
+            var i = keyIdx + needle.length
+            while (i < length && source[i].isWhitespace()) i++
+            if (i >= length || source[i] != '{') {
+                searchFrom = i
+                continue
+            }
+
+            val objStart = i
+            var depth = 0
+            var inString = false
+            var escaped = false
+
+            while (i < length) {
+                val c = source[i]
+                if (escaped) {
+                    escaped = false
+                } else if (c == '\\' && inString) {
+                    escaped = true
+                } else if (c == '"') {
+                    inString = !inString
+                } else if (!inString) {
+                    if (c == '{') {
+                        depth++
+                    } else if (c == '}') {
+                        depth--
+                        if (depth == 0) {
+                            val objSlice = source.substring(objStart, i + 1)
+                            try {
+                                results.add(json.parseToJsonElement(objSlice).jsonObject)
+                            } catch (_: Exception) {
+                            }
+                            searchFrom = i + 1
+                            break
+                        }
+                    }
+                }
+                i++
+            }
+            if (depth != 0) break
+        }
+        return results
+    }
+
+    private fun extractContinuationTokenFromRaw(source: String): String? =
+        extractJsonObjectsByKey(source, "continuationItemRenderer").firstNotNullOfOrNull {
+            it["continuationEndpoint"]?.jsonObject
+                ?.get("continuationCommand")?.jsonObject
+                ?.get("token")?.jsonPrimitive?.contentOrNull
+        }
+
+    /**
+     * Extract stream URLs for a video using Innertube API.
+     * Tries ANDROID (21.26.364, works for both VOD and live HLS) and falls back to IOS (19.45.4).
      */
     suspend fun getStreamUrls(videoId: String): List<StreamUrl> = withContext(Dispatchers.IO) {
-        try {
-            Log.d(TAG, "Fetching stream URLs for video: $videoId")
+        val androidStreams = fetchStreamUrlsWithClient(videoId, useIos = false)
+        if (androidStreams.isNotEmpty()) return@withContext androidStreams
 
-            // Build Innertube request payload using ANDROID client
+        Log.d(TAG, "ANDROID client returned 0 streams for $videoId, trying IOS fallback...")
+        fetchStreamUrlsWithClient(videoId, useIos = true)
+    }
+
+    private suspend fun fetchStreamUrlsWithClient(videoId: String, useIos: Boolean): List<StreamUrl> {
+        return try {
+            val clientLabel = if (useIos) IOS_CLIENT_NAME else PLAYER_CLIENT_NAME
+            Log.d(TAG, "Fetching stream URLs for video: $videoId (client=$clientLabel)")
+
             val requestBody = buildJsonObject {
                 putJsonObject("context") {
                     putJsonObject("client") {
-                        put("clientName", PLAYER_CLIENT_NAME)
-                        put("clientVersion", PLAYER_CLIENT_VERSION)
-                        put("androidSdkVersion", ANDROID_SDK_VERSION)
-                        put("osVersion", ANDROID_OS_VERSION)
-                        put("osName", "Android")
-                        put("hl", "en")
-                        put("gl", "US")
+                        if (useIos) {
+                            put("clientName", IOS_CLIENT_NAME)
+                            put("clientVersion", IOS_CLIENT_VERSION)
+                            put("deviceMake", "Apple")
+                            put("deviceModel", "iPhone16,2")
+                            put("osName", "iPhone")
+                            put("osVersion", "17.5.1.21F90")
+                            put("userAgent", IOS_USER_AGENT)
+                            put("hl", "en")
+                            put("gl", "US")
+                        } else {
+                            put("clientName", PLAYER_CLIENT_NAME)
+                            put("clientVersion", PLAYER_CLIENT_VERSION)
+                            put("androidSdkVersion", ANDROID_SDK_VERSION)
+                            put("osVersion", ANDROID_OS_VERSION)
+                            put("osName", "Android")
+                            put("userAgent", ANDROID_USER_AGENT)
+                            put("hl", "en")
+                            put("gl", "US")
+                        }
                     }
                 }
                 put("videoId", videoId)
@@ -66,8 +160,6 @@ class InnertubeClient(private val httpClient: HttpClient) {
                 put("racyCheckOk", true)
             }
 
-            // Make POST request to Innertube API with Android headers
-            // Don't include empty key parameter - Innertube works without it
             val playerUrl = if (INNERTUBE_KEY.isNotEmpty()) {
                 "$INNERTUBE_PLAYER_URL?key=$INNERTUBE_KEY"
             } else {
@@ -76,16 +168,20 @@ class InnertubeClient(private val httpClient: HttpClient) {
 
             val response: String = httpClient.post(playerUrl) {
                 contentType(ContentType.Application.Json)
-                header("User-Agent", "com.google.android.youtube/$PLAYER_CLIENT_VERSION (Linux; U; Android $ANDROID_OS_VERSION) gzip")
-                header("X-YouTube-Client-Name", "3") // Android client
-                header("X-YouTube-Client-Version", PLAYER_CLIENT_VERSION)
+                if (useIos) {
+                    header("User-Agent", IOS_USER_AGENT)
+                    header("X-YouTube-Client-Name", "5")
+                    header("X-YouTube-Client-Version", IOS_CLIENT_VERSION)
+                } else {
+                    header("User-Agent", ANDROID_USER_AGENT)
+                    header("X-YouTube-Client-Name", "3")
+                    header("X-YouTube-Client-Version", PLAYER_CLIENT_VERSION)
+                }
                 setBody(requestBody.toString())
             }.bodyAsText()
 
-            Log.d(TAG, "API Response length: ${response.length}")
+            Log.d(TAG, "API Response length ($clientLabel): ${response.length}")
 
-            // Parse JSON response
-            val json = Json { ignoreUnknownKeys = true }
             val jsonElement = json.parseToJsonElement(response)
             val jsonObject = jsonElement.jsonObject
 
@@ -298,89 +394,14 @@ class InnertubeClient(private val httpClient: HttpClient) {
                 setBody(requestBody.toString())
             }
 
-            Log.d(TAG, "Response status: ${response.status}")
             val responseBody: String = response.bodyAsText()
-            Log.d(TAG, "API Response length: ${responseBody.length} characters")
-            if (responseBody.length < 2000) {
-                Log.d(TAG, "API Response full: $responseBody")
-            } else {
-                Log.d(TAG, "API Response preview: ${responseBody.take(1000)}")
-            }
-
-            // Parse JSON response
-            val json = Json { ignoreUnknownKeys = true }
-            val jsonElement = json.parseToJsonElement(responseBody)
-            val jsonObject = jsonElement.jsonObject
-
-            Log.d(TAG, "Parsed JSON successfully, keys: ${jsonObject.keys}")
 
             val videos = mutableListOf<YouTubeVideo>()
-
-            // Navigate to search results
-            val contents = jsonObject["contents"]?.jsonObject
-                ?.get("twoColumnSearchResultsRenderer")?.jsonObject
-                ?.get("primaryContents")?.jsonObject
-                ?.get("sectionListRenderer")?.jsonObject
-                ?.get("contents")?.jsonArray
-
-            Log.d(TAG, "Found contents array: ${contents != null}, size: ${contents?.size ?: 0}")
-
-            contents?.forEach { section ->
-                val itemSection = section.jsonObject["itemSectionRenderer"]?.jsonObject
-                val sectionContents = itemSection?.get("contents")?.jsonArray
-
-                sectionContents?.forEach { item ->
-                    val videoRenderer = item.jsonObject["videoRenderer"]?.jsonObject
-                    Log.d(TAG, "Item keys: ${item.jsonObject.keys}, hasVideoRenderer: ${videoRenderer != null}")
-
-                    videoRenderer?.let { video ->
-                        val videoId = video["videoId"]?.jsonPrimitive?.contentOrNull ?: return@let
-
-                        val title = video["title"]?.jsonObject
-                            ?.get("runs")?.jsonArray
-                            ?.firstOrNull()?.jsonObject
-                            ?.get("text")?.jsonPrimitive?.contentOrNull ?: "Unknown"
-
-                        val ownerTextRuns = video["ownerText"]?.jsonObject
-                            ?.get("runs")?.jsonArray
-                            ?.firstOrNull()?.jsonObject
-
-                        val channelName = ownerTextRuns
-                            ?.get("text")?.jsonPrimitive?.contentOrNull ?: "Unknown"
-
-                        // Extract channelId from navigationEndpoint.browseEndpoint.browseId
-                        val channelId = ownerTextRuns
-                            ?.get("navigationEndpoint")?.jsonObject
-                            ?.get("browseEndpoint")?.jsonObject
-                            ?.get("browseId")?.jsonPrimitive?.contentOrNull ?: ""
-
-                        val thumbnail = video["thumbnail"]?.jsonObject
-                            ?.get("thumbnails")?.jsonArray
-                            ?.lastOrNull()?.jsonObject // Get highest quality
-                            ?.get("url")?.jsonPrimitive?.contentOrNull ?: ""
-
-                        val viewCountText = video["viewCountText"]?.jsonObject
-                            ?.get("simpleText")?.jsonPrimitive?.contentOrNull ?: "0"
-
-                        val publishedTimeText = video["publishedTimeText"]?.jsonObject
-                            ?.get("simpleText")?.jsonPrimitive?.contentOrNull
-
-                        videos.add(
-                            YouTubeVideo(
-                                id = videoId,
-                                title = title,
-                                description = null,
-                                thumbnailUrl = thumbnail,
-                                channelName = channelName,
-                                channelId = channelId,
-                                duration = 0,
-                                viewCount = parseViewCount(viewCountText),
-                                publishedAt = parsePublishedTime(publishedTimeText),
-                                url = "https://www.youtube.com/watch?v=$videoId",
-                                category = null,
-                                ageLimit = 0
-                            )
-                        )
+            val seenIds = HashSet<String>()
+            extractJsonObjectsByKey(responseBody, "videoRenderer").forEach { video ->
+                parseSearchVideoRenderer(video)?.let { parsed ->
+                    if (seenIds.add(parsed.id)) {
+                        videos.add(parsed)
                     }
                 }
             }
@@ -388,9 +409,10 @@ class InnertubeClient(private val httpClient: HttpClient) {
             Log.d(TAG, "Found ${videos.size} videos for query: $query")
             videos
 
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e(TAG, "Failed to search for: $query", e)
-            e.printStackTrace()
             emptyList()
         }
     }
@@ -443,6 +465,9 @@ class InnertubeClient(private val httpClient: HttpClient) {
         val publishedTimeText = video["publishedTimeText"]?.jsonObject
             ?.get("simpleText")?.jsonPrimitive?.contentOrNull
 
+        val lengthText = video["lengthText"]?.jsonObject
+            ?.get("simpleText")?.jsonPrimitive?.contentOrNull
+
         return YouTubeVideo(
             id = videoId,
             title = title,
@@ -450,13 +475,27 @@ class InnertubeClient(private val httpClient: HttpClient) {
             thumbnailUrl = thumbnail,
             channelName = channelName,
             channelId = channelId,
-            duration = 0,
+            duration = parseDurationSeconds(lengthText),
             viewCount = parseViewCount(viewCountText),
             publishedAt = parsePublishedTime(publishedTimeText),
             url = "https://www.youtube.com/watch?v=$videoId",
             category = null,
             ageLimit = 0
         )
+    }
+
+    /**
+     * Parse a YouTube duration string like "12:34" or "1:02:15" into total seconds.
+     */
+    private fun parseDurationSeconds(lengthText: String?): Long {
+        if (lengthText.isNullOrBlank()) return 0L
+        val parts = lengthText.trim().split(":").mapNotNull { it.toLongOrNull() }
+        return when (parts.size) {
+            3 -> parts[0] * 3600 + parts[1] * 60 + parts[2]
+            2 -> parts[0] * 60 + parts[1]
+            1 -> parts[0]
+            else -> 0L
+        }
     }
 
     /**
@@ -585,7 +624,10 @@ class InnertubeClient(private val httpClient: HttpClient) {
      * Uses WEB client with enableSafetyMode in user context for content filtering
      * CloudContentFilter provides additional age-specific filtering
      */
-    suspend fun searchVideosWithCorrection(query: String): SearchResultWithCorrection = withContext(Dispatchers.IO) {
+    suspend fun searchVideosWithCorrection(
+        query: String,
+        maxResults: Int = MAX_SEARCH_RESULTS
+    ): SearchResultWithCorrection = withContext(Dispatchers.IO) {
         try {
             Log.d(TAG, "Searching with correction for: $query (safetyMode: $kidSafeModeEnabled)")
 
@@ -619,64 +661,44 @@ class InnertubeClient(private val httpClient: HttpClient) {
                 setBody(requestBody.toString())
             }.bodyAsText()
 
-            val json = Json { ignoreUnknownKeys = true }
-            val jsonElement = json.parseToJsonElement(response)
-            val jsonObject = jsonElement.jsonObject
-
             val videos = mutableListOf<YouTubeVideo>()
+            val seenIds = HashSet<String>()
             var correctedQuery: String? = null
 
-            // Check for "showingResultsFor" (spelling correction)
-            val contents = jsonObject["contents"]?.jsonObject
-                ?.get("twoColumnSearchResultsRenderer")?.jsonObject
-                ?.get("primaryContents")?.jsonObject
-                ?.get("sectionListRenderer")?.jsonObject
-                ?.get("contents")?.jsonArray
+            extractJsonObjectsByKey(response, "showingResultsForRenderer").firstOrNull()?.let { correction ->
+                correctedQuery = correction["correctedQuery"]?.jsonObject
+                    ?.get("runs")?.jsonArray
+                    ?.firstOrNull()?.jsonObject
+                    ?.get("text")?.jsonPrimitive?.contentOrNull
+            }
+            if (correctedQuery == null) {
+                extractJsonObjectsByKey(response, "didYouMeanRenderer").firstOrNull()?.let { suggestion ->
+                    correctedQuery = suggestion["correctedQuery"]?.jsonObject
+                        ?.get("runs")?.jsonArray
+                        ?.firstOrNull()?.jsonObject
+                        ?.get("text")?.jsonPrimitive?.contentOrNull
+                }
+            }
 
-            contents?.forEach { section ->
-                val itemSection = section.jsonObject["itemSectionRenderer"]?.jsonObject
-                val sectionContents = itemSection?.get("contents")?.jsonArray
-
-                sectionContents?.forEach { item ->
-                    // Check for spelling correction
-                    val showingResultsFor = item.jsonObject["showingResultsForRenderer"]?.jsonObject
-                    showingResultsFor?.let { correction ->
-                        val correctedQueryObj = correction["correctedQuery"]?.jsonObject
-                        correctedQuery = correctedQueryObj?.get("runs")?.jsonArray
-                            ?.firstOrNull()?.jsonObject
-                            ?.get("text")?.jsonPrimitive?.contentOrNull
-
-                        Log.d(TAG, "Found spelling correction: $correctedQuery")
-                    }
-
-                    // Also check for "didYouMeanRenderer"
-                    val didYouMean = item.jsonObject["didYouMeanRenderer"]?.jsonObject
-                    didYouMean?.let { suggestion ->
-                        val correctedQueryObj = suggestion["correctedQuery"]?.jsonObject
-                        if (correctedQuery == null) {
-                            correctedQuery = correctedQueryObj?.get("runs")?.jsonArray
-                                ?.firstOrNull()?.jsonObject
-                                ?.get("text")?.jsonPrimitive?.contentOrNull
-
-                            Log.d(TAG, "Found 'did you mean': $correctedQuery")
-                        }
-                    }
-
-                    // Parse video results
-                    item.jsonObject["videoRenderer"]?.jsonObject?.let { video ->
-                        parseSearchVideoRenderer(video)?.let { videos.add(it) }
+            extractJsonObjectsByKey(response, "videoRenderer").forEach { video ->
+                parseSearchVideoRenderer(video)?.let { parsed ->
+                    if (seenIds.add(parsed.id)) {
+                        videos.add(parsed)
                     }
                 }
             }
 
             // Paginate: follow continuation tokens to load more results (YouTube returns ~20
-            // per page). Capped at 10 pages / 200 results to avoid runaway requests. The caller
-            // sorts the accumulated list newest-first.
-            var continuationToken = extractSearchContinuationToken(contents)
+            // per page). Bound both total results and maximum pages ((maxResults + 19) / 20)
+            // so single-page Home queries (maxResults <= 20) never paginate across 7+ pages
+            // when YouTube returns shelves/shorts on page 1.
+            val targetResults = maxResults.coerceIn(1, MAX_SEARCH_RESULTS)
+            val maxPages = ((targetResults + 19) / 20).coerceIn(1, MAX_SEARCH_PAGES)
+            var continuationToken = if (maxPages > 1) extractContinuationTokenFromRaw(response) else null
             var pageCount = 1
-            while (continuationToken != null && videos.size < MAX_SEARCH_RESULTS && pageCount < MAX_SEARCH_PAGES) {
+            while (continuationToken != null && videos.size < targetResults && pageCount < maxPages) {
                 pageCount++
-                Log.d(TAG, "Fetching search continuation page $pageCount...")
+                Log.d(TAG, "Fetching search continuation page $pageCount (maxPages=$maxPages)...")
                 val continuationBody = buildJsonObject {
                     putJsonObject("context") {
                         putJsonObject("client") {
@@ -694,29 +716,24 @@ class InnertubeClient(private val httpClient: HttpClient) {
                     setBody(continuationBody.toString())
                 }.bodyAsText()
 
-                val continuationItems = json.parseToJsonElement(continuationResponse).jsonObject
-                    .get("onResponseReceivedCommands")?.jsonArray
-                    ?.firstNotNullOfOrNull {
-                        it.jsonObject["appendContinuationItemsAction"]?.jsonObject
-                            ?.get("continuationItems")?.jsonArray
-                    } ?: break
-
-                continuationItems.forEach { ci ->
-                    ci.jsonObject["itemSectionRenderer"]?.jsonObject
-                        ?.get("contents")?.jsonArray
-                        ?.forEach { item ->
-                            item.jsonObject["videoRenderer"]?.jsonObject?.let { video ->
-                                parseSearchVideoRenderer(video)?.let { videos.add(it) }
-                            }
+                val beforeCount = videos.size
+                extractJsonObjectsByKey(continuationResponse, "videoRenderer").forEach { video ->
+                    parseSearchVideoRenderer(video)?.let { parsed ->
+                        if (seenIds.add(parsed.id)) {
+                            videos.add(parsed)
                         }
+                    }
                 }
+                if (videos.size == beforeCount) break
 
-                continuationToken = extractSearchContinuationToken(continuationItems)
+                continuationToken = extractContinuationTokenFromRaw(continuationResponse)
             }
 
             Log.d(TAG, "Found ${videos.size} videos across $pageCount page(s), correction: $correctedQuery")
             SearchResultWithCorrection(videos, correctedQuery, query)
 
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e(TAG, "Failed to search with correction for: $query", e)
             SearchResultWithCorrection(emptyList(), null, query)
@@ -725,41 +742,20 @@ class InnertubeClient(private val httpClient: HttpClient) {
 
     /**
      * Get trending/popular videos by searching for popular content
-     * YouTube's browse API for trending requires special authentication,
-     * so we use search with popular queries instead
+     * Uses a single page request to keep startup fast and memory-light.
      */
     suspend fun getTrendingVideos(): List<YouTubeVideo> = withContext(Dispatchers.IO) {
         try {
-            Log.d(TAG, "Fetching popular videos via search")
-
-            // Search for popular kid-friendly content
-            val popularQueries = listOf(
-                "kids songs 2024",
-                "nursery rhymes",
-                "cartoon for kids"
-            )
-
-            val allVideos = mutableListOf<YouTubeVideo>()
-
-            for (query in popularQueries) {
-                try {
-                    val results = searchVideos(query)
-                    Log.d(TAG, "Popular search '$query': ${results.size} videos")
-                    allVideos.addAll(results.take(10))
-                    if (allVideos.size >= 20) break
-                } catch (e: Exception) {
-                    Log.e(TAG, "Failed search for '$query': ${e.message}")
-                }
-            }
-
-            // Remove duplicates
-            val uniqueVideos = allVideos.distinctBy { it.id }
+            Log.d(TAG, "Fetching popular videos via single-page search")
+            val query = if (kidSafeModeEnabled) "kids songs nursery rhymes" else "trending videos today"
+            val results = searchVideosWithCorrection(query, maxResults = 20).videos
+            val uniqueVideos = results.distinctBy { it.id }
             Log.d(TAG, "Found ${uniqueVideos.size} unique popular videos")
             uniqueVideos
-
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e(TAG, "Failed to fetch trending videos", e)
-            e.printStackTrace()
             emptyList()
         }
     }

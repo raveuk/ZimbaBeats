@@ -41,9 +41,9 @@ class YouTubeMusicClient(private val httpClient: HttpClient) {
         // Firebase Cloud Function for stream extraction (handles n-parameter decryption)
         private const val FIREBASE_FUNCTION_URL = "https://us-central1-zimba-beats.cloudfunctions.net/getAudioStream"
 
-        // WEB_REMIX client for YouTube Music (updated to SimpMusic Feb 2026)
+        // WEB_REMIX client for YouTube Music (updated 2026)
         private const val CLIENT_NAME = "WEB_REMIX"
-        private const val CLIENT_VERSION = "1.20250219.01.00"
+        private const val CLIENT_VERSION = "1.20260304.03.00"
 
         // Browse IDs for YouTube Music sections
         private const val BROWSE_ID_HOME = "FEmusic_home"
@@ -839,8 +839,8 @@ class YouTubeMusicClient(private val httpClient: HttpClient) {
     }
 
     /**
-     * Try ANDROID client - SimpMusic's primary player client
-     * Updated to SimpMusic Feb 2026: Version 19.35.36, Android 13, SDK 33
+     * Try ANDROID client - Primary player client
+     * Updated 2026: Version 21.26.364, Android 11, SDK 30
      */
     private suspend fun tryAndroidClient(videoId: String): PlayerResult? {
         try {
@@ -852,12 +852,13 @@ class YouTubeMusicClient(private val httpClient: HttpClient) {
                 putJsonObject("context") {
                     putJsonObject("client") {
                         put("clientName", "ANDROID")
-                        put("clientVersion", "19.35.36")
-                        put("androidSdkVersion", 33)
+                        put("clientVersion", "21.26.364")
+                        put("androidSdkVersion", 30)
                         put("hl", "en")
                         put("gl", "US")
                         put("osName", "Android")
-                        put("osVersion", "13")
+                        put("osVersion", "11")
+                        put("userAgent", "com.google.android.youtube/21.26.364 (Linux; U; Android 11) gzip")
                         put("platform", "MOBILE")
                         poTokens?.visitorData?.let { put("visitorData", it) }
                     }
@@ -877,12 +878,12 @@ class YouTubeMusicClient(private val httpClient: HttpClient) {
                 }
             }
 
-            val response: String = httpClient.post("https://www.youtube.com/youtubei/v1/player?key=AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8") {
+            val response: String = httpClient.post("https://www.youtube.com/youtubei/v1/player?key=AIzaSyA8eiZmM1FaDVjRy-df2KTyQ_vz_yYM39w") {
                 contentType(ContentType.Application.Json)
-                header("User-Agent", "com.google.android.youtube/19.35.36 (Linux; U; Android 13) gzip")
+                header("User-Agent", "com.google.android.youtube/21.26.364 (Linux; U; Android 11) gzip")
                 header("Origin", "https://www.youtube.com")
                 header("X-YouTube-Client-Name", "3")
-                header("X-YouTube-Client-Version", "19.35.36")
+                header("X-YouTube-Client-Version", "21.26.364")
                 poTokens?.visitorData?.let { header("X-Goog-Visitor-Id", it) }
                 setBody(requestBody.toString())
             }.bodyAsText()

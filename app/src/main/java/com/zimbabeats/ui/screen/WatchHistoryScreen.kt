@@ -16,17 +16,25 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.zimbabeats.core.domain.model.Video
+import com.zimbabeats.data.AppPreferences
+import com.zimbabeats.data.VideoDisplayMode
+import com.zimbabeats.ui.components.EnhancedVideoCard
+import com.zimbabeats.ui.components.VideoDisplayModeToggle
+import com.zimbabeats.ui.components.YouTubeVideoTile
 import com.zimbabeats.ui.viewmodel.WatchHistoryViewModel
 import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.koinInject
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WatchHistoryScreen(
     onNavigateBack: () -> Unit,
     onVideoClick: (String) -> Unit,
-    viewModel: WatchHistoryViewModel = koinViewModel()
+    viewModel: WatchHistoryViewModel = koinViewModel(),
+    appPreferences: AppPreferences = koinInject()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val videoDisplayMode by appPreferences.videoDisplayModeFlow.collectAsState()
     var showClearDialog by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -40,6 +48,10 @@ fun WatchHistoryScreen(
                 },
                 actions = {
                     if (uiState.history.isNotEmpty()) {
+                        VideoDisplayModeToggle(
+                            currentMode = videoDisplayMode,
+                            onModeSelected = { appPreferences.setVideoDisplayMode(it) }
+                        )
                         IconButton(onClick = { showClearDialog = true }) {
                             Icon(Icons.Default.Delete, "Clear History")
                         }
@@ -112,13 +124,53 @@ fun WatchHistoryScreen(
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        // Use index in key to handle duplicate videos in history
-                        itemsIndexed(uiState.history, key = { index, video -> "${video.id}_$index" }) { _, video ->
-                            HistoryVideoItem(
-                                video = video,
-                                onClick = { onVideoClick(video.id) },
-                                onRemove = { viewModel.removeVideoFromHistory(video.id) }
-                            )
+                        when (videoDisplayMode) {
+                            VideoDisplayMode.TILE -> {
+                                itemsIndexed(uiState.history, key = { index, video -> "${video.id}_$index" }) { _, video ->
+                                    YouTubeVideoTile(
+                                        video = video,
+                                        onClick = { onVideoClick(video.id) },
+                                        trailing = {
+                                            IconButton(onClick = { viewModel.removeVideoFromHistory(video.id) }) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Close,
+                                                    contentDescription = "Remove from history",
+                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                        }
+                                    )
+                                }
+                            }
+                            VideoDisplayMode.GRID -> {
+                                val rows = uiState.history.chunked(2)
+                                items(rows) { rowVideos ->
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        rowVideos.forEach { video ->
+                                            EnhancedVideoCard(
+                                                video = video,
+                                                onClick = { onVideoClick(video.id) },
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                        }
+                                        if (rowVideos.size == 1) {
+                                            Spacer(modifier = Modifier.weight(1f))
+                                        }
+                                    }
+                                }
+                            }
+                            VideoDisplayMode.LIST -> {
+                                itemsIndexed(uiState.history, key = { index, video -> "${video.id}_$index" }) { _, video ->
+                                    HistoryVideoItem(
+                                        video = video,
+                                        onClick = { onVideoClick(video.id) },
+                                        onRemove = { viewModel.removeVideoFromHistory(video.id) }
+                                    )
+                                }
+                            }
                         }
                     }
                 }

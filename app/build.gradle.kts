@@ -40,8 +40,8 @@ android {
         applicationId = "com.zimbabeats"
         minSdk = 24
         targetSdk = 37
-        versionCode = 96
-        versionName = "1.0.96"
+        versionCode = 97
+        versionName = "1.0.97"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -49,16 +49,20 @@ android {
         buildConfigField("String", "GITHUB_REPO", "\"raveuk/ZimbaBeats\"")
         buildConfigField("String", "AUTHOR", "\"ZimbaBeats\"")
         buildConfigField("String", "BUY_COFFEE_URL", "\"https://buymeacoffee.com/zimbabeats\"")
+        manifestPlaceholders["crashlyticsCollectionEnabled"] = "true"
     }
 
     buildTypes {
         debug {
+            // Disable Crashlytics in debug builds to prevent synchronous initialization timeout and startup ANR
+            manifestPlaceholders["crashlyticsCollectionEnabled"] = "false"
             // Use release signing for debug too if available - ensures consistent signature for updates
             if (hasReleaseKeystore) {
                 signingConfig = signingConfigs.getByName("release")
             }
         }
         release {
+            manifestPlaceholders["crashlyticsCollectionEnabled"] = "true"
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
@@ -90,6 +94,9 @@ android {
     lint {
         abortOnError = false
     }
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
 
     // youtubedl-android ships its yt-dlp Python runtime as `libpython.zip.so` inside
     // its native libs folder. yt-dlp reads that file from `nativeLibraryDir` at runtime,
@@ -99,6 +106,7 @@ android {
     packaging {
         jniLibs {
             useLegacyPackaging = true
+            keepDebugSymbols += "**/*.zip.so"
         }
     }
 
@@ -142,9 +150,9 @@ dependencies {
     // streams into a single .mp4. Transformer additionally transcodes VP9/AV1 → H.264
     // when the source codec is not MP4-compatible. media3-effect is a Transformer
     // runtime dependency.
-    implementation("androidx.media3:media3-muxer:1.11.0")
-    implementation("androidx.media3:media3-transformer:1.11.0")
-    implementation("androidx.media3:media3-effect:1.11.0")
+    implementation("androidx.media3:media3-muxer:${libs.versions.media3.get()}")
+    implementation("androidx.media3:media3-transformer:${libs.versions.media3.get()}")
+    implementation("androidx.media3:media3-effect:${libs.versions.media3.get()}")
 
     // Core Android
     implementation(libs.androidx.core.ktx)

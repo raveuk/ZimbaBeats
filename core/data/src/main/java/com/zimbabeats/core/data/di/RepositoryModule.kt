@@ -23,16 +23,17 @@ val repositoryModule = module {
         HttpClient(OkHttp) {
             engine {
                 config {
-                    // Force HTTP/1.1 to prevent stream reset errors on mobile networks
-                    protocols(listOf(Protocol.HTTP_1_1))
+                    // Prefer HTTP/2 multiplexing with HTTP/1.1 fallback so concurrent InnerTube
+                    // requests share a single TLS connection instead of queuing behind 5 sockets
+                    protocols(listOf(Protocol.HTTP_2, Protocol.HTTP_1_1))
 
                     // Connection pooling for mobile efficiency (reuse connections)
                     connectionPool(ConnectionPool(20, 5, TimeUnit.MINUTES))
 
                     // Extended timeouts for slow mobile networks
-                    connectTimeout(30, TimeUnit.SECONDS)
-                    readTimeout(45, TimeUnit.SECONDS)
-                    writeTimeout(45, TimeUnit.SECONDS)
+                    connectTimeout(20, TimeUnit.SECONDS)
+                    readTimeout(30, TimeUnit.SECONDS)
+                    writeTimeout(30, TimeUnit.SECONDS)
                 }
             }
             install(ContentNegotiation) {
@@ -41,13 +42,10 @@ val repositoryModule = module {
                     isLenient = true
                 })
             }
-            install(Logging) {
-                level = LogLevel.INFO
-            }
             install(HttpTimeout) {
-                requestTimeoutMillis = 60000  // 60 seconds for full request (was 30s)
-                connectTimeoutMillis = 30000  // 30 seconds to establish connection (was 15s)
-                socketTimeoutMillis = 45000   // 45 seconds for socket read/write (was 30s)
+                requestTimeoutMillis = 30000
+                connectTimeoutMillis = 20000
+                socketTimeoutMillis = 30000
             }
         }
     }

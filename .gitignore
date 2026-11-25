@@ -27,6 +27,7 @@ google-services.json
 .idea/
 .kotlin/
 .claude/
+.agents/
 nul
 
 # Sensitive/Security files - never commit

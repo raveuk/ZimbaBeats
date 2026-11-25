@@ -255,6 +255,7 @@ class MainActivity : ComponentActivity() {
         // Start PlaybackService early to keep MediaSession active for Gemini/Assistants
         // Deferred to background thread to avoid blocking main thread during app startup (prevents ANR)
         lifecycleScope.launch(Dispatchers.IO) {
+            delay(1000) // Allow main UI to complete initial composition before starting service
             try {
                 val serviceIntent = Intent(this@MainActivity, Class.forName("com.zimbabeats.media.service.PlaybackService"))
                 startService(serviceIntent)

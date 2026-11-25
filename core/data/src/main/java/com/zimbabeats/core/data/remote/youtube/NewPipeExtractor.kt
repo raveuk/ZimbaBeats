@@ -426,10 +426,30 @@ class NewPipeStreamExtractor(private val context: Context) {
                 )
             }
 
+            // PRIORITY 3: HLS live stream manifest (for YouTube LIVE streams where videoStreams/videoOnlyStreams are empty)
+            val hlsUrl = streamInfo.hlsUrl
+            if (!hlsUrl.isNullOrBlank()) {
+                Log.d(TAG, "Using HLS live stream manifest for $videoId: ${hlsUrl.take(80)}...")
+                val thumbnailUrl = streamInfo.thumbnails.firstOrNull()?.url
+                    ?: "https://i.ytimg.com/vi/$videoId/mqdefault.jpg"
+
+                return VideoExtractionResult(
+                    videoUrl = hlsUrl,
+                    audioUrl = null,
+                    title = streamInfo.name ?: "Unknown Title",
+                    uploaderName = streamInfo.uploaderName ?: "Unknown",
+                    duration = streamInfo.duration,
+                    thumbnailUrl = thumbnailUrl,
+                    quality = "Auto (HLS Live)",
+                    subtitles = subtitlesList
+                )
+            }
+
             Log.e(TAG, "No video streams found for: $videoId. Details: " +
                     "combined=${streamInfo.videoStreams?.size ?: 0}, " +
                     "videoOnly=${streamInfo.videoOnlyStreams?.size ?: 0}, " +
-                    "audio=${streamInfo.audioStreams?.size ?: 0}")
+                    "audio=${streamInfo.audioStreams?.size ?: 0}, " +
+                    "hls=${!hlsUrl.isNullOrBlank()}")
             return null
 
         } catch (e: Exception) {

@@ -18,35 +18,14 @@ import com.zimbabeats.ui.theme.ShimmerBackground
 import com.zimbabeats.ui.theme.ShimmerHighlight
 
 /**
- * Shimmer effect modifier - applies animated gradient to any composable
+ * Shimmer placeholder modifier - uses a lightweight static rounded surface so 40+ skeleton
+ * boxes don't trigger per-frame infinite-transition recompositions and relayouts on startup.
  */
-fun Modifier.shimmer(): Modifier = composed {
-    var size by remember { mutableStateOf(IntSize.Zero) }
-
-    val transition = rememberInfiniteTransition(label = "shimmer")
-    val startOffsetX by transition.animateFloat(
-        initialValue = -2 * size.width.toFloat(),
-        targetValue = 2 * size.width.toFloat(),
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1200, easing = LinearEasing)
-        ),
-        label = "shimmer_offset"
-    )
-
+fun Modifier.shimmer(): Modifier =
     background(
-        brush = Brush.linearGradient(
-            colors = listOf(
-                ShimmerBackground,
-                ShimmerHighlight,
-                ShimmerBackground
-            ),
-            start = Offset(startOffsetX, 0f),
-            end = Offset(startOffsetX + size.width.toFloat(), size.height.toFloat())
-        ),
+        color = ShimmerBackground,
         shape = RoundedCornerShape(8.dp)
     )
-        .onGloballyPositioned { size = it.size }
-}
 
 /**
  * Shimmer placeholder for video cards - Spotify style

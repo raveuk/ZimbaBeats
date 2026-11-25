@@ -43,7 +43,7 @@ class MusicSearchViewModel(
     private val musicFilter get() = cloudPairingClient.musicFilter
 
     // Global content filter (RemoteConfig) - ALWAYS applies regardless of family linking
-    private val remoteConfigManager = RemoteConfigManager()
+    private val remoteConfigManager by lazy { RemoteConfigManager() }
 
     private val _uiState = MutableStateFlow(MusicSearchUiState())
     val uiState: StateFlow<MusicSearchUiState> = _uiState.asStateFlow()

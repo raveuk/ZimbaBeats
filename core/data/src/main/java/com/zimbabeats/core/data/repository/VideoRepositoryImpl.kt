@@ -232,6 +232,8 @@ class VideoRepositoryImpl(
         videoDao.insertVideos(entities)
 
         Resource.success(videos)
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
     } catch (e: YouTubeException) {
         Resource.error("Failed to fetch trending videos: ${e.message}", e)
     } catch (e: Exception) {

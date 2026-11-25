@@ -7,8 +7,10 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.DefaultLoadControl
+import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.hls.HlsMediaSource
+import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
 import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.exoplayer.source.MergingMediaSource
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
@@ -30,19 +32,35 @@ class ZimbaBeatsPlayer(private val context: Context) {
         private const val TAG = "ZimbaBeatsPlayer"
     }
 
-    // Custom LoadControl for better buffering on slow mobile networks
-    // Based on SimpMusic reference implementation
+    // Custom LoadControl compatible with both VOD and 30s YouTube Live HLS windows
     private val loadControl = DefaultLoadControl.Builder()
         .setBufferDurationsMs(
-            30_000,   // Min buffer before playback starts (30 seconds)
-            60_000,   // Max buffer to maintain (60 seconds)
-            2_500,    // Buffer for playback to start (2.5 seconds)
-            5_000     // Buffer for rebuffering (5 seconds)
+            10_000,   // Min buffer (10s - fits comfortably inside 30s YouTube live HLS window)
+            30_000,   // Max buffer to maintain (30s)
+            1_500,    // Buffer for playback to start (1.5s)
+            3_000     // Buffer for rebuffering (3s)
         )
         .setPrioritizeTimeOverSizeThresholds(true)
         .build()
 
-    private val exoPlayer: ExoPlayer = ExoPlayer.Builder(context)
+    private val renderersFactory = DefaultRenderersFactory(context)
+        .setEnableDecoderFallback(true)
+        .setMediaCodecSelector { mimeType, requiresSecureDecoder, requiresTunnelingDecoder ->
+            val decoders = MediaCodecSelector.DEFAULT.getDecoderInfos(
+                mimeType, requiresSecureDecoder, requiresTunnelingDecoder
+            )
+            val isEmulator = android.os.Build.HARDWARE.contains("ranchu", ignoreCase = true) ||
+                android.os.Build.HARDWARE.contains("goldfish", ignoreCase = true) ||
+                android.os.Build.FINGERPRINT.contains("generic", ignoreCase = true)
+            if (isEmulator) {
+                // Deprioritize c2.goldfish.* video decoders on emulator because they crash on HLS adaptive resolution switches
+                decoders.sortedBy { it.name.contains("goldfish", ignoreCase = true) }
+            } else {
+                decoders
+            }
+        }
+
+    private val exoPlayer: ExoPlayer = ExoPlayer.Builder(context, renderersFactory)
         .setLoadControl(loadControl)
         .setSeekBackIncrementMs(10_000) // 10 seconds
         .setSeekForwardIncrementMs(10_000) // 10 seconds
@@ -108,6 +126,13 @@ class ZimbaBeatsPlayer(private val context: Context) {
 
             override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
                 Log.e(TAG, "Player error: ${error.errorCodeName} - ${error.message}")
+                if (error.errorCode == androidx.media3.common.PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW) {
+                    Log.d(TAG, "Recovering from ERROR_CODE_BEHIND_LIVE_WINDOW by seeking to live default position")
+                    exoPlayer.seekToDefaultPosition()
+                    exoPlayer.prepare()
+                    exoPlayer.play()
+                    return
+                }
                 _playerState.value = _playerState.value.copy(isPlaying = false)
             }
 
@@ -151,7 +176,7 @@ class ZimbaBeatsPlayer(private val context: Context) {
             // This matches the ANDROID_MUSIC client used to get the stream URLs
             // Timeouts increased to 30s for slow mobile networks (based on SimpMusic)
             val networkDataSourceFactory = DefaultHttpDataSource.Factory()
-                .setUserAgent("com.google.android.apps.youtube.music/7.03.52 (Linux; U; Android 14) gzip")
+                .setUserAgent("com.google.android.youtube/21.26.364 (Linux; U; Android 11) gzip")
                 .setDefaultRequestProperties(mapOf(
                     "Accept" to "*/*",
                     "Accept-Encoding" to "gzip, deflate",
@@ -201,7 +226,7 @@ class ZimbaBeatsPlayer(private val context: Context) {
         // Create data source factory with Android YouTube Music headers
         // Timeouts increased to 30s for slow mobile networks (based on SimpMusic)
         val dataSourceFactory = DefaultHttpDataSource.Factory()
-            .setUserAgent("com.google.android.apps.youtube.music/7.03.52 (Linux; U; Android 14) gzip")
+            .setUserAgent("com.google.android.youtube/21.26.364 (Linux; U; Android 11) gzip")
             .setDefaultRequestProperties(mapOf(
                 "Accept" to "*/*",
                 "Accept-Encoding" to "gzip, deflate",

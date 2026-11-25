@@ -75,6 +75,10 @@ import com.zimbabeats.core.domain.model.Playlist
 import com.zimbabeats.core.domain.model.Video
 import com.zimbabeats.data.AppPreferences
 import com.zimbabeats.data.AccentColor
+import com.zimbabeats.data.VideoDisplayMode
+import com.zimbabeats.ui.components.EnhancedVideoCard
+import com.zimbabeats.ui.components.VideoDisplayModeToggle
+import com.zimbabeats.ui.components.YouTubeVideoTile
 import com.zimbabeats.ui.accessibility.AccessibilityAnnouncement
 import com.zimbabeats.ui.accessibility.Announcements
 import com.zimbabeats.ui.accessibility.ContentDescriptions
@@ -122,6 +126,7 @@ fun VideoPlayerScreen(
     val uiState by viewModel.uiState.collectAsState()
     val playerState by viewModel.playerState.collectAsState()
     val currentAccentColor by appPreferences.accentColorFlow.collectAsState()
+    val videoDisplayMode by appPreferences.videoDisplayModeFlow.collectAsState()
     val context = LocalContext.current
     val configuration = LocalConfiguration.current
 
@@ -146,8 +151,9 @@ fun VideoPlayerScreen(
             .build()
     )
 
-    LaunchedEffect(thumbnailPainter.state) {
-        val state = thumbnailPainter.state
+    val thumbnailPainterState by thumbnailPainter.state.collectAsState()
+    LaunchedEffect(thumbnailPainterState) {
+        val state = thumbnailPainterState
         if (state is AsyncImagePainter.State.Success) {
             withContext(Dispatchers.Default) {
                 runCatching {
@@ -1057,12 +1063,26 @@ fun VideoPlayerScreen(
                                     // Related Videos Section
                                     if (uiState.relatedVideos.isNotEmpty() || uiState.isLoadingRelated) {
                                         item {
-                                            Text(
-                                                text = "More from ${uiState.video?.channelName ?: "this channel"}",
-                                                style = MaterialTheme.typography.titleMedium,
-                                                color = Color.White,
-                                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
-                                            )
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(
+                                                    text = "More from ${uiState.video?.channelName ?: "this channel"}",
+                                                    style = MaterialTheme.typography.titleMedium,
+                                                    color = Color.White,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis,
+                                                    modifier = Modifier.weight(1f).padding(end = 8.dp)
+                                                )
+                                                VideoDisplayModeToggle(
+                                                    currentMode = videoDisplayMode,
+                                                    onModeSelected = { appPreferences.setVideoDisplayMode(it) }
+                                                )
+                                            }
                                         }
 
                                         if (uiState.isLoadingRelated) {
@@ -1077,15 +1097,55 @@ fun VideoPlayerScreen(
                                                 }
                                             }
                                         } else {
-                                            items(uiState.relatedVideos) { relatedVideo ->
-                                                RelatedVideoItem(
-                                                    video = relatedVideo,
-                                                    onClick = {
-                                                        // Navigate to the related video using queue
-                                                        viewModel.saveProgress()
-                                                        viewModel.playRelatedVideo(relatedVideo)
+                                            val uniqueRelated = uiState.relatedVideos.distinctBy { it.id }
+                                            when (videoDisplayMode) {
+                                                VideoDisplayMode.TILE -> {
+                                                    items(uniqueRelated, key = { "tile_${it.id}" }) { relatedVideo ->
+                                                        YouTubeVideoTile(
+                                                            video = relatedVideo,
+                                                            onClick = {
+                                                                viewModel.saveProgress()
+                                                                viewModel.playRelatedVideo(relatedVideo)
+                                                            },
+                                                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                                                        )
                                                     }
-                                                )
+                                                }
+                                                VideoDisplayMode.GRID -> {
+                                                    items(uniqueRelated.chunked(2)) { rowVideos ->
+                                                        Row(
+                                                            modifier = Modifier
+                                                                .fillMaxWidth()
+                                                                .padding(horizontal = 16.dp, vertical = 6.dp),
+                                                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                                        ) {
+                                                            rowVideos.forEach { relatedVideo ->
+                                                                EnhancedVideoCard(
+                                                                    video = relatedVideo,
+                                                                    onClick = {
+                                                                        viewModel.saveProgress()
+                                                                        viewModel.playRelatedVideo(relatedVideo)
+                                                                    },
+                                                                    modifier = Modifier.weight(1f)
+                                                                )
+                                                            }
+                                                            if (rowVideos.size == 1) {
+                                                                Spacer(modifier = Modifier.weight(1f))
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                                VideoDisplayMode.LIST -> {
+                                                    items(uniqueRelated, key = { "list_${it.id}" }) { relatedVideo ->
+                                                        RelatedVideoItem(
+                                                            video = relatedVideo,
+                                                            onClick = {
+                                                                viewModel.saveProgress()
+                                                                viewModel.playRelatedVideo(relatedVideo)
+                                                            }
+                                                        )
+                                                    }
+                                                }
                                             }
                                         }
 

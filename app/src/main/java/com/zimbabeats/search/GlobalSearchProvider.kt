@@ -55,7 +55,7 @@ class GlobalSearchProvider : ContentProvider(), KoinComponent {
         val cursor = MatrixCursor(COLUMNS)
 
         // Add a primary action to search within the app - this is instant and prevents ANRs
-        cursor.addRow(arrayOf(
+        cursor.addRow(arrayOf<Any?>(
             0,
             "Search ZimbaBeats for '$query'",
             "Find videos and music",
@@ -73,7 +73,7 @@ class GlobalSearchProvider : ContentProvider(), KoinComponent {
                 withTimeout(400) { // Reduced timeout for faster response
                     val videoResult = searchRepository.searchVideosLocally(query).firstOrNull()
                     videoResult?.take(3)?.forEachIndexed { index, video ->
-                        cursor.addRow(arrayOf(
+                        cursor.addRow(arrayOf<Any?>(
                             index + 1,
                             video.title,
                             video.channelName,

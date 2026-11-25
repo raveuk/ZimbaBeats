@@ -148,12 +148,14 @@ class ZimbaBeatsApplication : Application(), SingletonImageLoader.Factory {
     }
 
     private fun initializeParentalControlBridge() {
-        try {
-            val bridge: ParentalControlBridge = get()
-            bridge.initialize()
-            android.util.Log.d("ZimbaBeats", "ParentalControlBridge initialized")
-        } catch (e: Exception) {
-            android.util.Log.e("ZimbaBeats", "Failed to initialize ParentalControlBridge", e)
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val bridge: ParentalControlBridge = get()
+                bridge.initialize()
+                android.util.Log.d("ZimbaBeats", "ParentalControlBridge initialized")
+            } catch (e: Exception) {
+                android.util.Log.e("ZimbaBeats", "Failed to initialize ParentalControlBridge", e)
+            }
         }
     }
 
@@ -170,16 +172,18 @@ class ZimbaBeatsApplication : Application(), SingletonImageLoader.Factory {
     }
 
     private fun initializeCloudSync() {
-        try {
-            val cloudPairingClient: CloudPairingClient = get()
-            if (cloudPairingClient.isPaired()) {
-                cloudPairingClient.startSettingsSync()
-                android.util.Log.d("ZimbaBeats", "Cloud sync started - linked to family")
-            } else {
-                android.util.Log.d("ZimbaBeats", "Not linked to family - skipping cloud sync")
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val cloudPairingClient: CloudPairingClient = get()
+                if (cloudPairingClient.isPaired()) {
+                    cloudPairingClient.startSettingsSync()
+                    android.util.Log.d("ZimbaBeats", "Cloud sync started - linked to family")
+                } else {
+                    android.util.Log.d("ZimbaBeats", "Not linked to family - skipping cloud sync")
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("ZimbaBeats", "Failed to initialize cloud sync", e)
             }
-        } catch (e: Exception) {
-            android.util.Log.e("ZimbaBeats", "Failed to initialize cloud sync", e)
         }
     }
 
@@ -218,6 +222,8 @@ class ZimbaBeatsApplication : Application(), SingletonImageLoader.Factory {
     private fun scheduleYtDlpUpdate() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
+                // Defer WorkManager + RemoteConfig touch until initial UI startup settles
+                kotlinx.coroutines.delay(4000)
                 val remoteConfigManager: RemoteConfigManager = get()
                 com.zimbabeats.worker.YtDlpUpdateWorker.schedule(this@ZimbaBeatsApplication, remoteConfigManager)
             } catch (e: Throwable) {
@@ -235,6 +241,8 @@ class ZimbaBeatsApplication : Application(), SingletonImageLoader.Factory {
     private fun initializeYtDlp() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
+                // Defer heavy Python zip extraction by 3s so it doesn't compete with initial UI composition
+                kotlinx.coroutines.delay(3000)
                 android.util.Log.d("ZimbaBeats", "Initializing yt-dlp Python runtime...")
                 val started = System.currentTimeMillis()
                 com.yausername.youtubedl_android.YoutubeDL.getInstance().init(this@ZimbaBeatsApplication)

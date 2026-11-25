@@ -15,6 +15,7 @@ import com.zimbabeats.data.AccessibilityMode
 import com.zimbabeats.data.AppPreferences
 import com.zimbabeats.data.DownloadNetworkPreference
 import com.zimbabeats.data.ThemeMode
+import com.zimbabeats.data.VideoDisplayMode
 import com.zimbabeats.media.music.MusicPlaybackManager
 import com.zimbabeats.update.ApkDownloader
 import com.zimbabeats.update.DownloadState
@@ -30,6 +31,7 @@ import java.io.File
 
 data class SettingsUiState(
     val preferredQuality: String = "Auto",
+    val videoDisplayMode: VideoDisplayMode = VideoDisplayMode.TILE,
     val downloadNetworkPreference: DownloadNetworkPreference = DownloadNetworkPreference.WIFI_ONLY,
     val parentalControlsEnabled: Boolean = false,
     val themeMode: ThemeMode = ThemeMode.DARK,
@@ -101,6 +103,12 @@ class SettingsViewModel(
         viewModelScope.launch {
             appPreferences.preferredQualityFlow.collect { quality ->
                 _uiState.value = _uiState.value.copy(preferredQuality = quality)
+            }
+        }
+
+        viewModelScope.launch {
+            appPreferences.videoDisplayModeFlow.collect { mode ->
+                _uiState.value = _uiState.value.copy(videoDisplayMode = mode)
             }
         }
 
@@ -229,6 +237,10 @@ class SettingsViewModel(
 
     fun setPreferredQuality(quality: String) {
         appPreferences.setPreferredQuality(quality)
+    }
+
+    fun setVideoDisplayMode(mode: VideoDisplayMode) {
+        appPreferences.setVideoDisplayMode(mode)
     }
 
     fun setDownloadNetworkPreference(preference: DownloadNetworkPreference) {

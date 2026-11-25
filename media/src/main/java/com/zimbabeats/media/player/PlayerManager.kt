@@ -6,8 +6,10 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.DefaultLoadControl
+import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.hls.HlsMediaSource
+import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
 import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.datasource.DefaultHttpDataSource
@@ -38,7 +40,7 @@ object PlayerManager {
             applicationContext = context.applicationContext
 
             // Custom LoadControl for better buffering on slow mobile networks
-            // Based on SimpMusic reference implementation
+            // Optimized buffer configuration for mobile networks
             val loadControl = DefaultLoadControl.Builder()
                 .setBufferDurationsMs(
                     30_000,   // Min buffer before playback starts (30 seconds)
@@ -49,7 +51,23 @@ object PlayerManager {
                 .setPrioritizeTimeOverSizeThresholds(true)
                 .build()
 
-            exoPlayer = ExoPlayer.Builder(context.applicationContext)
+            val renderersFactory = DefaultRenderersFactory(context.applicationContext)
+                .setEnableDecoderFallback(true)
+                .setMediaCodecSelector { mimeType, requiresSecureDecoder, requiresTunnelingDecoder ->
+                    val decoders = MediaCodecSelector.DEFAULT.getDecoderInfos(
+                        mimeType, requiresSecureDecoder, requiresTunnelingDecoder
+                    )
+                    val isEmulator = android.os.Build.HARDWARE.contains("ranchu", ignoreCase = true) ||
+                        android.os.Build.HARDWARE.contains("goldfish", ignoreCase = true) ||
+                        android.os.Build.FINGERPRINT.contains("generic", ignoreCase = true)
+                    if (isEmulator) {
+                        decoders.sortedBy { it.name.contains("goldfish", ignoreCase = true) }
+                    } else {
+                        decoders
+                    }
+                }
+
+            exoPlayer = ExoPlayer.Builder(context.applicationContext, renderersFactory)
                 .setLoadControl(loadControl)
                 .setSeekBackIncrementMs(10_000)
                 .setSeekForwardIncrementMs(10_000)

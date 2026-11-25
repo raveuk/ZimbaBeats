@@ -29,6 +29,18 @@ enum class AccessibilityMode(val displayName: String) {
     ALWAYS_OFF("Always off")
 }
 
+/**
+ * Video layout display options (YouTube-style tiles, 2-column grid, or compact detail list)
+ */
+enum class VideoDisplayMode(
+    val displayName: String,
+    val description: String
+) {
+    TILE("YouTube Tiles", "Large 16:9 video tiles like YouTube"),
+    GRID("2-Column Grid", "Compact two-column video tiles"),
+    LIST("Detail List", "Compact rows with thumbnail on the left")
+}
+
 // DataStore extension
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "zimbabeats_settings")
 
@@ -42,6 +54,7 @@ class AppPreferences(private val context: Context) {
     companion object {
         // Keys
         private val KEY_PREFERRED_QUALITY = stringPreferencesKey("preferred_quality")
+        private val KEY_VIDEO_DISPLAY_MODE = stringPreferencesKey("video_display_mode")
         private val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
         private val KEY_ACCENT_COLOR = stringPreferencesKey("accent_color")
         private val KEY_DOWNLOAD_NETWORK = stringPreferencesKey("download_network")
@@ -122,6 +135,18 @@ class AppPreferences(private val context: Context) {
             preferences[KEY_PREFERRED_QUALITY] ?: QUALITY_AUTO
         }
         .stateIn(scope, SharingStarted.Eagerly, QUALITY_AUTO)
+
+    // Video Display Mode Flow (default: TILE - YouTube style)
+    val videoDisplayModeFlow: StateFlow<VideoDisplayMode> = context.dataStore.data
+        .map { preferences ->
+            val value = preferences[KEY_VIDEO_DISPLAY_MODE] ?: VideoDisplayMode.TILE.name
+            try {
+                VideoDisplayMode.valueOf(value)
+            } catch (e: IllegalArgumentException) {
+                VideoDisplayMode.TILE
+            }
+        }
+        .stateIn(scope, SharingStarted.Eagerly, VideoDisplayMode.TILE)
 
     // Download Network Preference Flow
     val downloadNetworkFlow: StateFlow<DownloadNetworkPreference> = context.dataStore.data
@@ -297,6 +322,14 @@ class AppPreferences(private val context: Context) {
         scope.launch {
             context.dataStore.edit { preferences ->
                 preferences[KEY_PREFERRED_QUALITY] = quality
+            }
+        }
+    }
+
+    fun setVideoDisplayMode(mode: VideoDisplayMode) {
+        scope.launch {
+            context.dataStore.edit { preferences ->
+                preferences[KEY_VIDEO_DISPLAY_MODE] = mode.name
             }
         }
     }

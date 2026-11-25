@@ -51,7 +51,7 @@ dependencies {
     implementation("androidx.annotation:annotation:1.10.0")
 
     // WebView (used for BotGuard/PoToken generation to fix YouTube stream 403s)
-    implementation("androidx.webkit:webkit:1.17.0")
+    implementation("androidx.webkit:webkit:1.18.0")
 
     // Room
     implementation(libs.androidx.room.runtime)
@@ -66,7 +66,7 @@ dependencies {
     implementation(libs.ktor.client.logging)
 
     // OkHttp (for NewPipe downloader)
-    implementation("com.squareup.okhttp3:okhttp:5.5.0")
+    implementation("com.squareup.okhttp3:okhttp:5.5.1")
 
     // Kotlinx Serialization
     implementation(libs.kotlinx.serialization.json)

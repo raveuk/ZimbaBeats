@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -35,6 +36,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.zimbabeats.core.domain.model.Video
+import com.zimbabeats.data.VideoDisplayMode
 import com.zimbabeats.ui.accessibility.formatDurationForAccessibility
 import com.zimbabeats.ui.theme.*
 
@@ -485,6 +487,275 @@ fun ErrorState(
             Spacer(modifier = Modifier.width(8.dp))
             Text("Retry")
         }
+    }
+}
+
+/**
+ * YouTube-style full-width 16:9 video feed tile with duration/LIVE badge,
+ * channel avatar initial badge, 2-line title, and channel/views metadata.
+ */
+@Composable
+fun YouTubeVideoTile(
+    video: Video,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    trailing: (@Composable () -> Unit)? = null
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.98f else 1f,
+        label = "yt_tile_scale"
+    )
+
+    val progress = video.progress
+    val hasProgress = progress != null && progress.progressPercentage > 0f
+    val isLive = video.duration <= 0L && (
+        video.title.contains("LIVE", ignoreCase = true) ||
+            video.title.contains("EN VIVO", ignoreCase = true) ||
+            video.title.contains("🔴")
+        )
+
+    val durationText = if (video.duration > 0) formatDurationForAccessibility(video.duration * 1000) else ""
+    val accessibilityDescription = "${video.title} by ${video.channelName}${if (durationText.isNotEmpty()) ", $durationText" else ""}. Double tap to play."
+
+    val tileShape = RoundedCornerShape(14.dp)
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .scale(scale)
+            .clip(tileShape)
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+            .semantics {
+                contentDescription = accessibilityDescription
+                role = Role.Button
+            }
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            )
+    ) {
+        // 16:9 Full-width Thumbnail
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(16f / 9f)
+                .clip(RoundedCornerShape(12.dp))
+                .clearAndSetSemantics { }
+        ) {
+            AsyncImage(
+                model = video.thumbnailUrl,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+
+            // Subtle bottom gradient for badge legibility
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                Color.Transparent,
+                                Color.Black.copy(alpha = 0.45f)
+                            )
+                        )
+                    )
+            )
+
+            // LIVE badge or Duration badge (bottom-right)
+            if (isLive) {
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(end = 8.dp, bottom = if (hasProgress) 12.dp else 8.dp),
+                    color = Color(0xFFE50914),
+                    shape = RoundedCornerShape(4.dp)
+                ) {
+                    Text(
+                        text = "● LIVE",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
+            } else if (video.duration > 0) {
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(end = 8.dp, bottom = if (hasProgress) 12.dp else 8.dp),
+                    color = Color.Black.copy(alpha = 0.85f),
+                    shape = RoundedCornerShape(4.dp)
+                ) {
+                    Text(
+                        text = formatDuration(video.duration),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
+            }
+
+            // Resume progress bar at bottom of thumbnail
+            if (hasProgress && progress != null) {
+                LinearProgressIndicator(
+                    progress = { progress.progressPercentage },
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .fillMaxWidth()
+                        .height(3.dp),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = Color.Black.copy(alpha = 0.5f)
+                )
+            }
+        }
+
+        // Metadata row below thumbnail (YouTube style: channel avatar + title/subtitle + optional trailing action)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.Top
+        ) {
+            // Channel avatar circle with initial
+            val channelInitial = video.channelName
+                .trim()
+                .firstOrNull { it.isLetterOrDigit() }
+                ?.uppercaseChar()
+                ?.toString() ?: "▶"
+
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = channelInitial,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = video.title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                val metaText = buildString {
+                    append(video.channelName.ifBlank { "YouTube" })
+                    if (video.viewCount > 0) {
+                        append(" • ${formatViewCount(video.viewCount)} views")
+                    }
+                    if (video.duration > 0) {
+                        append(" • ${formatDuration(video.duration)}")
+                    }
+                }
+                Text(
+                    text = metaText,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            if (trailing != null) {
+                trailing()
+            }
+        }
+    }
+}
+
+/**
+ * Compact display mode switcher allowing users to toggle between
+ * YouTube Tiles (TILE), 2-Column Grid (GRID), and Detail List (LIST).
+ */
+@Composable
+fun VideoDisplayModeToggle(
+    currentMode: VideoDisplayMode,
+    onModeSelected: (VideoDisplayMode) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            val modes = listOf(
+                Triple(VideoDisplayMode.TILE, Icons.Default.ViewAgenda, "YouTube Tiles"),
+                Triple(VideoDisplayMode.GRID, Icons.Default.GridView, "2-Column Grid"),
+                Triple(VideoDisplayMode.LIST, Icons.AutoMirrored.Filled.ViewList, "Detail List")
+            )
+            modes.forEach { (mode, icon, label) ->
+                val selected = currentMode == mode
+                Surface(
+                    onClick = { onModeSelected(mode) },
+                    shape = RoundedCornerShape(16.dp),
+                    color = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                    modifier = Modifier.semantics {
+                        contentDescription = "$label display mode"
+                        stateDescription = if (selected) "Selected" else "Not selected"
+                    }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = if (selected) MaterialTheme.colorScheme.onPrimary
+                            else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        if (selected) {
+                            Text(
+                                text = when (mode) {
+                                    VideoDisplayMode.TILE -> "Tiles"
+                                    VideoDisplayMode.GRID -> "Grid"
+                                    VideoDisplayMode.LIST -> "List"
+                                },
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun formatViewCount(views: Long): String {
+    return when {
+        views >= 1_000_000_000L -> String.format("%.1fB", views / 1_000_000_000.0)
+        views >= 1_000_000L -> String.format("%.1fM", views / 1_000_000.0)
+        views >= 1_000L -> String.format("%.1fK", views / 1_000.0)
+        else -> views.toString()
     }
 }
 

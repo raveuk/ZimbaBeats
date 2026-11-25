@@ -108,12 +108,14 @@ class DownloadTelemetry(@Suppress("UNUSED_PARAMETER") context: Context) {
      * a custom key so the Crashlytics issue groups by it.
      */
     fun recordNonFatal(reason: String, throwable: Throwable?) {
-        crashlytics.setCustomKey("dl_failure_reason", reason)
-        if (throwable != null) {
-            crashlytics.recordException(throwable)
-        } else {
-            // Synthesize a throwable so the issue lands in Crashlytics with a useful title.
-            crashlytics.recordException(DownloadFailure(reason))
+        runCatching {
+            crashlytics.setCustomKey("dl_failure_reason", reason)
+            if (throwable != null) {
+                crashlytics.recordException(throwable)
+            } else {
+                // Synthesize a throwable so the issue lands in Crashlytics with a useful title.
+                crashlytics.recordException(DownloadFailure(reason))
+            }
         }
     }
 
