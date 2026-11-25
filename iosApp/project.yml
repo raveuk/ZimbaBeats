@@ -1,0 +1,33 @@
+name: ZimbaBeats
+options:
+  bundleIdPrefix: com.zimbabeats
+  deploymentTarget:
+    iOS: "16.0"
+  xcodeVersion: "16.0"
+
+settings:
+  base:
+    PRODUCT_BUNDLE_IDENTIFIER: com.zimbabeats.ios
+    MARKETING_VERSION: "1.0.96"
+    CURRENT_PROJECT_VERSION: "96"
+    INFOPLIST_FILE: ZimbaBeats/Info.plist
+    ENABLE_BITCODE: NO
+
+targets:
+  ZimbaBeats:
+    type: application
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - path: ZimbaBeats
+    settings:
+      base:
+        FRAMEWORK_SEARCH_PATHS:
+          - "$(inherited)"
+          - "$(SRCROOT)/../shared/build/bin/iosArm64/releaseFramework"
+          - "$(SRCROOT)/../shared/build/bin/iosSimulatorArm64/releaseFramework"
+        OTHER_LDFLAGS:
+          - "$(inherited)"
+          - "-framework"
+          - "Shared"
+          - "-lsqlite3"
